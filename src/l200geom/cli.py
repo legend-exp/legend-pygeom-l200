@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import argparse
 import logging
-import sys
 
 from pyg4ometry import gdml
 
-from . import version
+from . import _version
 from .core import construct
 
 log = logging.getLogger(__name__)
@@ -20,7 +19,10 @@ def dump_gdml_cli() -> None:
 
     # global options
     parser.add_argument(
-        "--version", action="store_true", help="""Print pygama version and exit"""
+        "--version",
+        action="version",
+        help="""Print %(prog)s version and exit""",
+        version=_version.__version__,  # noqa: T201
     )
     parser.add_argument(
         "--verbose",
@@ -34,6 +36,12 @@ def dump_gdml_cli() -> None:
         action="store_true",
         help="""Increase the program verbosity to maximum""",
     )
+    parser.add_argument(
+        "--visualize",
+        "-V",
+        action="store_true",
+        help="""Open a VTK visualization of the generated geometry""",
+    )
 
     parser.add_argument(
         "filename",
@@ -45,14 +53,20 @@ def dump_gdml_cli() -> None:
 
     if args.verbose:
         logging.getLogger("l200geom").setLevel(logging.DEBUG)
-    elif args.debug:
+    if args.debug:
         logging.root.setLevel(logging.DEBUG)
-
-    if args.version:
-        print(version.__version__)  # noqa: T201
-        sys.exit()
 
     log.info(f"exporting GDML geometry to {args.filename}")
     w = gdml.Writer()
-    w.addDetector(construct())
+    registry = construct()
+    w.addDetector(registry)
     w.write(args.filename)
+
+    if args.visualize:
+        log.info("visualizing...")
+        from pyg4ometry import visualisation
+
+        v = visualisation.VtkViewer()
+        v.addLogicalVolume(registry.worldVolume)
+        v.addAxes(length=5000)
+        v.view()

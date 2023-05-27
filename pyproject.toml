@@ -16,7 +16,8 @@ xfail_strict = true
 filterwarnings = [
     "error",
     "ignore::PendingDeprecationWarning:pyg4ometry",
-    "ignore::DeprecationWarning:pyg4ometry"
+    "ignore::DeprecationWarning:pyg4ometry",
+    "ignore::DeprecationWarning:pkg_resources"
 ]
 log_cli_level = "info"
 testpaths = "tests"
