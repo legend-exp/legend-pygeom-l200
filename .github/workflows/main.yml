@@ -24,7 +24,7 @@ jobs:
         os: [ubuntu-latest, macOS-latest]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
       with:
@@ -37,7 +37,7 @@ jobs:
       run: |
         echo "LEGEND_METADATA=$GITHUB_WORKSPACE/legend-metadata" >> $GITHUB_ENV
     - name: Clone legend-metadata
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: legend-exp/legend-metadata
         fetch-depth: 0
@@ -53,7 +53,7 @@ jobs:
     needs: build-and-test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 2
       - uses: actions/setup-python@v3
@@ -64,7 +64,7 @@ jobs:
         run: |
           echo "LEGEND_METADATA=$GITHUB_WORKSPACE/legend-metadata" >> $GITHUB_ENV
       - name: Clone legend-metadata
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: legend-exp/legend-metadata
           fetch-depth: 0
@@ -85,7 +85,7 @@ jobs:
     needs: build-and-test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - uses: actions/setup-python@v3
@@ -96,7 +96,7 @@ jobs:
         run: |
           echo "LEGEND_METADATA=$GITHUB_WORKSPACE/legend-metadata" >> $GITHUB_ENV
       - name: Clone legend-metadata
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: legend-exp/legend-metadata
           fetch-depth: 0
