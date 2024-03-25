@@ -5,8 +5,7 @@ import logging
 
 from pyg4ometry import gdml
 
-from . import _version
-from .core import construct
+from . import _version, core
 
 log = logging.getLogger(__name__)
 
@@ -42,9 +41,20 @@ def dump_gdml_cli() -> None:
         action="store_true",
         help="""Open a VTK visualization of the generated geometry""",
     )
+    parser.add_argument(
+        "--check-overlaps",
+        action="store_true",
+        help="""Check for overlaps with pyg4ometryy""",
+    )
 
     # options for geometry generation.
     geom_opts = parser.add_argument_group("geometry options")
+    geom_opts.add_argument(
+        "--assemblies",
+        action="store",
+        default=",".join(core.DEFINED_ASSEMBLIES),
+        help="""Select the assemblies to generate in the output. (default: %(default)s)""",
+    )
     geom_opts.add_argument(
         "--fiber-modules",
         action="store",
@@ -55,25 +65,38 @@ def dump_gdml_cli() -> None:
 
     parser.add_argument(
         "filename",
-        default="l200.gdml",
+        default="",
+        nargs="?",
         help="""File name for the output GDML geometry.""",
     )
 
     args = parser.parse_args()
+
+    if not args.visualize and args.filename == "":
+        msg = "no output file and no visualization specified"
+        raise ValueError(msg)
 
     if args.verbose:
         logging.getLogger("l200geom").setLevel(logging.DEBUG)
     if args.debug:
         logging.root.setLevel(logging.DEBUG)
 
-    msg = f"exporting GDML geometry to {args.filename}"
-    log.info(msg)
-    w = gdml.Writer()
-    registry = construct(
+    registry = core.construct(
+        assemblies=args.assemblies.split(","),
         use_detailed_fiber_model=args.fiber_modules == "detailed",
     )
-    w.addDetector(registry)
-    w.write(args.filename)
+
+    if args.check_overlaps:
+        msg = "checking for overlaps"
+        log.info(msg)
+        registry.worldVolume.checkOverlaps(recursive=True)
+
+    if args.filename != "":
+        msg = f"exporting GDML geometry to {args.filename}"
+        log.info(msg)
+        w = gdml.Writer()
+        w.addDetector(registry)
+        w.write(args.filename)
 
     if args.visualize:
         log.info("visualizing...")
