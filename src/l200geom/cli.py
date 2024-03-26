@@ -42,9 +42,14 @@ def dump_gdml_cli() -> None:
         help="""Open a VTK visualization of the generated geometry""",
     )
     parser.add_argument(
+        "--vis-macro-file",
+        action="store",
+        help="""Filename to write a Geant4 macro file containing visualization attributes""",
+    )
+    parser.add_argument(
         "--check-overlaps",
         action="store_true",
-        help="""Check for overlaps with pyg4ometryy""",
+        help="""Check for overlaps with pyg4ometry (note: this might not be accurate)""",
     )
 
     # options for geometry generation.
@@ -73,8 +78,9 @@ def dump_gdml_cli() -> None:
     args = parser.parse_args()
 
     if not args.visualize and args.filename == "":
-        msg = "no output file and no visualization specified"
-        raise ValueError(msg)
+        parser.error("no output file and no visualization specified")
+    if args.vis_macro_file and args.filename == "":
+        parser.error("writing visualization macro file without gdml file is not possible")
 
     if args.verbose:
         logging.getLogger("l200geom").setLevel(logging.DEBUG)
@@ -97,6 +103,11 @@ def dump_gdml_cli() -> None:
         w = gdml.Writer()
         w.addDetector(registry)
         w.write(args.filename)
+
+    if args.vis_macro_file:
+        from . import vis_utils
+
+        vis_utils.generate_color_macro(registry, args.vis_macro_file)
 
     if args.visualize:
         log.info("visualizing...")
