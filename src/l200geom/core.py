@@ -3,7 +3,6 @@ from __future__ import annotations
 from importlib import resources
 
 from legendmeta import LegendMetadata, TextDB
-import pyg4ometry
 from pyg4ometry import geant4
 
 from . import calibration, cryo, fibers, hpge_strings, materials, top, wlsr
