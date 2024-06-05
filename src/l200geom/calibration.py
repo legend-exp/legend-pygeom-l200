@@ -31,43 +31,31 @@ def place_calibration_system(
         msg = "registry cannot be None"
         raise ValueError(msg)
 
+    # all positions from MaGe, might be incorrect!
+    # calib_1_xy = (121.472, -96.277)  # to fix overlaps, not the physical position.
+    calib_1_xy = (118.4352, -93.870075)
+    calib_2_xy = (-120.9667, -96.9126)
+    # calib_3_xy = (-121.304, 96.48977)  # to fix overlaps, not the physical position.
+    calib_3_xy = (-118.4352, 93.870075)
+    # calib_4_xy = (121.135, 96.70)  # to fix overlaps, not the physical position.
+    calib_4_xy = (1120.9667, 96.9126)
+
     # place calibration tubes.
     calib_tube_length = 1400  # note: just a rough guess from MaGe
     calib_tube = hpge_strings._get_nylon_mini_shroud(20, calib_tube_length, materials, registry)
     calib_tube_z = z0 - calib_tube_length / 2
 
-    # all positions from MaGe, might be incorrect!
     geant4.PhysicalVolume(
-        [0, 0, 0],
-        [121.472, -96.277, calib_tube_z],
-        calib_tube,
-        "calibration_tube_1",
-        mothervolume,
-        registry,
+        [0, 0, 0], [*calib_1_xy, calib_tube_z], calib_tube, "calibration_tube_1", mothervolume, registry
     )
     geant4.PhysicalVolume(
-        [0, 0, 0],
-        [-120.9667, -96.9126, calib_tube_z],
-        calib_tube,
-        "calibration_tube_2",
-        mothervolume,
-        registry,
+        [0, 0, 0], [*calib_2_xy, calib_tube_z], calib_tube, "calibration_tube_2", mothervolume, registry
     )
     geant4.PhysicalVolume(
-        [0, 0, 0],
-        [-121.304, 96.48977, calib_tube_z],
-        calib_tube,
-        "calibration_tube_3",
-        mothervolume,
-        registry,
+        [0, 0, 0], [*calib_3_xy, calib_tube_z], calib_tube, "calibration_tube_3", mothervolume, registry
     )
     geant4.PhysicalVolume(
-        [0, 0, 0],
-        [121.135, 96.70, calib_tube_z],
-        calib_tube,
-        "calibration_tube_4",
-        mothervolume,
-        registry,
+        [0, 0, 0], [*calib_4_xy, calib_tube_z], calib_tube, "calibration_tube_4", mothervolume, registry
     )
 
     # build and place the calibration sources and absorbers
@@ -92,10 +80,10 @@ def place_calibration_system(
 
     base_position = {}
     # Define the z position for the lowest sample and the x,y position as well according to l200.
-    base_position[1] = [121.472, -96.277, height[1] + 1 / 2 * absorber_height + 1 / 2 * source_height]
-    base_position[2] = [-120.9667, -96.9126, height[2] + 1 / 2 * absorber_height + 1 / 2 * source_height]
-    base_position[3] = [-121.304, 96.48977, height[3] + 1 / 2 * absorber_height + 1 / 2 * source_height]
-    base_position[4] = [121.135, 96.70, height[4] + 1 / 2 * absorber_height + 1 / 2 * source_height]
+    base_position[1] = [*calib_1_xy, height[1] + 1 / 2 * absorber_height + 1 / 2 * source_height]
+    base_position[2] = [*calib_2_xy, height[2] + 1 / 2 * absorber_height + 1 / 2 * source_height]
+    base_position[3] = [*calib_3_xy, height[3] + 1 / 2 * absorber_height + 1 / 2 * source_height]
+    base_position[4] = [*calib_4_xy, height[4] + 1 / 2 * absorber_height + 1 / 2 * source_height]
 
     second_lowest_source_pos = (
         98 + 1.2 + source_height
