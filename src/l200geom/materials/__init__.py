@@ -52,6 +52,8 @@ class OpticalMaterialRegistry:
         self._add_element(name="Cobalt", symbol="Co", Z=27, A=58.9332)
         self._add_element(name="Nickel", symbol="Ni", Z=28, A=58.6934)
         self._add_element(name="Copper", symbol="Cu", Z=29, A=63.55)
+        self._add_element(name="Tantalum", symbol="Ta", Z=73, A=180.95)
+        self._add_element(name="Thorium", symbol="Th", Z=90, A=228)
 
     @property
     def liquidargon(self) -> g4.Material:
@@ -117,12 +119,44 @@ class OpticalMaterialRegistry:
         self._metal_silicon = g4.Material(
             name="metal_silicon",
             density=2.330,
-            number_of_components=5,
+            number_of_components=1,
             registry=self.g4_registry,
         )
         self._metal_silicon.add_element_natoms(self.get_element("Si"), natoms=1)
 
         return self._metal_silicon
+        
+    @property
+    def metal_tantalum(self) -> g4.Material:
+        """Tantalum."""
+        if hasattr(self, "_metal_tantalum"):
+            return self._metal_tantalum
+
+        self._metal_tantalum = g4.Material(
+            name="metal_tantalum",
+            density=16.650,
+            number_of_components=1,
+            registry=self.g4_registry,
+        )
+        self._metal_tantalum.add_element_natoms(self.get_element("Ta"), natoms=1)
+
+        return self._metal_tantalum
+        
+    @property
+    def radio_thorium(self) -> g4.Material:
+        """Thorium."""
+        if hasattr(self, "_radio_thorium"):
+            return self._radio_thorium
+
+        self._radio_thorium = g4.Material(
+            name="radio_thorium",
+            density=11.724,
+            number_of_components=1,
+            registry=self.g4_registry,
+        )
+        self._radio_thorium.add_element_natoms(self.get_element("Th"), natoms=1)
+
+        return self._radio_thorium
 
     @property
     def metal_copper(self) -> g4.Material:
