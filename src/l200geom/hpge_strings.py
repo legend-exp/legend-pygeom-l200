@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import math
+import sys
 from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
@@ -99,45 +100,6 @@ def place_hpge_strings(
     # now, build all strings.
     for string_id, string in strings_to_build.items():
         _place_hpge_string(string_id, string, hpge_string_config, z0, mothervolume, materials, registry)
-
-    # place calibration tubes.
-    calib_tube_length = 1400  # note: just a rough guess from MaGe
-    calib_tube = _get_nylon_mini_shroud(20, calib_tube_length, materials, registry)
-    calib_tube_z = z0 - calib_tube_length / 2
-
-    # all positions from MaGe, might be incorrect!
-    geant4.PhysicalVolume(
-        [0, 0, 0],
-        [121.472, -96.277, calib_tube_z],
-        calib_tube,
-        "calibration_tube_1",
-        mothervolume,
-        registry,
-    )
-    geant4.PhysicalVolume(
-        [0, 0, 0],
-        [-120.9667, -96.9126, calib_tube_z],
-        calib_tube,
-        "calibration_tube_2",
-        mothervolume,
-        registry,
-    )
-    geant4.PhysicalVolume(
-        [0, 0, 0],
-        [-121.304, 96.48977, calib_tube_z],
-        calib_tube,
-        "calibration_tube_3",
-        mothervolume,
-        registry,
-    )
-    geant4.PhysicalVolume(
-        [0, 0, 0],
-        [121.135, 96.70, calib_tube_z],
-        calib_tube,
-        "calibration_tube_4",
-        mothervolume,
-        registry,
-    )
 
 
 @dataclass

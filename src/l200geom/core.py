@@ -3,14 +3,15 @@ from __future__ import annotations
 from importlib import resources
 
 from legendmeta import LegendMetadata, TextDB
+import pyg4ometry
 from pyg4ometry import geant4
 
-from . import cryo, fibers, hpge_strings, materials, wlsr
+from . import cryo, fibers, hpge_strings, materials, wlsr, calibration
 
 lmeta = LegendMetadata()
 configs = TextDB(resources.files("l200geom") / "configs")
 
-DEFINED_ASSEMBLIES = ["wlsr", "strings", "fibers"]
+DEFINED_ASSEMBLIES = ["wlsr", "strings", "fibers", "calibration"]
 
 
 def construct(
@@ -66,5 +67,9 @@ def construct(
         fibers.place_fiber_modules(
             fiber_modules, channelmap, lar_lv, lar_pv, mats, reg, use_detailed_fiber_model
         )
+    
+    #place the calibration system
+    if "calibration" in assemblies:
+        calibration.place_calibration_system(1700, lar_lv, mats, reg)
 
     return reg
