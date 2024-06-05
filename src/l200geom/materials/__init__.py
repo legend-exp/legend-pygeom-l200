@@ -125,7 +125,7 @@ class OpticalMaterialRegistry:
         self._metal_silicon.add_element_natoms(self.get_element("Si"), natoms=1)
 
         return self._metal_silicon
-        
+
     @property
     def metal_tantalum(self) -> g4.Material:
         """Tantalum."""
@@ -141,7 +141,7 @@ class OpticalMaterialRegistry:
         self._metal_tantalum.add_element_natoms(self.get_element("Ta"), natoms=1)
 
         return self._metal_tantalum
-        
+
     @property
     def radio_thorium(self) -> g4.Material:
         """Thorium."""
