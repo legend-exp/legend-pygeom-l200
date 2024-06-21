@@ -25,8 +25,8 @@ If you do not intend to edit the python code in this geometry package, you can
 omit the `-e` option.
 
 After installation, the CLI utility `legend-pygeom-l200` is provided on your
-PATH. This CLI utility is the primary way to interact with this package. For now,
-you can find usage docs by running `legend-pygeom-l200 -h`.
+PATH. This CLI utility is the primary way to interact with this package. For
+now, you can find usage docs by running `legend-pygeom-l200 -h`.
 
 ## Visualization of the geometry
 
