@@ -4,6 +4,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 > [!WARNING]
+> 
 > This is an early version of the LEGEND-200 geometry implemented with the
 > python-based simulation stack. It is not a drop-in replacement for MaGe,
 > and still under heavy development!
