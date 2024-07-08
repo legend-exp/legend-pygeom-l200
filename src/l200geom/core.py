@@ -5,12 +5,12 @@ from importlib import resources
 from legendmeta import LegendMetadata, TextDB
 from pyg4ometry import geant4
 
-from . import cryo, fibers, hpge_strings, materials, top, wlsr
+from . import calibration, cryo, fibers, hpge_strings, materials, top, wlsr
 
 lmeta = LegendMetadata()
 configs = TextDB(resources.files("l200geom") / "configs")
 
-DEFINED_ASSEMBLIES = ["wlsr", "strings", "fibers", "top"]
+DEFINED_ASSEMBLIES = ["wlsr", "strings", "calibration", "fibers", "top"]
 
 
 def construct(
@@ -62,6 +62,8 @@ def construct(
 
     if "strings" in assemblies:
         hpge_strings.place_hpge_strings(channelmap, hpge_string_config, top_plate_z_pos, lar_lv, mats, reg)
+    if "calibration" in assemblies:
+        calibration.place_calibration_system(top_plate_z_pos, lar_lv, mats, reg)
     if "top" in assemblies:
         top.place_top_plate(top_plate_z_pos, lar_lv, mats, reg)
 

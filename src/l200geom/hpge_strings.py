@@ -101,25 +101,6 @@ def place_hpge_strings(
     for string_id, string in strings_to_build.items():
         _place_hpge_string(string_id, string, hpge_string_config, z0, mothervolume, materials, registry)
 
-    # place calibration tubes.
-    calib_tube_length = 1400  # note: just a rough guess from MaGe
-    calib_tube = _get_nylon_mini_shroud(18.25, calib_tube_length, materials, registry)  # radius from CAD.
-    calib_tube_z = z0 - calib_tube_length / 2
-
-    # all positions from CAD model.
-    calib_tube_r = 155  # mm
-    calib_tube_phi = np.deg2rad(np.array([338.57, 261.43, 158.57, 81.43]))
-    calib_tube_xy = np.array([calib_tube_r * np.cos(calib_tube_phi), -calib_tube_r * np.sin(calib_tube_phi)])
-    for i in range(4):
-        geant4.PhysicalVolume(
-            [0, 0, 0],
-            [*calib_tube_xy[:, i], calib_tube_z],
-            calib_tube,
-            f"calibration_tube_{i+1}",
-            mothervolume,
-            registry,
-        )
-
 
 @dataclass
 class HPGeDetUnit:
@@ -227,7 +208,9 @@ def _place_hpge_string(
 
     # TODO: offset 6 is from MaGe. This is quite certainly incorrect, the mini shrouds extend above the string!
     shroud_length = total_rod_length + 6
-    ms = _get_nylon_mini_shroud(string_meta.minishroud_radius_in_mm, shroud_length, materials, registry)
+    ms = _get_nylon_mini_shroud(
+        string_meta.minishroud_radius_in_mm, shroud_length, False, materials, registry
+    )
     geant4.PhysicalVolume(
         [0, 0, 0],
         [x_pos, y_pos, z0_string - shroud_length / 2 + 0.1],  # add the shroud thickness to avoid overlaps.
@@ -329,6 +312,7 @@ def _get_support_structure(
 def _get_nylon_mini_shroud(
     radius: int,
     length: int,
+    top_open: bool,
     materials: materials.OpticalMaterialRegistry,
     registry: geant4.Registry,
 ) -> geant4.LogicalVolume:
@@ -338,19 +322,22 @@ def _get_nylon_mini_shroud(
     """
     shroud_name = f"minishroud_{radius}x{length}"
     if shroud_name not in _minishroud_cache:
-        shroudThickness = 0.1  # mm
+        shroudThickness = 0.125  # mm
+        endThickness = 2 * shroudThickness
         outer = geant4.solid.Tubs(f"{shroud_name}_outer", 0, radius, length, 0, 2 * math.pi, registry)
         inner = geant4.solid.Tubs(
             f"{shroud_name}_inner",
             0,
             radius - shroudThickness,
-            length - 2 * shroudThickness,
+            # at the top/bottom, the NMS has essentially two layers.
+            length - (0 if top_open else 2 * endThickness),
             0,
             2 * math.pi,
             registry,
         )
         # subtract the slightly smaller solid from the larger one, to get a hollow and closed volume.
-        shroud = geant4.solid.Subtraction(shroud_name, outer, inner, [[0, 0, 0], [0, 0, 0]], registry)
+        inner_z = (1 if top_open else 0) * endThickness
+        shroud = geant4.solid.Subtraction(shroud_name, outer, inner, [[0, 0, 0], [0, 0, inner_z]], registry)
         _minishroud_cache[shroud_name] = geant4.LogicalVolume(
             shroud,
             materials.tpb_on_nylon,
