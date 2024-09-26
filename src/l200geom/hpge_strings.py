@@ -124,6 +124,15 @@ def _place_hpge_string(
         det_pv.pygeom_active_dector = RemageDetectorInfo("germanium", det_unit.rawid)
         det_unit.lv.pygeom_color_rgba = (0, 1, 1, 1)
 
+        # add germanium reflective surface.
+        geant4.BorderSurface(
+            "bsurface_lar_ge_" + det_pv.name,
+            b.mother_pv,
+            det_pv,
+            b.materials.surfaces.to_germanium,
+            b.registry,
+        )
+
         baseplate = det_unit.baseplate
         # a lot of Ortec detectors have modified medium plates.
         if (

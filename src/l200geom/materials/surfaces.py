@@ -66,7 +66,7 @@ class OpticalSurfaceRegistry:
         if hasattr(self, "_to_germanium"):
             return self._to_germanium
 
-        self._to_copper = g4.solid.OpticalSurface(
+        self._to_germanium = g4.solid.OpticalSurface(
             "surface_to_germanium",
             finish="ground",
             model=self._model,
