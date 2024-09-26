@@ -10,6 +10,8 @@ import numpy as np
 import pint
 import pyg4ometry.geant4 as g4
 
+from .ketek_sipm import ketek_sipm_efficiency
+
 u = pint.get_application_registry()
 
 
@@ -125,8 +127,7 @@ class OpticalSurfaceRegistry:
         )
 
         # add custom efficiency for the KETEK SiPMs. This is not part of legendoptics.
-        λ = np.array([100, 280, 310, 350, 400, 435, 505, 525, 595, 670][::-1]) * u.nm
-        eff = np.array([0.0, 0.19, 0.30, 0.32, 0.33, 0.32, 0.27, 0.19, 0.12, 0.07][::-1])
+        λ, eff = ketek_sipm_efficiency()
         with u.context("sp"):
             self._to_sipm_silicon.addVecPropertyPint("EFFICIENCY", λ.to("eV"), eff)
 
