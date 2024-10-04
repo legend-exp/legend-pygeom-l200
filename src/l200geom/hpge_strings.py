@@ -250,9 +250,6 @@ def _place_hpge_string(
         )
 
 
-_pen_plate_cache = {}
-_tristar_cache = {}
-_minishroud_cache = {}
 # Those dimensions are from an email from A. Lubashevskiy to L. Varriano on Dec 12, 2023; on the NMS made at
 # TUM in May 2022.
 MINISHROUD_THICKNESS = 0.125  # mm
@@ -279,7 +276,8 @@ def _get_pen_plate(
         "ppc_small": (1, 0, 0, 1),
     }
 
-    if size not in _pen_plate_cache:
+    pen_lv_name = f"pen_{size}"
+    if pen_lv_name not in registry.logicalVolumeDict:
         if size != "ppc_small":
             pen_file = resources.files("l200geom") / "models" / f"BasePlate_{size}.stl"
         else:
@@ -288,10 +286,10 @@ def _get_pen_plate(
         pen_solid = pyg4ometry.stl.Reader(
             pen_file, solidname=f"pen_{size}", centre=False, registry=registry
         ).getSolid()
-        _pen_plate_cache[size] = geant4.LogicalVolume(pen_solid, materials.pen, f"pen_{size}", registry)
-        _pen_plate_cache[size].pygeom_color_rgba = colors[size]
+        pen_lv = geant4.LogicalVolume(pen_solid, materials.pen, pen_lv_name, registry)
+        pen_lv.pygeom_color_rgba = colors[size]
 
-    return _pen_plate_cache[size]
+    return registry.logicalVolumeDict[pen_lv_name]
 
 
 def _get_support_structure(
@@ -299,8 +297,10 @@ def _get_support_structure(
     materials: materials.OpticalMaterialRegistry,
     registry: geant4.Registry,
 ) -> tuple[geant4.LogicalVolume, geant4.LogicalVolume]:
-    """This model's origin is a the top face of the tripod structure."""
-    if "string_support_structure" not in registry.solidDict:
+    """Get the (simplified) support structure and the tristar of the requested size.
+
+    .. note :: Both models' coordinate origins are a the top face of the tristar structure."""
+    if "string_support_structure" not in registry.logicalVolumeDict:
         support_file = resources.files("l200geom") / "models" / "StringSupportStructure.stl"
         support_solid = pyg4ometry.stl.Reader(
             support_file, solidname="string_support_structure", centre=False, registry=registry
@@ -310,19 +310,21 @@ def _get_support_structure(
         )
         support_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     else:
-        support_solid = registry.solidDict["string_support_structure"]
         support_lv = registry.logicalVolumeDict["string_support_structure"]
 
-    if size not in _tristar_cache:
+    tristar_lv_name = f"tristar_{size}"
+    if tristar_lv_name not in registry.logicalVolumeDict:
         pen_file = resources.files("l200geom") / "models" / f"TriStar_{size}.stl"
 
         pen_solid = pyg4ometry.stl.Reader(
             pen_file, solidname=f"tristar_{size}", centre=False, registry=registry
         ).getSolid()
-        _tristar_cache[size] = geant4.LogicalVolume(pen_solid, materials.pen, f"tristar_{size}", registry)
-        _tristar_cache[size].pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
+        tristar_lv = geant4.LogicalVolume(pen_solid, materials.pen, tristar_lv_name, registry)
+        tristar_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
+    else:
+        tristar_lv = registry.logicalVolumeDict[tristar_lv_name]
 
-    return support_lv, _tristar_cache[size]
+    return support_lv, tristar_lv
 
 
 def _get_nylon_mini_shroud(
@@ -339,7 +341,7 @@ def _get_nylon_mini_shroud(
     """
     assert top_open  # just for b/c of this shared interface. remove in future.
     shroud_name = f"minishroud_{radius}x{length}"
-    if shroud_name not in _minishroud_cache:
+    if shroud_name not in registry.logicalVolumeDict:
         outer = geant4.solid.Tubs(f"{shroud_name}_outer", min_radius, radius, length, 0, 2 * np.pi, registry)
         inner = geant4.solid.Tubs(
             f"{shroud_name}_inner",
@@ -354,15 +356,10 @@ def _get_nylon_mini_shroud(
         # subtract the slightly smaller solid from the larger one, to get a hollow and closed volume.
         inner_z = (1 if top_open else 0) * MINISHROUD_END_THICKNESS
         shroud = geant4.solid.Subtraction(shroud_name, outer, inner, [[0, 0, 0], [0, 0, inner_z]], registry)
-        _minishroud_cache[shroud_name] = geant4.LogicalVolume(
-            shroud,
-            materials.tpb_on_nylon,
-            shroud_name,
-            registry,
-        )
-        _minishroud_cache[shroud_name].pygeom_color_rgba = (1, 0.86, 0.86, 0.2)
+        nms_lv = geant4.LogicalVolume(shroud, materials.tpb_on_nylon, shroud_name, registry)
+        nms_lv.pygeom_color_rgba = (1, 0.86, 0.86, 0.2)
 
-    return _minishroud_cache[shroud_name]
+    return registry.logicalVolumeDict[shroud_name]
 
 
 def _add_pen_surfaces(
