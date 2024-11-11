@@ -11,7 +11,7 @@
 
 ## Installation and usage
 
-This package rerquires a working setup of
+This package requires a working setup of
 [`legend-metadata`](https://github.com/legend-exp/legend-metadata) before usage.
 
 Following a git checkout, the package and its other python dependencies can be
@@ -30,21 +30,27 @@ now, you can find usage docs by running `legend-pygeom-l200 -h`.
 
 ## Visualization of the geometry
 
-### Adjusting the visualization from `legend-pygeom-l200`
+### Visualization with `legend-pygeom-l200`
 
-On a logical volume instance, you can set `pygeom_color_rgba`, e.g.
+Simply use `legend-pygeom-l200 -V [...]` to visualize the full geometry.
 
-```python3
-lv = g4.LogicalVolume(...)
+If you want to exclude components from the 3D rendering, append
+`--assemblies=...`. Possible values are:
 
-# hide this volume in the visualization
-lv.pygeom_color_rgba = False
+- `strings` (the whole HPGe array)
+- `fibers`. It is highly recommended to also append the argument
+  `--fiber-modules=segmented` to avoid rendering all single fibers, if you only
+  need to see the overall shape.
+- `calibration` (calibration tubes and sources, if any)
+- `top` (copper top plate)
+- `wlsr`
 
-# set the vis coloring to the given RGBA value. All 4 numbers should be given in the range 0–1.
-lv.pygeom_color_rgba = (r, g, b, a)
-```
+Multiple values can be combined with commas. Example:
+`--assemblies=strings,calibration`.
 
-### Visualizing with Geant4/[`remage`](https://github.com/legend-exp/remage)
+The cryostat and LAr volumes are always part of the output.
+
+### Visualizing with Geant4/[`remage`](https://github.com/legend-exp/remage) (_advanced_)
 
 The visualization can be exported to Geant4 by using `--vis-macro-file=`:
 `legend-pygeom-l200 --vis-macro-file=l200-vis.mac l200.gdml [...]`.
@@ -72,10 +78,29 @@ the colors. To use it, create a file `vis.mac` in the same directory:
 /control/execute l200-vis.mac
 ```
 
-and use it with remage `remage vis.mac -g l200.gdml`. It will validate that the
-given GDML file can be read by Geant4 and show a visualization from it.
+and use it with remage `remage vis.mac -i -g l200.gdml`. It will validate that
+the given GDML file can be read by Geant4 and show a visualization from it.
 
-## Further features
+It is also possible to use `--assemblies=` as described above. This will remove
+any non-specified assembly from the output GDML file. Make sure that you do not
+overwrite any "production" geometry with this command. Using a file with
+stripped-down assemblies for a simulation will probably give wrong results.
+
+### Adjusting the visualization from python
+
+On a logical volume instance, you can set `pygeom_color_rgba`, e.g.
+
+```python3
+lv = g4.LogicalVolume(...)
+
+# hide this volume in the visualization
+lv.pygeom_color_rgba = False
+
+# set the vis coloring to the given RGBA value. All 4 numbers should be given in the range 0–1.
+lv.pygeom_color_rgba = (r, g, b, a)
+```
+
+## Further features (for developers)
 
 ### Registering detectors for use with [`remage`](https://github.com/legend-exp/remage)
 

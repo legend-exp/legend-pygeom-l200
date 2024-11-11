@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
+from pathlib import Path
 
 from pyg4ometry import gdml
 
@@ -72,6 +74,11 @@ def dump_gdml_cli() -> None:
         default="segmented",
         help="""Select the fiber shroud model, either coarse segments or single fibers. (default: %(default)s)""",
     )
+    geom_opts.add_argument(
+        "--config",
+        action="store",
+        help="""Select a config file to read geometry config from.""",
+    )
 
     parser.add_argument(
         "filename",
@@ -92,9 +99,15 @@ def dump_gdml_cli() -> None:
     if args.debug:
         logging.root.setLevel(logging.DEBUG)
 
+    config = {}
+    if args.config:
+        with Path.open(args.config) as config_file:
+            config = json.load(config_file)
+
     registry = core.construct(
         assemblies=args.assemblies.split(","),
         use_detailed_fiber_model=args.fiber_modules == "detailed",
+        config=config,
     )
 
     if args.check_overlaps:

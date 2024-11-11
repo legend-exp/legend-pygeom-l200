@@ -28,6 +28,7 @@
       "radius_in_mm": 218,
       "angle_in_deg": 180,
       "minishroud_radius_in_mm": 54.0,
+      "minishroud_delta_length_in_mm": -200,
       "rod_radius_in_mm": 49.5
     },
     "6": {
@@ -63,7 +64,7 @@
     "11": {
       "radius_in_mm": 218,
       "angle_in_deg": 0,
-      "minishroud_radius_in_mm": 51.0,
+      "minishroud_radius_in_mm": 44.0,
       "rod_radius_in_mm": 39.5
     },
     "12": {
@@ -477,6 +478,33 @@
     "V08682B": {
       "rodlength_in_mm": 77.0,
       "baseplate": "xlarge"
+    }
+  },
+  "__calibration_comment": "the length is just a rough guess from MaGe, the radius is from slides of A. Lubashevskiy. all positions from CAD model.",
+  "calibration": {
+    "1": {
+      "radius_in_mm": 155,
+      "angle_in_deg": 158.57,
+      "tube_radius_in_mm": 19,
+      "length_in_mm": 1400
+    },
+    "2": {
+      "radius_in_mm": 155,
+      "angle_in_deg": 261.43,
+      "tube_radius_in_mm": 19,
+      "length_in_mm": 1400
+    },
+    "3": {
+      "radius_in_mm": 155,
+      "angle_in_deg": 338.57,
+      "tube_radius_in_mm": 19,
+      "length_in_mm": 1400
+    },
+    "4": {
+      "radius_in_mm": 155,
+      "angle_in_deg": 81.43,
+      "tube_radius_in_mm": 19,
+      "length_in_mm": 1400
     }
   }
 }

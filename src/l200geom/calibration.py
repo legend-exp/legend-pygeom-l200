@@ -1,4 +1,4 @@
-"""Construct the LEGEND-200 calibration system (Gloria Senatore and Sandro Gälli at UZH contributed to this code)."""
+"""Construct the LEGEND-200 calibration system"""
 
 from __future__ import annotations
 
@@ -8,56 +8,48 @@ import math
 import numpy as np
 from pyg4ometry import geant4
 
-from . import hpge_strings, materials
+from . import core, hpge_strings, materials
 
 log = logging.getLogger(__name__)
 
 
-def place_calibration_system(
-    z0: float,
-    mothervolume: geant4.LogicalVolume,
-    materials: materials.OpticalMaterialRegistry,
-    registry: geant4.Registry,
-) -> None:
-    """Construct LEGEND-200 calibration system.
-
-    Parameters
-    ----------
-    z0
-        The z coordinate of the top face of the array top plate.
-    mothervolume
-        pyg4ometry Geant4 LogicalVolume instance in which the strings
-        are to be placed.
-    registry
-        pyg4ometry Geant4 registry instance.
-    """
-    if registry is None:
-        msg = "registry cannot be None"
-        raise ValueError(msg)
-
+def place_calibration_system(b: core.InstrumentationData) -> None:
+    """Construct LEGEND-200 calibration system."""
     # place calibration tubes.
-    # note: the length is just a rough guess from MaGe, the radius is from the CAD model.
-    calib_tube_length = 1400
-    calib_tube = hpge_strings._get_nylon_mini_shroud(18.25, calib_tube_length, True, materials, registry)
-    calib_tube_z = z0 - calib_tube_length / 2
+    if len(b.special_metadata.calibration) == 0:
+        return
 
-    # all positions from CAD model.
-    calib_tube_r = 155  # mm
-    calib_tube_phi = np.deg2rad(np.array([338.57, 261.43, 158.57, 81.43]))
-    calib_tube_xy = np.array([calib_tube_r * np.cos(calib_tube_phi), -calib_tube_r * np.sin(calib_tube_phi)])
-    for i in range(4):
-        geant4.PhysicalVolume(
+    calib_tubes = {}
+    calib_tube_length = []
+    calib_tube_xy = np.empty((2, len(b.special_metadata.calibration)))
+    for i, tube in b.special_metadata.calibration.items():
+        idx = int(i) - 1
+        if tube.length_in_mm not in calib_tubes:
+            calib_tubes[tube.length_in_mm] = hpge_strings._get_nylon_mini_shroud(
+                tube.tube_radius_in_mm, tube.length_in_mm, True, b.materials, b.registry
+            )
+            calib_tube_length.append(tube.length_in_mm)
+
+        phi = np.deg2rad(tube.angle_in_deg)
+        calib_tube_xy[:, idx] = np.array([tube.radius_in_mm * np.cos(phi), -tube.radius_in_mm * np.sin(phi)])
+        nms_pv = geant4.PhysicalVolume(
             [0, 0, 0],
-            [*calib_tube_xy[:, i], calib_tube_z],
-            calib_tube,
-            f"calibration_tube_{i+1}",
-            mothervolume,
-            registry,
+            [*calib_tube_xy[:, idx], b.top_plate_z_pos - tube.length_in_mm / 2],
+            calib_tubes[tube.length_in_mm],
+            f"calibration_tube_{i}",
+            b.mother_lv,
+            b.registry,
         )
+        hpge_strings._add_nms_surfaces(nms_pv, b.mother_pv, b.materials, b.registry)
+
+    # check if we have one shared length of calibration tubes.
+    calib_tube_length = (
+        calib_tube_length[0] if all(length == calib_tube_length[0] for length in calib_tube_length) else None
+    )
 
     # build and place the calibration sources and absorbers
     calib_tube_z0 = (
-        z0 - calib_tube_length + hpge_strings.MINISHROUD_END_THICKNESS
+        b.top_plate_z_pos - calib_tube_length + hpge_strings.MINISHROUD_END_THICKNESS
     )  # starting z position of the calib tube in pygeometry reference system
 
     absorber_height = 37.5
@@ -72,8 +64,10 @@ def place_calibration_system(
     height[3] = calib_tube_z0 + 1 / 2 * absorber_height
     height[4] = calib_tube_z0 + 500
 
-    sourceLV = _get_calibration_source(inner_radius_source, source_radius, source_height, materials, registry)
-    absorberLV = _get_calibration_absorber(absorber_radius, absorber_height, materials, registry)
+    sourceLV = _get_calibration_source(
+        inner_radius_source, source_radius, source_height, b.materials, b.registry
+    )
+    absorberLV = _get_calibration_absorber(absorber_radius, absorber_height, b.materials, b.registry)
 
     base_position = {}
     # Define the z position for the lowest sample and the x,y position as well according to l200.
@@ -88,47 +82,48 @@ def place_calibration_system(
     second_highest_source_pos = second_lowest_source_pos + 100 + 1.2 + source_height
     highest_source_pos = second_highest_source_pos + 100 + 1.2 + source_height
 
-    # Place cylinders in the world where the middle of the absorber is set to be 0 -> now the middle of the absorber in SIS1 is at 300
+    # Place cylinders in the world where the middle of the absorber is set to
+    # be 0 -> now the middle of the absorber in SIS1 is at 300
     for i in range(1, 5, 1):
         geant4.PhysicalVolume(
             [0, 0, 0],
             [base_position[i][0], base_position[i][1], base_position[i][2]],
             sourceLV,
             f"Lowest Source PV{i}",
-            mothervolume,
-            registry,
+            b.mother_lv,
+            b.registry,
         )
         geant4.PhysicalVolume(
             [0, 0, 0],
             [base_position[i][0], base_position[i][1], base_position[i][2] + second_lowest_source_pos],
             sourceLV,
             f"Second Lowest Source PV{i}",
-            mothervolume,
-            registry,
+            b.mother_lv,
+            b.registry,
         )
         geant4.PhysicalVolume(
             [0, 0, 0],
             [base_position[i][0], base_position[i][1], base_position[i][2] + second_highest_source_pos],
             sourceLV,
             f"Second Highest Source PV{i}",
-            mothervolume,
-            registry,
+            b.mother_lv,
+            b.registry,
         )
         geant4.PhysicalVolume(
             [0, 0, 0],
             [base_position[i][0], base_position[i][1], base_position[i][2] + highest_source_pos],
             sourceLV,
             f"Highest Source PV{i}",
-            mothervolume,
-            registry,
+            b.mother_lv,
+            b.registry,
         )
         geant4.PhysicalVolume(
             [0, 0, 0],
             [base_position[i][0], base_position[i][1], height[i]],
             absorberLV,
             f"Absorber PV{i}",
-            mothervolume,
-            registry,
+            b.mother_lv,
+            b.registry,
         )
 
 

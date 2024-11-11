@@ -1,12 +1,56 @@
 from __future__ import annotations
 
+from collections import Counter
+from pathlib import Path
+
+import numpy as np
+
 
 def test_import():
     import l200geom  # noqa: F401
 
 
-def test_construct():
-    import l200geom.core
+def test_construct(tmp_path):
+    from l200geom import core, det_utils
 
-    l200geom.core.construct(use_detailed_fiber_model=False)
-    l200geom.core.construct(use_detailed_fiber_model=True)
+    registry = core.construct(use_detailed_fiber_model=False)
+    # verify that we get the expected channel counts.
+    ch_count = Counter([d.detector_type for f, d in det_utils.walk_detectors(registry)])
+    assert ch_count["optical"] == 2 * (9 + 20)  # 2*(IB+OB)
+    assert ch_count["germanium"] == 101  # from channelmap @ 20230311T235840Z
+    det_file_detailed = tmp_path / "det-detailed.mac"
+    det_utils.generate_detector_macro(registry, det_file_detailed)
+
+    registry = core.construct(use_detailed_fiber_model=True)
+    # verify that we get the expected channel counts.
+    ch_count = Counter([d.detector_type for f, d in det_utils.walk_detectors(registry)])
+    assert ch_count["optical"] == 2 * (9 + 20)  # 2*(IB+OB)
+    assert ch_count["germanium"] == 101  # from channelmap @ 20230311T235840Z
+    det_file_segmented = tmp_path / "det-segmented.mac"
+    det_utils.generate_detector_macro(registry, det_file_segmented)
+
+    with Path.open(det_file_detailed) as f_det, Path.open(det_file_segmented) as f_seg:
+        assert f_det.readlines() == f_seg.readlines()
+
+
+def test_material_store():
+    # replacing material properties is _not_ a core functionality of this package, but
+    # we have to make sure that replaced material properties from the optics package are
+    # propagated correctly to the generated GDML files.
+
+    from legendoptics import store
+    from legendoptics.fibers import fiber_core_refractive_index
+
+    from l200geom import core
+
+    # test that replaced material properties are reflected in the GDML.
+    fiber_core_refractive_index.replace_implementation(lambda: 1234)
+    reg = core.construct(use_detailed_fiber_model=False)
+    rindex = reg.defineDict["ps_fibers_RINDEX"].eval()
+    assert np.all(rindex[:, 1] == [1234, 1234])
+
+    # test that after the reset, the created GDML contains the original values again.
+    store.reset_all_to_original()
+    reg = core.construct(use_detailed_fiber_model=False)
+    rindex = reg.defineDict["ps_fibers_RINDEX"].eval()
+    assert np.all(rindex[:, 1] == [1.6, 1.6])

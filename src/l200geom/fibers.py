@@ -5,35 +5,22 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 import numpy as np
-from legendmeta import AttrsDict, TextDB
+from legendmeta import TextDB
 from pyg4ometry import geant4 as g4
 
-from . import materials
+from . import core, materials, top
 from .det_utils import RemageDetectorInfo
 
 
 def place_fiber_modules(
     fiber_metadata: TextDB,
-    ch_map: AttrsDict,
-    z0: float,
-    mother_lv: g4.LogicalVolume,
-    mother_pv: g4.PhysicalVolume,
-    materials: materials.OpticalMaterialRegistry,
-    registry: g4.Registry,
+    b: core.InstrumentationData,
     use_detailed_fiber_model: bool = False,
 ) -> None:
     """Construct LEGEND-200 HPGe strings.
 
     Parameters
     ----------
-    ch_map
-        LEGEND-200 channel map containing spms detectors
-        configuration in the string and their geometry.
-    string_config
-        LEGEND-200 germanium detector string configuration file.
-        Used to reconstruct the spatial position of each string.
-    z0
-        The z coordinate of the array top plate.
     use_detailed_fiber_model
         Switch between an implementation of single fibers (“detailed”) or
         slabs of fiber material (“segmented”).
@@ -41,7 +28,7 @@ def place_fiber_modules(
     # Unroll the provided metadata into a structure better suited for the next steps.
     # The geometry here is based on physical modules and not on channels.
     modules = {}
-    ch_map = ch_map.map("system", unique=False).spms
+    ch_map = b.channelmap.map("system", unique=False).spms
     for ch in ch_map.values():
         mod = modules.get(ch.location.fiber)
 
@@ -62,7 +49,10 @@ def place_fiber_modules(
 
     z_displacement_fiber_assembly = (
         # avoid the overlap of the top SiPMs with the top plate.
-        z0 - 3 - ModuleFactoryBase.SIPM_HEIGHT - ModuleFactoryBase.SIPM_OUTER_EXTRA
+        b.top_plate_z_pos
+        - top.TOP_PLATE_THICKNESS
+        - ModuleFactoryBase.SIPM_HEIGHT
+        - ModuleFactoryBase.SIPM_OUTER_EXTRA
     )
 
     # note: actually the radius is only 150mm and another short straight segment of 60mm is following after
@@ -83,8 +73,8 @@ def place_fiber_modules(
         number_of_modules=20,
         zero_angle_module=_module_name_to_num("OB015016"),
         z_displacement_mm=z_displacement_fiber_assembly,
-        registry=registry,
-        materials=materials,
+        registry=b.registry,
+        materials=b.materials,
     )
 
     ib_fiber_length_mm = 1400
@@ -97,15 +87,15 @@ def place_fiber_modules(
         number_of_modules=9,
         zero_angle_module=_module_name_to_num("IB013014"),
         z_displacement_mm=z_displacement_fiber_assembly - ib_delta_z,
-        registry=registry,
-        materials=materials,
+        registry=b.registry,
+        materials=b.materials,
     )
 
     for mod in modules.values():
         if mod.barrel == "outer":
-            ob_factory.create_module(mod, mother_lv, mother_pv)
+            ob_factory.create_module(mod, b.mother_lv, b.mother_pv)
         if mod.barrel == "inner":
-            ib_factory.create_module(mod, mother_lv, mother_pv)
+            ib_factory.create_module(mod, b.mother_lv, b.mother_pv)
 
 
 def _module_name_to_num(mod_name: str) -> int:
@@ -331,6 +321,28 @@ class ModuleFactoryBase(ABC):
             mother_lv,
             self.registry,
         )
+
+    def _add_tpb_surfaces(
+        self,
+        fiber_pvs: list[g4.PhysicalVolume],
+        mother_pv: g4.LogicalVolume,
+    ):
+        # between LAr and PEN we need a surface in both directions.
+        for tpb_pv in fiber_pvs:
+            g4.BorderSurface(
+                "bsurface_lar_tpb_" + tpb_pv.name,
+                mother_pv,
+                tpb_pv,
+                self.materials.surfaces.lar_to_tpb,
+                self.registry,
+            )
+            g4.BorderSurface(
+                "bsurface_tpb_lar_" + tpb_pv.name,
+                tpb_pv,
+                mother_pv,
+                self.materials.surfaces.lar_to_tpb,
+                self.registry,
+            )
 
 
 class ModuleFactorySingleFibers(ModuleFactoryBase):
@@ -659,6 +671,8 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                     self.registry,
                 )
 
+        self._add_tpb_surfaces(fibers, mother_pv)
+
         # create SiPMs and attach to fibers
         self._create_sipm(
             module_num,
@@ -696,6 +710,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                 mother_lv,
                 self.registry,
             )
+            sipm_pv.pygeom_active_dector = RemageDetectorInfo("optical", mod.channel_bottom_rawid)
             # Add border surface to mother volume.
             g4.BorderSurface(
                 f"bsurface_lar_{mod.channel_bottom_name}",
@@ -982,6 +997,8 @@ class ModuleFactorySegment(ModuleFactoryBase):
                     self.registry,
                 )
             )
+
+        self._add_tpb_surfaces(fibers, mother_pv)
 
         # create SiPMs and attach to fibers
         self._create_sipm(
