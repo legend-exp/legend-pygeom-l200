@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import argparse
-import json
 import logging
-from pathlib import Path
 
 from pyg4ometry import gdml
 
-from . import _version, core
+from . import _version, core, utils
 
 log = logging.getLogger(__name__)
 
@@ -101,8 +99,7 @@ def dump_gdml_cli() -> None:
 
     config = {}
     if args.config:
-        with Path.open(args.config) as config_file:
-            config = json.load(config_file)
+        config = utils.load_dict(args.config)
 
     registry = core.construct(
         assemblies=args.assemblies.split(","),
