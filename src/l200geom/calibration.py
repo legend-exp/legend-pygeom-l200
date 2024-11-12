@@ -54,23 +54,28 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
         if i not in sis_cfg or sis_cfg[i] is None:
             continue
         idx = int(i) - 1
-        pin_top = _sis_to_pygeoml200(sis_cfg[i].sis_z)  # SIS reading to our coordinates.
+        # SIS reading to our coordinates. This marks the top of the torlon initialization pin in our
+        # (pygeom) coordinates.
+        pin_top = _sis_to_pygeoml200(sis_cfg[i].sis_z)
 
         if len(sis_cfg[i].sources) != 4:
             msg = f"Invalid number of sources in config of SIS{i}"
             raise ValueError(msg)
-        if any(s is not None for s in sis_cfg[i].sources[0:3]):
-            # TODO: implement source slots 1-3 and remove this check.
-            msg = "Setting a source not in the lowest slot is not supported at the moment"
-            raise NotImplementedError(msg)
 
-        if sis_cfg[i].sources[3] is not None:
-            source_spec = _parse_source_spec(sis_cfg[i].sources[3])
-            _place_ta_absorber_with_source(
+        # z offsets from top of pin to bottom of source.
+        delta_z = (-271, -171, -71, 42 + source_inside_holder)
+        # always place the Ta absorber, irrespective if it holds a source.
+        _place_ta_absorber(b, f"_sis{i}", calib_tube_xy[:, idx], pin_top + delta_z[3] - source_inside_holder)
+
+        for si in range(4):
+            if sis_cfg[i].sources[si] is None:
+                continue
+            source_spec = _parse_source_spec(sis_cfg[i].sources[si])
+            _place_source(
                 b,
-                "",  # TODO: implement suffixes and multiple sources.
+                f"_sis{i}_source{si}",
                 calib_tube_xy[:, idx],
-                pin_top + 42,
+                pin_top + delta_z[si] - source_inside_holder,
                 source_type=source_spec["type"],
                 cu_absorber=source_spec["has_cu"],
             )
@@ -154,7 +159,7 @@ def _place_source(
     )
 
     if cu_absorber:
-        cu_absorber, cu_absorber_lar = _get_cu_cap()
+        cu_absorber, cu_absorber_lar = _get_cu_cap(b)
         cu_absorber_z = z0 + cu_absorber_height / 2
         cu_absorber_lar_z = z0 + cu_absorber_inner_height / 2
         geant4.PhysicalVolume(
@@ -177,6 +182,12 @@ def _place_source(
 
 
 def _get_cu_cap(b: core.InstrumentationData) -> tuple[geant4.LogicalVolume, geant4.LogicalVolume | None]:
+    if "cu_absorber" in b.registry.logicalVolumeDict:
+        return (
+            b.registry.logicalVolumeDict["cu_absorber"],
+            b.registry.logicalVolumeDict.get("cu_absorber_lar_inactive", None),
+        )
+
     cu_absorber_outer = geant4.solid.Tubs(
         "cu_absorber_outer",
         0,
@@ -225,13 +236,11 @@ def _get_cu_cap(b: core.InstrumentationData) -> tuple[geant4.LogicalVolume, gean
     return cu_absorber, cu_absorber_lar
 
 
-def _place_ta_absorber_with_source(
+def _place_ta_absorber(
     b: core.InstrumentationData,
     suffix: str,
     xy,
     delta_z: float,
-    source_type: Literal["Th228", "Ra"],
-    cu_absorber: bool,
 ) -> None:
     """Place tantalum absorber plus source container.
 
@@ -244,8 +253,6 @@ def _place_ta_absorber_with_source(
     geant4.PhysicalVolume(
         [0, 0, 0], [*xy, z0], ta_absorber_lv, f"ta_absorber{suffix}", b.mother_lv, b.registry
     )
-
-    _place_source(b, suffix, xy, delta_z, source_type, cu_absorber)
 
     if "peek_holder" not in b.registry.logicalVolumeDict:
         peek_outside = geant4.solid.Box("peek_outside", 33.1, 9, 25, b.registry)

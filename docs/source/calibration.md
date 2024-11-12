@@ -6,11 +6,6 @@ deployed with the SIS.
 As the position and types of sources frequently change, they are not hard-coded
 in the python code, but can be configured in a runtime configuration file.
 
-> [!NOTE]
->
-> At the moment, only one source can be included using **legend-pygeom-l200** at
-> a time. This restriction will be removed in the future.
-
 **TL;DR**: a working example:
 
 ```json
@@ -18,7 +13,7 @@ in the python code, but can be configured in a runtime configuration file.
   "sis": {
     "1": {
       "sis_z": 8250,
-      "sources": [null, null, null, "Th228"]
+      "sources": ["Th228", null, null, "Th228"]
     },
     "2": null,
     "3": null,
@@ -48,14 +43,17 @@ Different types of sources can be included in the slots:
 - `Ra` — a special calibration source.
 - ...`+Cu` — add a copper absorber cap to any other source. The dimensions of
   the cap can be seen in the code.
+- `null` — no source in this slot. The tantalum absorber is placed irrespective
+  of whether a source is placed inside in the slot.
 
 > [!NOTE]
 >
 > The generated geometry does **not contain the requested source material**. The
 > decaying isotope has to be configured in the user's Geant4/remage macro file.
 >
-> The volume named `source_inner` can be used as the confinement volume in
-> remage.
+> The volumes named `source_inner_sis{SIS number}_source{slot}` can be used as
+> the confinement volumes in remage (i.e. with a regex `^source_inner_.*`, if
+> all sources share an isotope).
 
 [confluence-coord]:
   https://legend-exp.atlassian.net/wiki/spaces/LEGEND/pages/1111785478/Calibration+simulations#Source-geometry-%2F-position
