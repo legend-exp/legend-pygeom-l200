@@ -114,12 +114,13 @@ def _place_source(
     """
     z0 = b.top_plate_z_pos - delta_z
 
-    if "source_outer" not in b.registry.logicalVolumeDict:
-        source_outer = geant4.solid.Tubs(
-            "source_outer", 0, source_radius_outer, source_height, 0, 2 * math.pi, b.registry
+    if "source_outer" not in b.registry.solidDict:
+        geant4.solid.Tubs("source_outer", 0, source_radius_outer, source_height, 0, 2 * math.pi, b.registry)
+    if f"source_outer{suffix}" not in b.registry.logicalVolumeDict:
+        geant4.LogicalVolume(
+            b.registry.solidDict["source_outer"], b.materials.metal_steel, f"source_outer{suffix}", b.registry
         )
-        source_outer = geant4.LogicalVolume(source_outer, b.materials.metal_steel, "source_outer", b.registry)
-    source_outer = b.registry.logicalVolumeDict["source_outer"]
+    source_outer = b.registry.logicalVolumeDict[f"source_outer{suffix}"]
     source_z = z0 + source_height / 2 - source_inside_holder
     geant4.PhysicalVolume(
         [0, 0, 0],
