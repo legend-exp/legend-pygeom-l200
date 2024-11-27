@@ -94,9 +94,10 @@ ABSORBER_HEIGHT = 37.5  # mm
 source_outside_holder = 10.6  # mm
 source_inside_holder = source_height - source_outside_holder
 
-cu_aborber_thickness = 2.5  # mm
 cu_absorber_height = 15 - 0.01  # mm, drawing from S. Schönert
 cu_absorber_inner_height = 12.5  # mm
+cu_absorber_inner_radius = 7.6 / 2  # mm
+cu_absorber_outer_radius = (14 - 0.01) / 2  # mm, drawing from S. Schönert
 
 
 def _place_source(
@@ -190,16 +191,10 @@ def _get_cu_cap(b: core.InstrumentationData) -> tuple[geant4.LogicalVolume, gean
         )
 
     cu_absorber_outer = geant4.solid.Tubs(
-        "cu_absorber_outer",
-        0,
-        (14 - 0.01) / 2,  # Drawing from S. Schönert
-        cu_absorber_height,
-        0,
-        2 * math.pi,
-        b.registry,
+        "cu_absorber_outer", 0, cu_absorber_outer_radius, cu_absorber_height, 0, 2 * math.pi, b.registry
     )
     cu_absorber_inner = geant4.solid.Tubs(
-        "cu_absorber_inner", 0, 7.6 / 2, cu_absorber_inner_height, 0, 2 * math.pi, b.registry
+        "cu_absorber_inner", 0, cu_absorber_inner_radius, cu_absorber_inner_height, 0, 2 * math.pi, b.registry
     )
     cu_absorber = geant4.solid.Subtraction(
         "cu_absorber",
@@ -212,7 +207,11 @@ def _get_cu_cap(b: core.InstrumentationData) -> tuple[geant4.LogicalVolume, gean
     cu_absorber.pygeom_color_rgba = (0.72, 0.45, 0.2, 0.3)
 
     cu_absorber_lar = None
-    if source_outside_holder != source_radius_outer:
+    if cu_absorber_inner_radius != source_radius_outer:
+        if cu_absorber_inner_radius < source_radius_outer:
+            msg = "invalid copper cap configuration."
+            raise ValueError(msg)
+
         cu_absorber_lar_inner = geant4.solid.Tubs(
             "cu_absorber_lar_inactive_inner",
             0,
