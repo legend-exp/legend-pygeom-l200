@@ -18,9 +18,9 @@ DEFINED_ASSEMBLIES = ["wlsr", "strings", "calibration", "fibers", "top"]
 
 class InstrumentationData(NamedTuple):
     mother_lv: geant4.LogicalVolume
-    """LogicalVolume instance in which all components are to be placed."""
+    """Argon LogicalVolume instance in which all components are to be placed."""
     mother_pv: geant4.PhysicalVolume
-    """PhysicalVolume instance in which all components are to be placed."""
+    """Argon PhysicalVolume instance in which all components are to be placed."""
     materials: materials.OpticalMaterialRegistry
     """Material properties for common materials"""
     registry: geant4.Registry
@@ -82,15 +82,8 @@ def construct(
 
     if "wlsr" in assemblies:
         # Place the WLSR into the cryostat.
-        wlsr_lvs = wlsr.construct_wlsr(
-            mats.metal_copper,
-            mats.tetratex,
-            mats.tpb_on_tetratex,
-            reg,
-        )
         # TODO: the z offset here is still a dummy value?
-        wlsr_pvs = wlsr.place_wlsr(*wlsr_lvs, lar_lv, 3 * 180, reg)
-        wlsr.add_surfaces_wlsr(*wlsr_pvs[1:], instr)
+        wlsr.place_wlsr(instr, 3 * 180, reg)
 
     # Place all other instrumentation into the liquid argon
     if "strings" in assemblies:

@@ -9,13 +9,11 @@ from math import pi
 
 import pyg4ometry.geant4 as g4
 
-from . import core
+from . import core, materials
 
 
-def construct_wlsr(
-    structure_material: g4.Material,
-    tetratex_material: g4.Material,
-    tpb_material: g4.Material,
+def _construct_wlsr(
+    mats: materials.OpticalMaterialRegistry,
     reg: g4.Registry,
 ) -> tuple[g4.LogicalVolume]:
     wlsr_outer_diameter = 1400 / 2  # (Patrick)
@@ -54,23 +52,22 @@ def construct_wlsr(
         "mm",
     )
 
-    wlsr_outer_lv = g4.LogicalVolume(wlsr_outer, structure_material, "wlsr_outer", reg)
-    wlsr_ttx_lv = g4.LogicalVolume(wlsr_ttx, tetratex_material, "wlsr_ttx", reg)
-    wlsr_tpb_lv = g4.LogicalVolume(wlsr_tpb, tpb_material, "wlsr_tpb", reg)
+    wlsr_outer_lv = g4.LogicalVolume(wlsr_outer, mats.metal_copper, "wlsr_outer", reg)
+    wlsr_ttx_lv = g4.LogicalVolume(wlsr_ttx, mats.tetratex, "wlsr_ttx", reg)
+    wlsr_tpb_lv = g4.LogicalVolume(wlsr_tpb, mats.tpb_on_tetratex, "wlsr_tpb", reg)
 
     return wlsr_outer_lv, wlsr_ttx_lv, wlsr_tpb_lv
 
 
 def place_wlsr(
-    wlsr_outer_lv: g4.LogicalVolume,
-    wlsr_ttx_lv: g4.LogicalVolume,
-    wlsr_tpb_lv: g4.LogicalVolume,
-    mother_lv: g4.LogicalVolume,
+    b: core.InstrumentationData,
     z_displacement: float,
     reg: g4.Registry,
 ) -> tuple[g4.PhysicalVolume]:
+    wlsr_outer_lv, wlsr_ttx_lv, wlsr_tpb_lv = _construct_wlsr(b.materials, b.registry)
+
     wlsr_outer_pv = g4.PhysicalVolume(
-        [0, 0, 0], [0, 0, z_displacement], wlsr_outer_lv, "wlsr_outer", mother_lv, reg
+        [0, 0, 0], [0, 0, z_displacement], wlsr_outer_lv, "wlsr_outer", b.mother_lv, reg
     )
     wlsr_ttx_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], wlsr_ttx_lv, "wlsr_ttx", wlsr_outer_lv, reg)
     wlsr_tpb_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], wlsr_tpb_lv, "wlsr_tpb", wlsr_ttx_lv, reg)
@@ -79,10 +76,12 @@ def place_wlsr(
     wlsr_tpb_lv.pygeom_color_rgba = False
     wlsr_outer_lv.pygeom_color_rgba = False
 
+    _add_surfaces_wlsr(wlsr_ttx_pv, wlsr_tpb_pv, b)
+
     return wlsr_outer_pv, wlsr_ttx_pv, wlsr_tpb_pv
 
 
-def add_surfaces_wlsr(
+def _add_surfaces_wlsr(
     wlsr_ttx_pv: g4.PhysicalVolume,
     wlsr_tpb_pv: g4.PhysicalVolume,
     b: core.InstrumentationData,
