@@ -1,6 +1,14 @@
 """Construct the LEGEND-200 Wavelength-Shifting Reflector (WLSR).
 
-Dimensions mainly from P. Krause.
+Dimensions mainly from [Krause2023]_ (general construction) and [Araujo2022]_ (TPB layer thickness).
+
+.. [Krause2023] P. Krause "Shining Light on Backgrounds: An Advanced Liquid Argon Scintillation Light
+    Detector for Boosting Background Suppression in LEGEND's Neutrinoless Double Beta Decay Search".
+    PhD thesis (2023).
+.. [Araujo2022] G. R. Araujo et al. “R&D of wavelength-shifting reflectors and characterization of
+    the quantum eﬀiciency of tetraphenyl butadiene and polyethylene naphthalate in
+    liquid argon.” In: The European Physical Journal C 82.5 (May 2022).
+    https://doi.org/10.1140/epjc/s10052-022-10383-0
 """
 
 from __future__ import annotations
@@ -11,20 +19,22 @@ import pyg4ometry.geant4 as g4
 
 from . import core, materials
 
+wlsr_tpb_diameter = 1374 / 2
+wlsr_ttx_thickness = 254 * 1e-3  # 254 um Tetratex foil
+wlsr_cu_thickness = 50 * 1e-3  # 50 um copper foil for structure
+wlsr_height = 3000
+
+wlsr_tpb_thickness = 600 * 1e-6  # 600 nm of TPB coating
+
 
 def _construct_wlsr(
     mats: materials.OpticalMaterialRegistry,
     reg: g4.Registry,
-) -> tuple[g4.LogicalVolume]:
-    wlsr_outer_diameter = 1400 / 2  # (Patrick)
-    wlsr_tpb_diameter = 1374 / 2
-    wlsr_tpb_thickness = 600 * 1e-6  # 600nm of TPB coating (arXiv:2112.06675)
-    wlsr_thickness = (wlsr_outer_diameter - wlsr_tpb_diameter - wlsr_tpb_thickness) / 2  # dummy
-    wlsr_height = 3000
+) -> tuple[g4.LogicalVolume, ...]:
     wlsr_outer = g4.solid.Tubs(
         "wlsr_outer",
         wlsr_tpb_diameter,
-        wlsr_outer_diameter,
+        wlsr_tpb_diameter + wlsr_tpb_thickness + wlsr_ttx_thickness + wlsr_cu_thickness,
         wlsr_height,
         0,
         2 * pi,
@@ -34,7 +44,7 @@ def _construct_wlsr(
     wlsr_ttx = g4.solid.Tubs(
         "wlsr_ttx",
         wlsr_tpb_diameter,
-        wlsr_outer_diameter - wlsr_thickness,
+        wlsr_tpb_diameter + wlsr_tpb_thickness + wlsr_ttx_thickness,
         wlsr_height,
         0,
         2 * pi,
@@ -44,7 +54,7 @@ def _construct_wlsr(
     wlsr_tpb = g4.solid.Tubs(
         "wlsr_tpb",
         wlsr_tpb_diameter,
-        wlsr_outer_diameter - wlsr_thickness - wlsr_tpb_thickness,
+        wlsr_tpb_diameter + wlsr_tpb_thickness,
         wlsr_height,
         0,
         2 * pi,
