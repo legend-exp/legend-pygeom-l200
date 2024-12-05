@@ -6,7 +6,7 @@ from typing import Callable, NamedTuple
 from legendmeta import AttrsDict, LegendMetadata, TextDB
 from pyg4ometry import geant4
 
-from . import calibration, cryo, det_utils, fibers, hpge_strings, materials, top, wlsr
+from . import calibration, cryo, det_utils, fibers, hpge_strings, materials, top, vis_utils, wlsr
 
 lmeta = LegendMetadata()
 configs = TextDB(resources.files("l200geom") / "configs")
@@ -102,7 +102,8 @@ def construct(
 
     _assign_common_copper_surface(instr)
 
-    det_utils.append_detector_auxvals(reg)
+    det_utils.write_detector_auxvals(reg)
+    vis_utils.write_color_auxvals(reg)
 
     return reg
 

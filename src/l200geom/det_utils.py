@@ -59,7 +59,7 @@ def generate_detector_macro(registry: g4.Registry, filename: str) -> None:
         f.write(macro_contents)
 
 
-def append_detector_auxvals(registry: g4.Registry) -> None:
+def write_detector_auxvals(registry: g4.Registry) -> None:
     """Append an auxiliary structure, storing the sensitive detector volume information.
 
     The structure is a nested dict, stored as follows (read ``auxtype`: ``auxvalue``):
