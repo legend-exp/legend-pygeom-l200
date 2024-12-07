@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 from pyg4ometry import gdml
+from pygeomtools import detectors
 
 
 def test_import():
@@ -12,23 +13,23 @@ def test_import():
 
 
 def test_construct(tmp_path):
-    from l200geom import core, det_utils
+    from l200geom import core
 
     registry = core.construct(use_detailed_fiber_model=True)
     # verify that we get the expected channel counts.
-    ch_count = Counter([d.detector_type for f, d in det_utils.walk_detectors(registry)])
+    ch_count = Counter([d.detector_type for f, d in detectors.walk_detectors(registry)])
     assert ch_count["optical"] == 2 * (9 + 20)  # 2*(IB+OB)
     assert ch_count["germanium"] == 101  # from channelmap @ 20230311T235840Z
     det_file_detailed = tmp_path / "det-detailed.mac"
-    det_utils.generate_detector_macro(registry, det_file_detailed)
+    detectors.generate_detector_macro(registry, det_file_detailed)
 
     registry = core.construct(use_detailed_fiber_model=False)
     # verify that we get the expected channel counts.
-    ch_count = Counter([d.detector_type for f, d in det_utils.walk_detectors(registry)])
+    ch_count = Counter([d.detector_type for f, d in detectors.walk_detectors(registry)])
     assert ch_count["optical"] == 2 * (9 + 20)  # 2*(IB+OB)
     assert ch_count["germanium"] == 101  # from channelmap @ 20230311T235840Z
     det_file_segmented = tmp_path / "det-segmented.mac"
-    det_utils.generate_detector_macro(registry, det_file_segmented)
+    detectors.generate_detector_macro(registry, det_file_segmented)
 
     with Path.open(det_file_detailed) as f_det, Path.open(det_file_segmented) as f_seg:
         assert f_det.readlines() == f_seg.readlines()

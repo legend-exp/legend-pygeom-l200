@@ -4,8 +4,9 @@ import argparse
 import logging
 
 from pyg4ometry import gdml
+from pygeomtools import detectors, utils, visualization
 
-from . import _version, core, utils
+from . import _version, core
 
 log = logging.getLogger(__name__)
 
@@ -120,17 +121,13 @@ def dump_gdml_cli() -> None:
         w.write(args.filename)
 
     if args.det_macro_file:
-        from . import det_utils
-
-        det_utils.generate_detector_macro(registry, args.det_macro_file)
+        detectors.generate_detector_macro(registry, args.det_macro_file)
 
     if args.vis_macro_file:
-        from . import vis_utils
-
-        vis_utils.generate_color_macro(registry, args.vis_macro_file)
+        visualization.generate_color_macro(registry, args.vis_macro_file)
 
     if args.visualize:
         log.info("visualizing...")
-        from . import vis_utils
+        from pygeomtools import viewer
 
-        vis_utils.visualize(registry)
+        viewer.visualize(registry)

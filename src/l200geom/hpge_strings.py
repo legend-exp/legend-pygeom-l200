@@ -8,11 +8,12 @@ from importlib import resources
 import numpy as np
 import pyg4ometry
 from legendhpges import make_hpge
+from legendmeta import AttrsDict
 from pyg4ometry import geant4
+from pygeomtools import RemageDetectorInfo
 from scipy.spatial.transform import Rotation
 
 from . import core, materials
-from .det_utils import RemageDetectorInfo
 
 log = logging.getLogger(__name__)
 
@@ -44,6 +45,7 @@ def place_hpge_strings(b: core.InstrumentationData) -> None:
             hpge_meta.geometry.height_in_mm,
             hpge_extra_meta["baseplate"],
             hpge_extra_meta["rodlength_in_mm"],
+            hpge_meta,
         )
 
     # now, build all strings.
@@ -60,6 +62,7 @@ class HPGeDetUnit:
     height: float
     baseplate: str
     rodlength: float
+    meta: AttrsDict
 
 
 def _place_hpge_string(
@@ -121,7 +124,7 @@ def _place_hpge_string(
             b.mother_lv,
             b.registry,
         )
-        det_pv.pygeom_active_dector = RemageDetectorInfo("germanium", det_unit.rawid)
+        det_pv.pygeom_active_dector = RemageDetectorInfo("germanium", det_unit.rawid, det_unit.meta)
         det_unit.lv.pygeom_color_rgba = (0, 1, 1, 1)
 
         # add germanium reflective surface.

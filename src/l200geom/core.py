@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from importlib import resources
-from typing import Callable, NamedTuple
+from typing import NamedTuple
 
 from legendmeta import AttrsDict, LegendMetadata, TextDB
 from pyg4ometry import geant4
+from pygeomtools import detectors, geometry, visualization
+from pygeomtools.utils import load_dict_from_config
 
-from . import calibration, cryo, det_utils, fibers, hpge_strings, materials, top, vis_utils, wlsr
+from . import calibration, cryo, fibers, hpge_strings, materials, top, wlsr
 
 lmeta = LegendMetadata()
 configs = TextDB(resources.files("l200geom") / "configs")
@@ -72,8 +74,8 @@ def construct(
     top_plate_z_pos = 1700
 
     timestamp = config.get("metadata_timestamp", "20230311T235840Z")
-    channelmap = _load_map_from_config(config, "channelmap", lambda: lmeta.channelmap(timestamp))
-    special_metadata = _load_map_from_config(config, "special_metadata", lambda: configs.on(timestamp))
+    channelmap = load_dict_from_config(config, "channelmap", lambda: lmeta.channelmap(timestamp))
+    special_metadata = load_dict_from_config(config, "special_metadata", lambda: configs.on(timestamp))
     instr = InstrumentationData(
         lar_lv, lar_pv, mats, reg, channelmap, special_metadata, AttrsDict(config), top_plate_z_pos
     )
@@ -102,23 +104,11 @@ def construct(
 
     _assign_common_copper_surface(instr)
 
-    det_utils.write_detector_auxvals(reg)
-    vis_utils.write_color_auxvals(reg)
+    detectors.write_detector_auxvals(reg)
+    visualization.write_color_auxvals(reg)
+    geometry.check_registry_sanity(reg, reg)
 
     return reg
-
-
-def _load_map_from_config(config: dict, key: str, default: Callable[[], AttrsDict]) -> AttrsDict:
-    m = config.get(key)
-    if isinstance(m, str):
-        import json
-        from pathlib import Path
-
-        with Path(m).open() as jfile:
-            return AttrsDict(json.load(jfile))
-    elif isinstance(m, dict):
-        return AttrsDict(m)
-    return default()
 
 
 def _assign_common_copper_surface(b: InstrumentationData) -> None:
