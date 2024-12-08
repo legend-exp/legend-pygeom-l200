@@ -10,3 +10,4 @@ Table of Contents
    Package API reference <api/modules>
    Coordinate systems <coordinate_systems>
    Calibration sources <calibration>
+   naming

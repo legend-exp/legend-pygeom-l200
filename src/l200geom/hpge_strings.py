@@ -317,12 +317,12 @@ def _get_support_structure(
 
     tristar_lv_name = f"tristar_{size}"
     if tristar_lv_name not in registry.logicalVolumeDict:
-        pen_file = resources.files("l200geom") / "models" / f"TriStar_{size}.stl"
+        tristar_file = resources.files("l200geom") / "models" / f"TriStar_{size}.stl"
 
-        pen_solid = pyg4ometry.stl.Reader(
-            pen_file, solidname=f"tristar_{size}", centre=False, registry=registry
+        tristar_solid = pyg4ometry.stl.Reader(
+            tristar_file, solidname=f"tristar_{size}", centre=False, registry=registry
         ).getSolid()
-        tristar_lv = geant4.LogicalVolume(pen_solid, materials.pen, tristar_lv_name, registry)
+        tristar_lv = geant4.LogicalVolume(tristar_solid, materials.pen, tristar_lv_name, registry)
         tristar_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     else:
         tristar_lv = registry.logicalVolumeDict[tristar_lv_name]

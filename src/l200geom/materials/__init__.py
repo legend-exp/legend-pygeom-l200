@@ -63,7 +63,7 @@ class OpticalMaterialRegistry:
             return self._liquidargon
 
         self._liquidargon = g4.Material(
-            name="LiquidArgon",
+            name="liquid_argon",
             density=1.390,  # g/cm3
             number_of_components=1,
             state="liquid",
