@@ -54,7 +54,7 @@ def construct(
     if set(assemblies) - set(DEFINED_ASSEMBLIES) != set():
         msg = "invalid geometrical assembly specified"
         raise ValueError(msg)
-
+    raise ValueError()
     config = config if config is not None else {}
 
     reg = geant4.Registry()
