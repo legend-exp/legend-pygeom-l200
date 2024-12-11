@@ -47,7 +47,10 @@ jobs:
       - name: Set LEGEND_METADATA variable
         run: |
           echo "LEGEND_METADATA=$GITHUB_WORKSPACE/legend-metadata" >> $GITHUB_ENV
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.owner.login == 'legend-exp' }}
+        # secrets are not available in PRs from forks, so do not even attempt to clone metadata.
+        if:
+          ${{ github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.owner.login == 'legend-exp' }}
       - name: Clone legend-metadata
         uses: actions/checkout@v4
         with:
@@ -56,7 +59,10 @@ jobs:
           token: ${{ secrets.READPRIVATE }}
           path: ${{ env.LEGEND_METADATA }}
           submodules: "recursive"
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.owner.login == 'legend-exp' }}
+        # secrets are not available in PRs from forks, so do not even attempt to clone metadata.
+        if:
+          ${{ github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.owner.login == 'legend-exp' }}
       - name: Run unit tests
         run: |
           python -m pytest
