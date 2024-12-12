@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import os
+
+public_geom = os.getenv("LEGEND_METADATA", "") == ""
+
 
 def test_construct_with_sis(tmp_path):
     from l200geom import core
@@ -17,12 +21,12 @@ def test_construct_with_sis(tmp_path):
         },
     }
 
-    registry = core.construct(assemblies=["calibration"], config=cfg)
+    registry = core.construct(assemblies=["calibration"], config=cfg, public_geometry=public_geom)
     assert "source_inner_sis1_source3" in registry.physicalVolumeDict
 
     # test single source with Cu cap.
     cfg["sis"]["1"]["sources"][3] = "Ra+Cu"
-    registry = core.construct(assemblies=["calibration"], config=cfg)
+    registry = core.construct(assemblies=["calibration"], config=cfg, public_geometry=public_geom)
     assert "source_inner_sis1_source3" in registry.physicalVolumeDict
 
     # test multiple sources.
@@ -41,7 +45,7 @@ def test_construct_with_sis(tmp_path):
         },
     }
 
-    registry = core.construct(assemblies=["calibration"], config=cfg)
+    registry = core.construct(assemblies=["calibration"], config=cfg, public_geometry=public_geom)
     for i in range(3):
         assert f"source_inner_sis1_source{i}" in registry.physicalVolumeDict
         assert f"source_inner_sis2_source{i}" in registry.physicalVolumeDict
