@@ -80,6 +80,11 @@ def dump_gdml_cli() -> None:
         action="store",
         help="""Select a config file to read geometry config from.""",
     )
+    geom_opts.add_argument(
+        "--public-geom",
+        action="store_true",
+        help="""Create a geometry from public testdata only.""",
+    )
 
     parser.add_argument(
         "filename",
@@ -114,6 +119,7 @@ def dump_gdml_cli() -> None:
         assemblies=[a for a in args.assemblies.split(",") if a != ""],
         use_detailed_fiber_model=args.fiber_modules == "detailed",
         config=config,
+        public_geometry=args.public_geom,
     )
 
     if args.check_overlaps:
