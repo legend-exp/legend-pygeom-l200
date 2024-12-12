@@ -54,9 +54,6 @@ def construct(
         msg = "invalid geometrical assembly specified"
         raise ValueError(msg)
 
-    
-
-
     lmeta = LegendMetadata() if os.getenv("LEGEND_METADATA", "") != "" else None
     # require user action to construct a testdata-only geometry (i.e. to avoid accidental creation of "wrong"
     # geometries by LEGEND members).
