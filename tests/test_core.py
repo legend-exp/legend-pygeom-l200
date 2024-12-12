@@ -4,6 +4,7 @@ import os
 from collections import Counter
 from pathlib import Path
 
+import pytest
 import numpy as np
 from pyg4ometry import gdml
 from pygeomtools import detectors
@@ -15,6 +16,11 @@ def test_import():
     import l200geom  # noqa: F401
 
 
+@pytest.mark.xfail(
+    public_geom,
+    reason="public geometry has different detector count",
+    raises=AssertionError,
+)
 def test_construct(tmp_path):
     from l200geom import core
 
