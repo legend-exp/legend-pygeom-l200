@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from importlib import resources
 from typing import NamedTuple
 
@@ -14,9 +15,6 @@ from .metadata import PublicMetadataProxy
 
 log = logging.getLogger(__name__)
 
-lmeta = LegendMetadata()
-if lmeta._repo_path == "":
-    lmeta = None
 configs = TextDB(resources.files("l200geom") / "configs" / "extra_meta")
 
 DEFINED_ASSEMBLIES = ["wlsr", "strings", "calibration", "fibers", "top"]
@@ -49,12 +47,28 @@ def construct(
     assemblies: list[str] = DEFINED_ASSEMBLIES,
     use_detailed_fiber_model: bool = False,
     config: dict | None = None,
+    public_geometry: bool = False,
 ) -> geant4.Registry:
     """Construct the LEGEND-200 geometry and return the pyg4ometry Registry containing the world volume."""
     if set(assemblies) - set(DEFINED_ASSEMBLIES) != set():
         msg = "invalid geometrical assembly specified"
         raise ValueError(msg)
-    raise ValueError()
+
+    
+
+
+    lmeta = LegendMetadata() if os.getenv("LEGEND_METADATA", "") != "" else None
+    # require user action to construct a testdata-only geometry (i.e. to avoid accidental creation of "wrong"
+    # geometries by LEGEND members).
+    if lmeta is None and not public_geometry:
+        msg = "cannot construct geometry from public testdata only, if not explicitly instructed"
+        raise RuntimeError(msg)
+    if public_geometry:
+        lmeta = None
+    if lmeta is None:
+        log.warning("CONSTRUCTING GEOMETRY FROM PUBLIC DATA ONLY")
+        dummy_geom = PublicMetadataProxy()
+
     config = config if config is not None else {}
 
     reg = geant4.Registry()
@@ -96,8 +110,6 @@ def construct(
         raise ValueError(msg)
     special_metadata = load_dict_from_config(config, "special_metadata", lambda: configs.on(timestamp))
     if lmeta is None:
-        log.warning("CONSTRUCTING GEOMETRY FROM PUBLIC DATA ONLY")
-        dummy_geom = PublicMetadataProxy()
         dummy_geom.update_special_metadata(special_metadata)
 
     channelmap = load_dict_from_config(
@@ -127,6 +139,7 @@ def construct(
         fibers.place_fiber_modules(hw_meta, instr, use_detailed_fiber_model)
 
     _assign_common_copper_surface(instr)
+    # test
 
     detectors.write_detector_auxvals(reg)
     visualization.write_color_auxvals(reg)
