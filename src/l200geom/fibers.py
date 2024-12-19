@@ -28,7 +28,7 @@ def place_fiber_modules(
     # Unroll the provided metadata into a structure better suited for the next steps.
     # The geometry here is based on physical modules and not on channels.
     modules = {}
-    ch_map = b.channelmap.map("system", unique=False).spms
+    ch_map = b.channelmap.map("system", unique=False).get("spms", {})
     for ch in ch_map.values():
         mod = modules.get(ch.location.fiber)
 

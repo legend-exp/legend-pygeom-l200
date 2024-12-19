@@ -10,6 +10,7 @@ This metadata is passed to all instrumentation modules, stored as
 ## Global HPGe string configuration
 
 - `hpge_string` → HPGe string number
+
   - `radius_in_mm` → radial distance from the center of the cryostat to the
     string
   - `angle_in_deg` → azimutal position of the string with respect to the
@@ -18,6 +19,15 @@ This metadata is passed to all instrumentation modules, stored as
   - `minishroud_delta_length_in_mm` → modification of the default length of a
     NMS. If unspecified, 0 will be used.
   - `rod_radius_in_mm` → placement radius of the support rod of this string
+  - `empty_string_content` → optional content of the empty string (array or
+    null).
+
+    - The default value of `null` does not add any parts of the string to the
+      geometry.
+    - If the provided array is empty, only the hanger is produced.
+    - The array can also contain one of the special values of `"counterweight"`
+      or `"counterweight_ttx"`, to add our usual counterweights (optionally
+      wrapped in Tetratex) to the empty string.
 
 ## HPGe detector unit configuration
 
