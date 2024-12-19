@@ -55,6 +55,14 @@ def place_hpge_strings(hpge_metadata: TextDB, b: core.InstrumentationData) -> No
             full_meta,
         )
 
+    for string_id, string_meta in b.special_metadata.hpge_string.items():
+        if string_meta.get("empty_string_content") is None:
+            continue
+        if string_id in strings_to_build:
+            msg = f"string {string_id} has empty_string_content and detectors"
+            raise RuntimeError(msg)
+        _place_empty_string(string_id, b)
+
     # now, build all strings.
     for string_id, string in strings_to_build.items():
         _place_hpge_string(string_id, string, b)
@@ -77,8 +85,7 @@ def _place_hpge_string(
     string_slots: list,
     b: core.InstrumentationData,
 ):
-    """
-    Place a single HPGe detector string.
+    """Place a single HPGe detector string (with at least one detector).
 
     This includes all PEN plates and the nylon shroud around the string."""
     string_meta = b.special_metadata.hpge_string[string_id]
@@ -258,6 +265,87 @@ def _place_hpge_string(
             b.mother_lv,
             b.registry,
         )
+
+
+def _place_empty_string(string_id: str, b: core.InstrumentationData):
+    """Place an empty string (i.e. with no HPGe detectors), optionally with a counterweight."""
+    string_meta = b.special_metadata.hpge_string[string_id]
+
+    angle_in_rad = math.pi * string_meta.angle_in_deg / 180
+    x_pos = string_meta.radius_in_mm * math.cos(angle_in_rad)
+    y_pos = -string_meta.radius_in_mm * math.sin(angle_in_rad)
+    # rotation angle for anything in the string.
+    string_rot = -np.pi + angle_in_rad
+
+    # offset the height of the string by the length of the string support rod.
+    # TODO: this is also still a warm length.
+    z0_string = b.top_plate_z_pos - 410.1  # from CAD model.
+
+    if "string_support_structure_short" not in b.registry.logicalVolumeDict:
+        support_file = resources.files("l200geom") / "models" / "StringSupportStructure-short.stl"
+        support_solid = pyg4ometry.stl.Reader(
+            support_file, solidname="string_support_structure_short", centre=False, registry=b.registry
+        ).getSolid()
+        support_lv = geant4.LogicalVolume(
+            support_solid, b.materials.metal_copper, "string_support_structure_short", b.registry
+        )
+        support_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
+    else:
+        support_lv = b.registry.logicalVolumeDict["string_support_structure_short"]
+
+    geant4.PhysicalVolume(
+        [0, 0, np.deg2rad(30) + string_rot],
+        [x_pos, y_pos, z0_string],
+        support_lv,
+        support_lv.name + "_string_" + string_id,
+        b.mother_lv,
+        b.registry,
+    )
+
+    # add the optional steel counterweight to the empty string.
+    string_content = string_meta.get("empty_string_content", [])
+    if len(string_content) == 0:
+        return
+    if len(string_content) != 1 or string_content[0] not in ("counterweight", "counterweight_ttx"):
+        msg = f"invalid empty string content {string_content}"
+        raise ValueError(msg)
+    has_counterweight = string_content[0] in ("counterweight", "counterweight_ttx")
+    wrap_tetratex = has_counterweight and string_content[0] == "counterweight_ttx"
+
+    if has_counterweight:
+        counterweight_height = 513  # mm
+        counterweight_name = "counterweight" + ("_wrapped" if wrap_tetratex else "")
+        if counterweight_name not in b.registry.logicalVolumeDict:
+            counterweight = geant4.solid.Tubs(
+                counterweight_name, 0, 77 / 2, counterweight_height, 0, 2 * math.pi, b.registry, "mm"
+            )
+            counterweight = geant4.LogicalVolume(
+                counterweight, b.materials.metal_steel, counterweight_name, b.registry
+            )
+            counterweight.pygeom_color_rgba = [1, 1, 1, 1] if wrap_tetratex else [0.5, 0.5, 0.5, 1]
+
+        # account for the shorter hanger (compared to an active string), and the distance between copper
+        # hanger and weight (the latter is estimated from photos).
+        counterweight_z = z0_string + 130.5 - 30 - counterweight_height / 2
+        counterweight_pv = geant4.PhysicalVolume(
+            [0, 0, 0],
+            [x_pos, y_pos, counterweight_z],
+            b.registry.logicalVolumeDict[counterweight_name],
+            f"{counterweight_name}_{string_id}",
+            b.mother_lv,
+            b.registry,
+        )
+
+        if wrap_tetratex:
+            # note: no volume that actually has tetratex material, here. The surface alone should be fine
+            # (propagation of light into the volume will not occur with this surface).
+            geant4.BorderSurface(
+                f"bsurface_lar_ttx_{string_id}",
+                b.mother_pv,
+                counterweight_pv,
+                b.materials.surfaces.to_tetratex,
+                b.registry,
+            )
 
 
 # Those dimensions are from an email from A. Lubashevskiy to L. Varriano on Dec 12, 2023; on the NMS made at
