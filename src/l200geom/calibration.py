@@ -5,6 +5,7 @@ import math
 from typing import Literal
 
 import numpy as np
+from legendmeta import AttrsDict
 from pyg4ometry import geant4
 
 from . import core, hpge_strings
@@ -14,6 +15,16 @@ log = logging.getLogger(__name__)
 
 def place_calibration_system(b: core.InstrumentationData) -> None:
     """Construct LEGEND-200 calibration system."""
+
+    # overridable config for copper cap dimensions.
+    cu_absorber_config = {
+        "height": 15 - 0.01,  # mm, drawing from S. Schönert
+        "inner_height": 12.5,  # mm
+        "inner_radius": 7.6 / 2,  # mm
+        "outer_radius": (14 - 0.01) / 2,  # mm, drawing from S. Schönert
+    }
+    cu_absorber_config = b.runtime_config.get("cu_absorber", AttrsDict(cu_absorber_config))
+
     # add source outside SIS, if requested by user.
     if hasattr(b.runtime_config, "extra_source"):
         source_cfg = b.runtime_config.extra_source
@@ -24,7 +35,7 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
             np.array(source_cfg.position_in_mm[0:2]),
             source_cfg.position_in_mm[2],
             source_type=source_spec["type"],
-            cu_absorber=source_spec["has_cu"],
+            cu_absorber=(cu_absorber_config if source_spec["has_cu"] else None),
             bare=source_spec["bare"],
         )
 
@@ -91,7 +102,7 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
                 calib_tube_xy[:, idx],
                 pin_top + delta_z[si] - source_inside_holder,
                 source_type=source_spec["type"],
-                cu_absorber=source_spec["has_cu"],
+                cu_absorber=(cu_absorber_config if source_spec["has_cu"] else None),
                 bare=source_spec["bare"],
             )
 
@@ -109,11 +120,6 @@ ABSORBER_HEIGHT = 37.5  # mm
 source_outside_holder = 10.6  # mm
 source_inside_holder = source_height - source_outside_holder
 
-cu_absorber_height = 15 - 0.01  # mm, drawing from S. Schönert
-cu_absorber_inner_height = 12.5  # mm
-cu_absorber_inner_radius = 7.6 / 2  # mm
-cu_absorber_outer_radius = (14 - 0.01) / 2  # mm, drawing from S. Schönert
-
 
 def _place_source(
     b: core.InstrumentationData,
@@ -121,7 +127,7 @@ def _place_source(
     xy,
     delta_z: float,
     source_type: Literal["Th228", "Ra"],
-    cu_absorber: bool,
+    cu_absorber: AttrsDict | None,
     bare: bool = False,
 ) -> None:
     """Place a single source container.
@@ -131,7 +137,8 @@ def _place_source(
     source_type
         controls the interior design of the source container
     cu_absorber
-        include a copper absorber cap
+        include a copper absorber cap of the given dimensions. The dimensions have to be the same for all
+        sources in this geometry.
     bare
         Do not encapsulate the source. only use if you know what you do; this does not correspond to any
         physical source geometry used in LEGEND.
@@ -139,6 +146,7 @@ def _place_source(
     z0 = b.top_plate_z_pos - delta_z
 
     source_z = z0 + source_height / 2 - source_inside_holder
+    # outer = steel container.
     if not bare:
         if "source_outer" not in b.registry.solidDict:
             geant4.solid.Tubs(
@@ -161,6 +169,7 @@ def _place_source(
             b.registry,
         )
 
+    # inner = contains actual source material.
     if "source_inner" not in b.registry.solidDict:
         geant4.solid.Tubs(
             "source_inner", 0, source_radius_inner, source_height_inner, 0, 2 * math.pi, b.registry
@@ -189,14 +198,16 @@ def _place_source(
         b.registry,
     )
 
+    # copper absorber cap, if requested.
     if cu_absorber:
-        cu_absorber, cu_absorber_lar = _get_cu_cap(b)
-        cu_absorber_z = z0 + cu_absorber_height / 2
-        cu_absorber_lar_z = z0 + cu_absorber_inner_height / 2
+        cu_absorber_cu, cu_absorber_lar = _get_cu_cap(b, cu_absorber)
+        cu_absorber_z0 = z0 + max([0, source_outside_holder - cu_absorber.inner_height])
+        cu_absorber_z = cu_absorber_z0 + cu_absorber.height / 2
+        cu_absorber_lar_z = cu_absorber_z0 + cu_absorber.inner_height / 2
         geant4.PhysicalVolume(
             [0, 0, 0],
             [*xy, cu_absorber_z],
-            cu_absorber,
+            cu_absorber_cu,
             f"cu_absorber{suffix}",
             b.mother_lv,
             b.registry,
@@ -212,35 +223,41 @@ def _place_source(
             )
 
 
-def _get_cu_cap(b: core.InstrumentationData) -> tuple[geant4.LogicalVolume, geant4.LogicalVolume | None]:
+def _get_cu_cap(
+    b: core.InstrumentationData, dimens: AttrsDict
+) -> tuple[geant4.LogicalVolume, geant4.LogicalVolume | None]:
     if "cu_absorber" in b.registry.logicalVolumeDict:
         return (
             b.registry.logicalVolumeDict["cu_absorber"],
             b.registry.logicalVolumeDict.get("cu_absorber_lar_inactive", None),
         )
 
+    if (
+        dimens.inner_radius >= dimens.outer_radius
+        or dimens.inner_height >= dimens.height
+        or dimens.inner_radius < source_radius_outer
+    ):
+        msg = "invalid copper cap configuration."
+        raise ValueError(msg)
+
     cu_absorber_outer = geant4.solid.Tubs(
-        "cu_absorber_outer", 0, cu_absorber_outer_radius, cu_absorber_height, 0, 2 * math.pi, b.registry
+        "cu_absorber_outer", 0, dimens.outer_radius, dimens.height, 0, 2 * math.pi, b.registry
     )
     cu_absorber_inner = geant4.solid.Tubs(
-        "cu_absorber_inner", 0, cu_absorber_inner_radius, cu_absorber_inner_height, 0, 2 * math.pi, b.registry
+        "cu_absorber_inner", 0, dimens.inner_radius, dimens.inner_height, 0, 2 * math.pi, b.registry
     )
     cu_absorber = geant4.solid.Subtraction(
         "cu_absorber",
         cu_absorber_outer,
         cu_absorber_inner,
-        [[0, 0, 0], [0, 0, -(cu_absorber_height - cu_absorber_inner_height) / 2]],
+        [[0, 0, 0], [0, 0, -(dimens.height - dimens.inner_height) / 2]],
         b.registry,
     )
     cu_absorber = geant4.LogicalVolume(cu_absorber, b.materials.metal_copper, "cu_absorber", b.registry)
     cu_absorber.pygeom_color_rgba = (0.72, 0.45, 0.2, 0.3)
 
     cu_absorber_lar = None
-    if cu_absorber_inner_radius != source_radius_outer:
-        if cu_absorber_inner_radius < source_radius_outer:
-            msg = "invalid copper cap configuration."
-            raise ValueError(msg)
-
+    if dimens.inner_radius != source_radius_outer:
         cu_absorber_lar_inner = geant4.solid.Tubs(
             "cu_absorber_lar_inactive_inner",
             0,
@@ -254,7 +271,7 @@ def _get_cu_cap(b: core.InstrumentationData) -> tuple[geant4.LogicalVolume, gean
             "cu_absorber_lar_inactive",
             cu_absorber_inner,
             cu_absorber_lar_inner,
-            [[0, 0, 0], [0, 0, -(cu_absorber_inner_height - source_outside_holder) / 2]],
+            [[0, 0, 0], [0, 0, -(dimens.inner_height - source_outside_holder) / 2]],
             b.registry,
         )
         cu_absorber_lar = geant4.LogicalVolume(
