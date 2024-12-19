@@ -282,12 +282,11 @@ def _place_empty_string(string_id: str, b: core.InstrumentationData):
     z0_string = b.top_plate_z_pos - 410.1  # from CAD model.
 
     if "string_support_structure_short" not in b.registry.logicalVolumeDict:
-        support_file = resources.files("l200geom") / "models" / "StringSupportStructure-short.stl"
-        support_solid = pyg4ometry.stl.Reader(
-            support_file, solidname="string_support_structure_short", centre=False, registry=b.registry
-        ).getSolid()
-        support_lv = geant4.LogicalVolume(
-            support_solid, b.materials.metal_copper, "string_support_structure_short", b.registry
+        support_lv = _read_model(
+            "StringSupportStructure-short.stl",
+            "string_support_structure_short",
+            b.materials.metal_copper,
+            b.registry,
         )
         support_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     else:
@@ -376,15 +375,8 @@ def _get_pen_plate(
 
     pen_lv_name = f"pen_{size}"
     if pen_lv_name not in registry.logicalVolumeDict:
-        if size != "ppc_small":
-            pen_file = resources.files("l200geom") / "models" / f"BasePlate_{size}.stl"
-        else:
-            pen_file = resources.files("l200geom") / "models" / "TopPlate_ppc.stl"
-
-        pen_solid = pyg4ometry.stl.Reader(
-            pen_file, solidname=f"pen_{size}", centre=False, registry=registry
-        ).getSolid()
-        pen_lv = geant4.LogicalVolume(pen_solid, materials.pen, pen_lv_name, registry)
+        pen_file = f"BasePlate_{size}.stl" if size != "ppc_small" else "TopPlate_ppc.stl"
+        pen_lv = _read_model(pen_file, pen_lv_name, materials.pen, registry)
         pen_lv.pygeom_color_rgba = colors[size]
 
     return registry.logicalVolumeDict[pen_lv_name]
@@ -399,12 +391,8 @@ def _get_support_structure(
 
     .. note :: Both models' coordinate origins are a the top face of the tristar structure."""
     if "string_support_structure" not in registry.logicalVolumeDict:
-        support_file = resources.files("l200geom") / "models" / "StringSupportStructure.stl"
-        support_solid = pyg4ometry.stl.Reader(
-            support_file, solidname="string_support_structure", centre=False, registry=registry
-        ).getSolid()
-        support_lv = geant4.LogicalVolume(
-            support_solid, materials.metal_copper, "string_support_structure", registry
+        support_lv = _read_model(
+            "StringSupportStructure.stl", "string_support_structure", materials.metal_copper, registry
         )
         support_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     else:
@@ -412,12 +400,7 @@ def _get_support_structure(
 
     tristar_lv_name = f"tristar_{size}"
     if tristar_lv_name not in registry.logicalVolumeDict:
-        tristar_file = resources.files("l200geom") / "models" / f"TriStar_{size}.stl"
-
-        tristar_solid = pyg4ometry.stl.Reader(
-            tristar_file, solidname=f"tristar_{size}", centre=False, registry=registry
-        ).getSolid()
-        tristar_lv = geant4.LogicalVolume(tristar_solid, materials.pen, tristar_lv_name, registry)
+        tristar_lv = _read_model(f"TriStar_{size}.stl", f"tristar_{size}", materials.pen, registry)
         tristar_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     else:
         tristar_lv = registry.logicalVolumeDict[tristar_lv_name]
@@ -480,3 +463,11 @@ def _add_nms_surfaces(
     # between LAr and the NMS we need a surface in both directions.
     geant4.BorderSurface("bsurface_lar_nms_" + nms_pv.name, mother_pv, nms_pv, mats.surfaces.lar_to_tpb, reg)
     geant4.BorderSurface("bsurface_nms_lar_" + nms_pv.name, nms_pv, mother_pv, mats.surfaces.lar_to_tpb, reg)
+
+
+def _read_model(
+    file: str, name: str, material: geant4.Material, registry: geant4.Registry
+) -> geant4.LogicalVolume:
+    file = resources.files("l200geom") / "models" / file
+    solid = pyg4ometry.stl.Reader(file, solidname=name, centre=False, registry=registry).getSolid()
+    return geant4.LogicalVolume(solid, material, name, registry)
