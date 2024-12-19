@@ -14,6 +14,20 @@ log = logging.getLogger(__name__)
 
 def place_calibration_system(b: core.InstrumentationData) -> None:
     """Construct LEGEND-200 calibration system."""
+    # add source outside SIS, if requested by user.
+    if hasattr(b.runtime_config, "extra_source"):
+        source_cfg = b.runtime_config.extra_source
+        source_spec = _parse_source_spec(source_cfg.source)
+        _place_source(
+            b,
+            source_cfg.get("name", ""),
+            np.array(source_cfg.position_in_mm[0:2]),
+            source_cfg.position_in_mm[2],
+            source_type=source_spec["type"],
+            cu_absorber=source_spec["has_cu"],
+            bare=source_spec["bare"],
+        )
+
     # place calibration tubes.
     if len(b.special_metadata.calibration) == 0:
         return
@@ -78,6 +92,7 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
                 pin_top + delta_z[si] - source_inside_holder,
                 source_type=source_spec["type"],
                 cu_absorber=source_spec["has_cu"],
+                bare=source_spec["bare"],
             )
 
 
@@ -107,30 +122,44 @@ def _place_source(
     delta_z: float,
     source_type: Literal["Th228", "Ra"],
     cu_absorber: bool,
+    bare: bool = False,
 ) -> None:
     """Place a single source container.
 
     delta_z
         to source container holder top from top plate top
+    source_type
+        controls the interior design of the source container
+    cu_absorber
+        include a copper absorber cap
+    bare
+        Do not encapsulate the source. only use if you know what you do; this does not correspond to any
+        physical source geometry used in LEGEND.
     """
     z0 = b.top_plate_z_pos - delta_z
 
-    if "source_outer" not in b.registry.solidDict:
-        geant4.solid.Tubs("source_outer", 0, source_radius_outer, source_height, 0, 2 * math.pi, b.registry)
-    if f"source_outer{suffix}" not in b.registry.logicalVolumeDict:
-        geant4.LogicalVolume(
-            b.registry.solidDict["source_outer"], b.materials.metal_steel, f"source_outer{suffix}", b.registry
-        )
-    source_outer = b.registry.logicalVolumeDict[f"source_outer{suffix}"]
     source_z = z0 + source_height / 2 - source_inside_holder
-    geant4.PhysicalVolume(
-        [0, 0, 0],
-        [*xy, source_z],
-        source_outer,
-        f"source_outer{suffix}",
-        b.mother_lv,
-        b.registry,
-    )
+    if not bare:
+        if "source_outer" not in b.registry.solidDict:
+            geant4.solid.Tubs(
+                "source_outer", 0, source_radius_outer, source_height, 0, 2 * math.pi, b.registry
+            )
+        if f"source_outer{suffix}" not in b.registry.logicalVolumeDict:
+            geant4.LogicalVolume(
+                b.registry.solidDict["source_outer"],
+                b.materials.metal_steel,
+                f"source_outer{suffix}",
+                b.registry,
+            )
+        source_outer = b.registry.logicalVolumeDict[f"source_outer{suffix}"]
+        geant4.PhysicalVolume(
+            [0, 0, 0],
+            [*xy, source_z],
+            source_outer,
+            f"source_outer{suffix}",
+            b.mother_lv,
+            b.registry,
+        )
 
     if "source_inner" not in b.registry.solidDict:
         geant4.solid.Tubs(
@@ -153,10 +182,10 @@ def _place_source(
     source_inner_z = source_height / 2 - source_height_inner / 2 - source_top_inner
     geant4.PhysicalVolume(
         [0, 0, 0],
-        [0, 0, source_inner_z],
+        [0, 0, source_inner_z] if not bare else [*xy, source_z + source_inner_z],
         b.registry.logicalVolumeDict[f"source_inner_{source_type}"],
         f"source_inner{suffix}",
-        source_outer,
+        source_outer if not bare else b.mother_lv,
         b.registry,
     )
 
@@ -320,7 +349,7 @@ def _parse_source_spec(src: str) -> dict:
     if src[0] not in ("Th228", "Ra"):
         msg = f"Invalid source type {src[0]} in source spec"
         raise ValueError(msg)
-    if set(src[1:]) - {"Cu"} != set():
+    if set(src[1:]) - {"Cu", "_bare"} != set():
         msg = f"Unknown extra in source spec {src[1:]}"
         raise ValueError(msg)
-    return {"type": src[0], "has_cu": "Cu" in src}
+    return {"type": src[0], "has_cu": "Cu" in src, "bare": "_bare" in src}

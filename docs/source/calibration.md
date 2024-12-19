@@ -8,18 +8,14 @@ in the python code, but can be configured in a runtime configuration file.
 
 **TL;DR**: a working example:
 
-```json
-{
-  "sis": {
-    "1": {
-      "sis_z": 8250,
-      "sources": ["Th228", null, null, "Th228"]
-    },
-    "2": null,
-    "3": null,
-    "4": null
-  }
-}
+```yaml
+sis:
+  "1":
+    sis_z: 8250
+    sources: ["Th228", null, null, "Th228"]
+  "2": null
+  "3": null
+  "4": null
 ```
 
 ## calibration source configuration
@@ -54,6 +50,19 @@ Different types of sources can be included in the slots:
 > The volumes named `source_inner_sis{SIS number}_source{slot}` can be used as
 > the confinement volumes in remage (i.e. with a regex `^source_inner_.*`, if
 > all sources share an isotope).
+
+## extra source outside SIS
+
+It is also possible to add an extra source, that is not part of any SIS string,
+via a config file. all notes on SIS sources above also apply to this extra
+source.
+
+```yaml
+extra_source:
+  position_in_mm: [0, 0, 0]
+  name: "_central" # to identify in geometry, this produces a volume `source_inner{name}`
+  source: "Th228+Cu"
+```
 
 [confluence-coord]:
   https://legend-exp.atlassian.net/wiki/spaces/LEGEND/pages/1111785478/Calibration+simulations#Source-geometry-%2F-position
