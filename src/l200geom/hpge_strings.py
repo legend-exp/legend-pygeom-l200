@@ -172,7 +172,7 @@ def _place_hpge_string(
             list(pen_rot),
             [x_pos, y_pos, z_unit_pen],
             pen_plate,
-            det_unit.name + "_pen",
+            "pen_" + det_unit.name,
             b.mother_lv,
             b.registry,
         )
@@ -186,7 +186,7 @@ def _place_hpge_string(
                 [0, 0, string_rot],
                 [x_pos, y_pos, z_pos_det + det_unit.height + 1.5 / 2],
                 pen_plate,
-                det_unit.name + "_pen_top",
+                "pen_top_" + det_unit.name,
                 b.mother_lv,
                 b.registry,
             )
