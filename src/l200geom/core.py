@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 from importlib import resources
 from typing import NamedTuple
 
+from git import GitCommandError
 from legendmeta import AttrsDict, LegendMetadata, TextDB
 from pyg4ometry import geant4
 from pygeomtools import detectors, geometry, visualization
@@ -54,14 +56,15 @@ def construct(
         msg = "invalid geometrical assembly specified"
         raise ValueError(msg)
 
-    lmeta = LegendMetadata() if os.getenv("LEGEND_METADATA", "") != "" else None
+    lmeta = None
+    if not public_geometry and os.getenv("LEGEND_METADATA", None) != "":
+        with contextlib.suppress(GitCommandError):
+            lmeta = LegendMetadata()
     # require user action to construct a testdata-only geometry (i.e. to avoid accidental creation of "wrong"
     # geometries by LEGEND members).
     if lmeta is None and not public_geometry:
         msg = "cannot construct geometry from public testdata only, if not explicitly instructed"
         raise RuntimeError(msg)
-    if public_geometry:
-        lmeta = None
     if lmeta is None:
         log.warning("CONSTRUCTING GEOMETRY FROM PUBLIC DATA ONLY")
         dummy_geom = PublicMetadataProxy()
