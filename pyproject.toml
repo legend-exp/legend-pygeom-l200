@@ -127,6 +127,7 @@ extend-select = [
   "EXE",      # flake8-executable
   "NPY",      # NumPy specific rules
   "PD",       # pandas-vet
+  "N",        # pep8-naming
 ]
 ignore = [
   "PLR09",    # Too many <...>
