@@ -9,11 +9,11 @@ import legendoptics.pen
 import legendoptics.tpb
 import numpy as np
 import pint
-import pyg4ometry.geant4 as g4
 import pyg4ometry.gdml.Defines as defines
+import pyg4ometry.geant4 as g4
 
-from .surfaces import OpticalSurfaceRegistry
 from . import VM2000
+from .surfaces import OpticalSurfaceRegistry
 
 
 class OpticalMaterialRegistry:
@@ -401,15 +401,15 @@ class OpticalMaterialRegistry:
         legendoptics.pen.pyg4_pen_attach_scintillation(self._pen, self.g4_registry)
 
         return self._pen
-    
+
     @property
     def water(self) -> g4.Material:
         """High purity water of the watertank."""
         if hasattr(self, "_water"):
             return self._water
-        
+
         self._water = g4.MaterialCompound(
-            name = "Water",
+            name="Water",
             density=1.0,
             number_of_components=2,
             registry=self.g4_registry,
@@ -419,42 +419,50 @@ class OpticalMaterialRegistry:
         self._water.add_element_natoms(self.get_element("O"), natoms=1)
 
         # add refraction index
-        photon_energy = np.array([1.0, 6.0]) 
-        refractive_index = [1.33, 1.33] 
-        refractive_matrix = defines.MatrixFromVectors(photon_energy, refractive_index, "RefractiveMatrix", self.g4_registry, "eV", "")
+        photon_energy = np.array([1.0, 6.0])
+        refractive_index = [1.33, 1.33]
+        refractive_matrix = defines.MatrixFromVectors(
+            photon_energy, refractive_index, "RefractiveMatrix", self.g4_registry, "eV", ""
+        )
 
         # add attenuation length
         # Photon energy values corresponding to the wavelengths (in eV)
-        photon_energy_water = np.array([
-            1.239841939/0.6,   # ~206.6 nm
-            1.239841939/0.55,  # ~224.5 nm
-            1.239841939/0.50,  # ~248.0 nm
-            1.239841939/0.45,  # ~275.5 nm
-            1.239841939/0.40,  # ~310 nm
-            1.239841939/0.35,  # ~354.0 nm
-            1.239841939/0.30,  # ~413.3 nm
-            1.239841939/0.25,  # ~496.0 nm
-            1.239841939/0.20,  # ~620 nm
-            1.239841939/0.19,  # ~652.6 nm
-            1.239841939/0.10   # ~1240 nm
-        ])
+        photon_energy_water = np.array(
+            [
+                1.239841939 / 0.6,  # ~206.6 nm
+                1.239841939 / 0.55,  # ~224.5 nm
+                1.239841939 / 0.50,  # ~248.0 nm
+                1.239841939 / 0.45,  # ~275.5 nm
+                1.239841939 / 0.40,  # ~310 nm
+                1.239841939 / 0.35,  # ~354.0 nm
+                1.239841939 / 0.30,  # ~413.3 nm
+                1.239841939 / 0.25,  # ~496.0 nm
+                1.239841939 / 0.20,  # ~620 nm
+                1.239841939 / 0.19,  # ~652.6 nm
+                1.239841939 / 0.10,  # ~1240 nm
+            ]
+        )
 
         # Corresponding attenuation lengths (in mm)
-        absorption_lengths = np.array([
-            10*1000,       # 10 m for 206.6 nm
-            20*1000,       # 20 m for 224.5 nm
-            50*1000,       # 50 m for 248.0 nm
-            100*1000,      # 100 m for 275.5 nm
-            100*1000,      # 100 m for 310 nm
-            100*1000,      # 100 m for 354 nm
-            90*1000,       # 90 m for 413.3 nm
-            20*1000,       # 20 m for 496.0 nm
-            1*1000,        # 1 m for 620 nm
-            0.001,         # 0.001 mm for 652.6 nm
-            0.0001         # 0.0001 mm for 1240 nm
-        ])
+        absorption_lengths = np.array(
+            [
+                10 * 1000,  # 10 m for 206.6 nm
+                20 * 1000,  # 20 m for 224.5 nm
+                50 * 1000,  # 50 m for 248.0 nm
+                100 * 1000,  # 100 m for 275.5 nm
+                100 * 1000,  # 100 m for 310 nm
+                100 * 1000,  # 100 m for 354 nm
+                90 * 1000,  # 90 m for 413.3 nm
+                20 * 1000,  # 20 m for 496.0 nm
+                1 * 1000,  # 1 m for 620 nm
+                0.001,  # 0.001 mm for 652.6 nm
+                0.0001,  # 0.0001 mm for 1240 nm
+            ]
+        )
 
-        attenuation_length_matrix = defines.MatrixFromVectors(photon_energy_water, absorption_lengths, "AbsorptionLengthMatrix", self.g4_registry, "eV", "mm")
+        attenuation_length_matrix = defines.MatrixFromVectors(
+            photon_energy_water, absorption_lengths, "AbsorptionLengthMatrix", self.g4_registry, "eV", "mm"
+        )
 
         self._water.addProperty("ABSLENGTH", attenuation_length_matrix)
         self._water.addProperty("RINDEX", refractive_matrix)
@@ -462,17 +470,17 @@ class OpticalMaterialRegistry:
         return self._water
 
     @property
-    def nylon(self) -> g4.Material:
+    def nylon_VM2000(self) -> g4.Material:
         """Material for the reflective foil VM2000."""
         if hasattr(self, "_nylon"):
             return self._nylon
-                
+
         self._nylon = g4.MaterialCompound(
-            name = "nylon",
-            density=1.15, 
-            number_of_components=4, 
+            name="nylon",
+            density=1.15,
+            number_of_components=4,
             registry=self.g4_registry,
-            )
+        )
 
         # Add elements with their mass fractions
         self._nylon.add_element_natoms(self.get_element("H"), natoms=2)
@@ -482,30 +490,35 @@ class OpticalMaterialRegistry:
 
         num1 = 251
         Refraction = np.ones(num1) * 1.15  # Estimated refractive index
-        AbsorptionL = np.ones(num1) * 50.0 #50 m
+        AbsorptionL = np.ones(num1) * 50.0  # 50 m
         Refraction[0] = Refraction[1]
         AbsorptionL[0] = AbsorptionL[1]
 
         params = VM2000.VM2000_parameters()
         VM2000_energy_range, WLS_absorption, WLS_emission = params[0], params[3], params[4]
 
-
-
         # Make matrices for the properties
-        rindex_nylon = defines.MatrixFromVectors(VM2000_energy_range, Refraction, "RindexNylon", self.g4_registry, "eV", "")
-        abslength_nylon = defines.MatrixFromVectors(VM2000_energy_range, AbsorptionL, "AbslengthNylon", self.g4_registry, "eV", "")
-        wlsabslength_nylon = defines.MatrixFromVectors(VM2000_energy_range, WLS_absorption, "WLSAbslengthNylon", self.g4_registry, "eV", "")
-        wlscomponent_nylon = defines.MatrixFromVectors(VM2000_energy_range, WLS_emission, "WLSComponentNylon", self.g4_registry, "eV", "")
+        rindex_nylon = defines.MatrixFromVectors(
+            VM2000_energy_range, Refraction, "RindexNylon", self.g4_registry, "eV", ""
+        )
+        abslength_nylon = defines.MatrixFromVectors(
+            VM2000_energy_range, AbsorptionL, "AbslengthNylon", self.g4_registry, "eV", ""
+        )
+        wlsabslength_nylon = defines.MatrixFromVectors(
+            VM2000_energy_range, WLS_absorption, "WLSAbslengthNylon", self.g4_registry, "eV", ""
+        )
+        wlscomponent_nylon = defines.MatrixFromVectors(
+            VM2000_energy_range, WLS_emission, "WLSComponentNylon", self.g4_registry, "eV", ""
+        )
 
         self._nylon.addProperty("RINDEX", rindex_nylon)
         self._nylon.addProperty("ABSLENGTH", abslength_nylon)
         self._nylon.addProperty("WLSABSLENGTH", wlsabslength_nylon)
         self._nylon.addProperty("WLSCOMPONENT", wlscomponent_nylon)
         legendoptics.pen.pyg4_pen_attach_scintillation(self._nylon, self.g4_registry)
-        self._nylon.addConstProperty("WLSTIMECONSTANT", 0.5 * 10e-3) #ns
+        self._nylon.addConstProperty("WLSTIMECONSTANT", 0.5 * 10e-3)  # ns
 
         return self._nylon
-    
 
     @property
     def PMT_air(self) -> g4.Material:
@@ -513,53 +526,65 @@ class OpticalMaterialRegistry:
         if hasattr(self, "_PMT_air"):
             return self._PMT_air
 
-
         self._PMT_air = g4.MaterialCompound(
-            name = "PMT_air",
-            density=0.001225, 
-            number_of_components=2, 
+            name="PMT_air",
+            density=0.001225,
+            number_of_components=2,
             registry=self.g4_registry,
-            )
+        )
 
         self._PMT_air.add_element_natoms(self.get_element("N"), natoms=3)
         self._PMT_air.add_element_natoms(self.get_element("O"), natoms=1)
 
-        photon_energy_air = np.array([1.0, 6.0]) 
+        photon_energy_air = np.array([1.0, 6.0])
         refractive_index_air = [1.0, 1.0]
-        refractive_matrix_air = defines.MatrixFromVectors(photon_energy_air, refractive_index_air, "RefractiveMatrixAir", self.g4_registry, "eV", "")
+        refractive_matrix_air = defines.MatrixFromVectors(
+            photon_energy_air, refractive_index_air, "RefractiveMatrixAir", self.g4_registry, "eV", ""
+        )
         absorption_length_air = [100000.0, 100000.0]
-        absorption_matrix_air = defines.MatrixFromVectors(photon_energy_air, absorption_length_air, "AbsorptionMatrixAir", self.g4_registry, "eV", "mm")
+        absorption_matrix_air = defines.MatrixFromVectors(
+            photon_energy_air, absorption_length_air, "AbsorptionMatrixAir", self.g4_registry, "eV", "mm"
+        )
         self._PMT_air.addProperty("ABSLENGTH", absorption_matrix_air)
         self._PMT_air.addProperty("RINDEX", refractive_matrix_air)
 
         return self._PMT_air
-    
+
     @property
     def acryl(self) -> g4.Material:
         """Material for the acryl cap of the PMT encapsulation."""
         if hasattr(self, "_acryl"):
             return self._acryl
-        
+
         self._acryl = g4.MaterialCompound(
-            name = "acryl",
-            density=1.18, 
-            number_of_components=2, 
+            name="acryl",
+            density=1.18,
+            number_of_components=2,
             registry=self.g4_registry,
-            )
+        )
 
         self._acryl.add_element_natoms(self.get_element("H"), natoms=2)
         self._acryl.add_element_natoms(self.get_element("C"), natoms=1)
 
-        photon_energy_acryl = np.array([1.0, 6.0])  
-        refractive_index_acryl = [1.489, 1.489]  
-        refractive_matrix_acryl = defines.MatrixFromVectors(photon_energy_acryl, refractive_index_acryl, "RefractiveMatrixAcryl", self.g4_registry, "eV", "")
+        photon_energy_acryl = np.array([1.0, 6.0])
+        refractive_index_acryl = [1.489, 1.489]
+        refractive_matrix_acryl = defines.MatrixFromVectors(
+            photon_energy_acryl, refractive_index_acryl, "RefractiveMatrixAcryl", self.g4_registry, "eV", ""
+        )
         absorption_length_acryl = [2500.0, 3500.0]  # in mm, 3,5 m for all energies
-        absorption_matrix_acryl = defines.MatrixFromVectors(photon_energy_acryl, absorption_length_acryl, "AbsorptionMatrixAcryl", self.g4_registry, "eV", "mm")
+        absorption_matrix_acryl = defines.MatrixFromVectors(
+            photon_energy_acryl,
+            absorption_length_acryl,
+            "AbsorptionMatrixAcryl",
+            self.g4_registry,
+            "eV",
+            "mm",
+        )
         self._acryl.addProperty("ABSLENGTH", absorption_matrix_acryl)
         self._acryl.addProperty("RINDEX", refractive_matrix_acryl)
 
         return self._acryl
-    
+
     @property
     def borosilicate(self) -> g4.Material:
         """Material for the borosilicate glass of the PMT."""
@@ -567,34 +592,58 @@ class OpticalMaterialRegistry:
             return self._borosilicate
 
         self._borosilicate = g4.MaterialCompound(
-            name = "borosilicate",
-            density=2.23, 
-            number_of_components=4, 
+            name="borosilicate",
+            density=2.23,
+            number_of_components=4,
             registry=self.g4_registry,
-            )
+        )
 
         # SiO2: Silicon and Oxygen
         self._borosilicate.add_element_massfraction(self.get_element("Si"), 0.806 * 28.09 / (28.09 + 2 * 16))
         self._borosilicate.add_element_massfraction(self.get_element("O"), 0.806 * 2 * 16 / (28.09 + 2 * 16))
 
         # B2O3: Boron and Oxygen
-        self._borosilicate.add_element_massfraction(self.get_element("B"), 0.130 * 2 * 10.81 / (2 * 10.81 + 3 * 16))
-        self._borosilicate.add_element_massfraction(self.get_element("O"), 0.130 * 3 * 16 / (2 * 10.81 + 3 * 16))
+        self._borosilicate.add_element_massfraction(
+            self.get_element("B"), 0.130 * 2 * 10.81 / (2 * 10.81 + 3 * 16)
+        )
+        self._borosilicate.add_element_massfraction(
+            self.get_element("O"), 0.130 * 3 * 16 / (2 * 10.81 + 3 * 16)
+        )
 
         # Na2O: Sodium and Oxygen
-        self._borosilicate.add_element_massfraction(self.get_element("Na"), 0.040 * 2 * 22.99 / (2 * 22.99 + 16))
+        self._borosilicate.add_element_massfraction(
+            self.get_element("Na"), 0.040 * 2 * 22.99 / (2 * 22.99 + 16)
+        )
         self._borosilicate.add_element_massfraction(self.get_element("O"), 0.040 * 16 / (2 * 22.99 + 16))
 
         # Al2O3: Aluminum and Oxygen
-        self._borosilicate.add_element_massfraction(self.get_element("Al"), 0.023 * 2 * 26.98 / (2 * 26.98 + 3 * 16))
-        self._borosilicate.add_element_massfraction(self.get_element("O"), 0.023 * 3 * 16 / (2 * 26.98 + 3 * 16))
+        self._borosilicate.add_element_massfraction(
+            self.get_element("Al"), 0.023 * 2 * 26.98 / (2 * 26.98 + 3 * 16)
+        )
+        self._borosilicate.add_element_massfraction(
+            self.get_element("O"), 0.023 * 3 * 16 / (2 * 26.98 + 3 * 16)
+        )
 
-        photon_energy_cathode = np.array([1.0, 6.0])  # Beispiel Photonenergiereichweite
-        refractive_index_cathode = [1.49, 1.49]  # Konstanter Brechungsindex über das Spektrum
-        refractive_matrix_cathode = defines.MatrixFromVectors(photon_energy_cathode, refractive_index_cathode, "RefractiveMatrixCathode", self.g4_registry, "eV", "")
+        photon_energy_cathode = np.array([1.0, 6.0])
+        refractive_index_cathode = [1.49, 1.49]
+        refractive_matrix_cathode = defines.MatrixFromVectors(
+            photon_energy_cathode,
+            refractive_index_cathode,
+            "RefractiveMatrixCathode",
+            self.g4_registry,
+            "eV",
+            "",
+        )
 
-        absorption_length_cathode = [2000.0, 3000.0]  # in mm, 3,5 Meter für alle Energien
-        absorption_matrix_cathode = defines.MatrixFromVectors(photon_energy_cathode, absorption_length_cathode, "AbsorptionMatrixCathode", self.g4_registry, "eV", "mm")
+        absorption_length_cathode = [2000.0, 3000.0]
+        absorption_matrix_cathode = defines.MatrixFromVectors(
+            photon_energy_cathode,
+            absorption_length_cathode,
+            "AbsorptionMatrixCathode",
+            self.g4_registry,
+            "eV",
+            "mm",
+        )
 
         self._borosilicate.addProperty("RINDEX", refractive_matrix_cathode)
         self._borosilicate.addProperty("ABSLENGTH", absorption_matrix_cathode)

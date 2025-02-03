@@ -58,7 +58,7 @@ def construct(
     if set(assemblies) - set(DEFINED_ASSEMBLIES) != set():
         msg = "invalid geometrical assembly specified"
         raise ValueError(msg)
-    
+
     if pmt_configuration_mv not in PMT_CONFIGURATIONS:
         msg = "invalid pmt configuration specified"
         raise ValueError(msg)
@@ -96,7 +96,7 @@ def construct(
     if "watertank" in assemblies:
         # TODO: Shift the global coordinate system that z=0 is a reasonable value for defining hit positions.
         tank_z_displacement = 0.0
-        cryo_z_displacement = 0.0 #estimated value
+        cryo_z_displacement = 0.0  # estimated value
 
         WaterTankUnionSolid_lv = watertank.construct_tank(reg, "G4_STAINLESS-STEEL")
         watertank.place_tank(reg, WaterTankUnionSolid_lv, world_lv, tank_z_displacement)
@@ -107,16 +107,36 @@ def construct(
         air_buffer_lv = watertank.construct_air_buffer(reg, "G4_AIR")
         watertank.place_air_buffer(reg, air_buffer_lv, WaterTankUnionSolid_lv)
 
-        pillbox_lv, ManholePillbox, ManholeRotation, ManHoleOffset = watertank.construct_pillbox(reg, "G4_STAINLESS-STEEL")
+        pillbox_lv, ManholePillbox, ManholeRotation, ManHoleOffset = watertank.construct_pillbox(
+            reg, "G4_STAINLESS-STEEL"
+        )
         watertank.place_pillbox(reg, pillbox_lv, water_lv)
 
-        watertank.insert_VM2000(reg, mats.nylon, water_lv, water_pv, ManholePillbox, ManholeRotation, ManHoleOffset, cryo_z_displacement)
+        watertank.insert_VM2000(
+            reg,
+            mats.nylon_VM2000,
+            water_lv,
+            water_pv,
+            ManholePillbox,
+            ManholeRotation,
+            ManHoleOffset,
+            cryo_z_displacement,
+        )
 
-        watertank.insert_PMTs(reg, "G4_STAINLESS-STEEL", "G4_Al", mats.PMT_air, water_lv,
-                water_pv, mats.acryl, mats.borosilicate, pmt_configuration_mv)
+        watertank.insert_PMTs(
+            reg,
+            "G4_STAINLESS-STEEL",
+            "G4_Al",
+            mats.PMT_air,
+            water_lv,
+            water_pv,
+            mats.acryl,
+            mats.borosilicate,
+            pmt_configuration_mv,
+        )
 
         cryo.place_cryostat(cryostat_lv, WaterTankUnionSolid_lv, cryo_z_displacement, reg)
-    else: 
+    else:
         cryo.place_cryostat(cryostat_lv, world_lv, cryo_z_displacement, reg)
 
     lar_lv, lar_neck_height = cryo.construct_argon(mats.liquidargon, reg)
