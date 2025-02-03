@@ -4,8 +4,7 @@ import argparse
 import logging
 
 from pyg4ometry import config as meshconfig
-from pyg4ometry import gdml
-from pygeomtools import detectors, utils, visualization
+from pygeomtools import detectors, utils, visualization, write_pygeom
 
 from . import _version, core
 
@@ -88,7 +87,7 @@ def dump_gdml_cli() -> None:
 
     parser.add_argument(
         "filename",
-        default="",
+        default=None,
         nargs="?",
         help="""File name for the output GDML geometry.""",
     )
@@ -127,12 +126,10 @@ def dump_gdml_cli() -> None:
         log.info(msg)
         registry.worldVolume.checkOverlaps(recursive=True)
 
-    if args.filename != "":
-        msg = f"exporting GDML geometry to {args.filename}"
-        log.info(msg)
-        w = gdml.Writer()
-        w.addDetector(registry)
-        w.write(args.filename)
+    # commit auxvals, and write to GDML file if requested.
+    if args.filename is not None:
+        log.info("exporting GDML geometry to %s", args.filename)
+    write_pygeom(registry, args.filename)
 
     if args.det_macro_file:
         detectors.generate_detector_macro(registry, args.det_macro_file)

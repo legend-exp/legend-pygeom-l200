@@ -140,10 +140,6 @@ def construct(
 
     _assign_common_copper_surface(instr)
 
-    detectors.write_detector_auxvals(reg)
-    visualization.write_color_auxvals(reg)
-    geometry.check_registry_sanity(reg, reg)
-
     return reg
 
 
