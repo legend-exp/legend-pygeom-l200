@@ -90,7 +90,7 @@ def dump_gdml_cli() -> None:
         "--pmt-config",
         action="store",
         choices=("LEGEND200", "GERDA"),
-        default = "LEGEND200",
+        default="LEGEND200",
         help="""Select the PMT configuration of the muon veto (choose between "LEGEND200" and "GERDA"). (default: %(default)s)""",
     )
 
@@ -125,7 +125,7 @@ def dump_gdml_cli() -> None:
 
     registry = core.construct(
         assemblies=[a for a in args.assemblies.split(",") if a != ""],
-        pmt_configuration_mv = args.pmt_config,
+        pmt_configuration_mv=args.pmt_config,
         use_detailed_fiber_model=args.fiber_modules == "detailed",
         config=config,
         public_geometry=args.public_geom,
