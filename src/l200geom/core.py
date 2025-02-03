@@ -9,7 +9,6 @@ from typing import NamedTuple
 from git import GitCommandError
 from legendmeta import AttrsDict, LegendMetadata, TextDB
 from pyg4ometry import geant4
-from pygeomtools import detectors, geometry, visualization
 from pygeomtools.utils import load_dict_from_config
 
 from . import calibration, cryo, fibers, hpge_strings, materials, top, wlsr
