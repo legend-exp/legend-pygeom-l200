@@ -10,10 +10,9 @@ import legendoptics.silicon
 import legendoptics.tetratex
 import numpy as np
 import pint
-import pyg4ometry.gdml.Defines as defines
 import pyg4ometry.geant4 as g4
 
-from . import VM2000
+from . import vm2000
 from .ketek_sipm import ketek_sipm_efficiency
 
 u = pint.get_application_registry()
@@ -185,14 +184,14 @@ class OpticalSurfaceRegistry:
         return self._lar_to_pen
 
     @property
-    def to_VM2000(self) -> g4.solid.OpticalSurface:
+    def to_vm2000(self) -> g4.solid.OpticalSurface:
         """Reflective surface for VM2000."""
-        if hasattr(self, "_to_VM2000"):
-            return self._to_VM2000
+        if hasattr(self, "_to_vm2000"):
+            return self._to_vm2000
 
         # Create material properties table for VM2000 surface
-        self._to_VM2000 = g4.solid.OpticalSurface(
-            name="WaterTankFoilSurface",
+        self._to_vm2000 = g4.solid.OpticalSurface(
+            name="water_tank_foil_surface",
             finish="polished",
             model="glisur",
             surf_type="dielectric_metal",
@@ -200,32 +199,24 @@ class OpticalSurfaceRegistry:
             registry=self.g4_registry,
         )
 
-        params = VM2000.VM2000_parameters()
-        VM2000_energy_range, VM2000_Reflectivity, VM2000_Efficiency = params[0], params[1], params[2]
+        params = vm2000.vm2000_parameters()
+        vm2000_energy_range, vm2000_reflectivity, vm2000_efficiency = params[0], params[1], params[2]
+        vm2000_energy_range = vm2000_energy_range * u.eV
 
-        # Make matrices for the properties
-        reflectivity_matrix_foil = defines.MatrixFromVectors(
-            VM2000_energy_range, VM2000_Reflectivity, "ReflectivityMatrixFoil", self.g4_registry, "eV", ""
-        )
-        efficiency_matrix_foil = defines.MatrixFromVectors(
-            VM2000_energy_range, VM2000_Efficiency, "EfficiencyMatrixFoil", self.g4_registry, "eV", ""
-        )
-        # Add the matrices to the optical properties
-        self._to_VM2000.addProperty(
-            "REFLECTIVITY", reflectivity_matrix_foil
-        )  # der VM2000 zugewandte Seite --> reflectivity=0
-        self._to_VM2000.addProperty("EFFICIENCY", efficiency_matrix_foil)
+        with u.context("sp"):
+            self._to_vm2000.addVecPropertyPint("REFLECTIVITY", vm2000_energy_range, vm2000_reflectivity)
+            self._to_vm2000.addVecPropertyPint("EFFICIENCY", vm2000_energy_range, vm2000_efficiency)
 
-        return self._to_VM2000
+        return self._to_vm2000
 
     @property
-    def water_to_VM2000(self) -> g4.solid.OpticalSurface:
+    def water_to_vm2000(self) -> g4.solid.OpticalSurface:
         """Optical surface between water and VM2000."""
-        if hasattr(self, "_water_to_VM2000"):
-            return self._water_to_VM2000
+        if hasattr(self, "_water_to_vm2000"):
+            return self._water_to_vm2000
 
         # Create material properties table for VM2000 border surface
-        self._water_to_VM2000 = g4.solid.OpticalSurface(
+        self._water_to_vm2000 = g4.solid.OpticalSurface(
             name="WaterTankFoilBorder",
             finish="polished",
             model="glisur",
@@ -234,34 +225,22 @@ class OpticalSurfaceRegistry:
             registry=self.g4_registry,
         )
 
-        params = VM2000.VM2000_parameters()
-        VM2000_energy_range, VM2000_Reflectivity, VM2000_Efficiency = params[0], params[1], params[2]
+        params = vm2000.vm2000_parameters()
+        vm2000_energy_range, vm2000_reflectivity, vm2000_efficiency = params[0], params[1], params[2]
+        vm2000_energy_range = vm2000_energy_range * u.eV
 
-        Reflectivity_front = VM2000_Reflectivity * 0
-        Efficiency_Border = VM2000_Efficiency * 0
-        Transmittance_Border = [1.0] * len(VM2000_energy_range)
-        reflectivity_matrix_front = defines.MatrixFromVectors(
-            VM2000_energy_range, Reflectivity_front, "ReflectivityMatrixFoilFront", self.g4_registry, "eV", ""
-        )
+        reflectivity_front = vm2000_reflectivity * 0
+        efficiency_border = vm2000_efficiency * 0
+        transmittance_border = [1.0] * len(vm2000_energy_range)
 
-        # Make matrices for the properties
-        efficiency_matrix_border_foil = defines.MatrixFromVectors(
-            VM2000_energy_range, Efficiency_Border, "EfficiencyMatrixBorderFoil", self.g4_registry, "eV", ""
-        )
-        transmittance_matrix_border_foil = defines.MatrixFromVectors(
-            VM2000_energy_range,
-            Transmittance_Border,
-            "TransmittanceMatrixBorderFoil",
-            self.g4_registry,
-            "eV",
-            "",
-        )
-        # Add the matrices to the optical properties
-        self._water_to_VM2000.addProperty("REFLECTIVITY", reflectivity_matrix_front)  # --> facing to VM2000
-        self._water_to_VM2000.addProperty("EFFICIENCY", efficiency_matrix_border_foil)
-        self._water_to_VM2000.addProperty("TRANSMITTANCE", transmittance_matrix_border_foil)
+        with u.context("sp"):
+            self._water_to_vm2000.addVecPropertyPint("REFLECTIVITY", vm2000_energy_range, reflectivity_front)
+            self._water_to_vm2000.addVecPropertyPint("EFFICIENCY", vm2000_energy_range, efficiency_border)
+            self._water_to_vm2000.addVecPropertyPint(
+                "TRANSMITTANCE", vm2000_energy_range, transmittance_border
+            )
 
-        return self._water_to_VM2000
+        return self._water_to_vm2000
 
     @property
     def to_steel(self) -> g4.solid.OpticalSurface:
@@ -270,7 +249,7 @@ class OpticalSurfaceRegistry:
             return self._to_steel
 
         self._to_steel = g4.solid.OpticalSurface(
-            name="PMTSteelSurface",
+            name="pmt_steel_surface",
             finish="polished",
             model="glisur",
             surf_type="dielectric_metal",
@@ -278,19 +257,13 @@ class OpticalSurfaceRegistry:
             registry=self.g4_registry,
         )
 
-        photon_energy = np.array([1.0, 6.0])
+        photon_energy = np.array([1.0, 6.0]) * u.eV
         reflectivity_steel = [0.9, 0.9]
         efficiency_steel = np.array([1.0, 1.0])
 
-        reflectivity_steel_matrix = defines.MatrixFromVectors(
-            photon_energy, reflectivity_steel, "ReflectiveSteelMatrix", self.g4_registry, "eV", ""
-        )
-        efficiency_steel_matrix = defines.MatrixFromVectors(
-            photon_energy, efficiency_steel, "EfficiencySteelMatrix", self.g4_registry, "eV", ""
-        )
-
-        self._to_steel.addProperty("REFLECTIVITY", reflectivity_steel_matrix)
-        self._to_steel.addProperty("EFFICIENCY", efficiency_steel_matrix)
+        with u.context("sp"):
+            self._to_steel.addVecPropertyPint("REFLECTIVITY", photon_energy, reflectivity_steel)
+            self._to_steel.addVecPropertyPint("EFFICIENCY", photon_energy, efficiency_steel)
 
         return self._to_steel
 
@@ -302,23 +275,23 @@ class OpticalSurfaceRegistry:
 
         path = Path(__file__).resolve().parent
 
-        file_path = path / "PMT_QE.csv"
+        file_path = path / "pmt_qe.csv"
 
         data = np.loadtxt(file_path, delimiter=",")  # load data
 
         # Split the data into two arrays: wavelengths and efficiencies
         wavelengths = data[:, 0]  # First column: wavelengths
-        PMT_quantum_efficiencies = data[:, 1]  # Define wavelength range (nm) and corresponding efficiencies
-        PMT_quantum_efficiencies = PMT_quantum_efficiencies * 0.01  # in percent
+        pmt_quantum_efficiencies = data[:, 1]  # Define wavelength range (nm) and corresponding efficiencies
+        pmt_quantum_efficiencies = pmt_quantum_efficiencies * 0.01  # in percent
 
         # Convert wavelengths to energy using hc/λ (in eV)
         h_planck = 4.1357e-15  # eV·s
         c_speed = 299792458  # m/s
-        photon_energy = h_planck * c_speed / (wavelengths * 1e-9)
+        photon_energy = h_planck * c_speed / (wavelengths * 1e-9) * u.eV
 
         # Detector Surface
         self._to_photocathode = g4.solid.OpticalSurface(
-            name="PMTCathodeSurface",
+            name="pmt_cathode_surface",
             finish="polished",  # Finish of surface
             model="glisur",  # Model of surface
             surf_type="dielectric_metal",  # Type of surface
@@ -327,18 +300,11 @@ class OpticalSurfaceRegistry:
         )
 
         collection_efficiency = 0.85
-        # Make matrices for the properties
-        efficiency_matrix = defines.MatrixFromVectors(
-            photon_energy,
-            PMT_quantum_efficiencies * collection_efficiency,
-            "EfficiencyMatrix",
-            self.g4_registry,
-            "eV",
-            "",
-        )
 
-        # Add the matrices to the optical properties
-        self._to_photocathode.addProperty("EFFICIENCY", efficiency_matrix)
+        with u.context("sp"):
+            self._to_photocathode.addVecPropertyPint(
+                "EFFICIENCY", photon_energy, pmt_quantum_efficiencies * collection_efficiency
+            )
 
         return self._to_photocathode
 
@@ -349,7 +315,7 @@ class OpticalSurfaceRegistry:
             return self._acryl_to_air
 
         self._acryl_to_air = g4.solid.OpticalSurface(
-            name="PMTAirSurface",
+            name="pmt_air_surface",
             finish="polished",  # Finish of surface
             model="glisur",  # Model of surface
             surf_type="dielectric_dielectric",  # Type of surface
@@ -357,19 +323,13 @@ class OpticalSurfaceRegistry:
             registry=self.g4_registry,
         )
 
-        photon_energy_air = np.array([1.0, 6.0])
+        photon_energy_air = np.array([1.0, 6.0]) * u.eV
         reflectivity_air = [0.0386, 0.0386]
         transmittance_air = [1.0 - 0.0386, 1.0 - 0.0386]
 
-        reflectivity_matrix_air = defines.MatrixFromVectors(
-            photon_energy_air, reflectivity_air, "ReflectivityMatrixAir", self.g4_registry, "eV", ""
-        )
-        transmittance_matrix_air = defines.MatrixFromVectors(
-            photon_energy_air, transmittance_air, "TransmittanceMatrixAir", self.g4_registry, "eV", ""
-        )
-
-        self._acryl_to_air.addProperty("REFLECTIVITY", reflectivity_matrix_air)
-        self._acryl_to_air.addProperty("TRANSMITTANCE", transmittance_matrix_air)
+        with u.context("sp"):
+            self._acryl_to_air.addVecPropertyPint("REFLECTIVITY", photon_energy_air, reflectivity_air)
+            self._acryl_to_air.addVecPropertyPint("TRANSMITTANCE", photon_energy_air, transmittance_air)
 
         return self._acryl_to_air
 
@@ -380,7 +340,7 @@ class OpticalSurfaceRegistry:
             return self._water_to_acryl
 
         self._water_to_acryl = g4.solid.OpticalSurface(
-            name="PMTAcrylSurface",
+            name="pmt_acryl_surface",
             finish="polished",  # Finish of surface
             model="glisur",  # Model of surface
             surf_type="dielectric_dielectric",  # Type of surface
@@ -388,19 +348,13 @@ class OpticalSurfaceRegistry:
             registry=self.g4_registry,
         )
 
-        photon_energy_acryl = np.array([1.0, 6.0])
+        photon_energy_acryl = np.array([1.0, 6.0]) * u.eV
         reflectivity_acryl = [0.00318, 0.00318]
         transmittance_acryl = [1.0 - 0.00318, 1.0 - 0.00318]
 
-        reflectivity_matrix_acryl = defines.MatrixFromVectors(
-            photon_energy_acryl, reflectivity_acryl, "ReflectivityMatrixAcryl", self.g4_registry, "eV", ""
-        )
-        efficiency_matrix_acryl = defines.MatrixFromVectors(
-            photon_energy_acryl, transmittance_acryl, "TransmittanceMatrixAcryl", self.g4_registry, "eV", ""
-        )
-
-        self._water_to_acryl.addProperty("REFLECTIVITY", reflectivity_matrix_acryl)
-        self._water_to_acryl.addProperty("TRANSMITTANCE", efficiency_matrix_acryl)
+        with u.context("sp"):
+            self._water_to_acryl.addVecPropertyPint("REFLECTIVITY", photon_energy_acryl, reflectivity_acryl)
+            self._water_to_acryl.addVecPropertyPint("TRANSMITTANCE", photon_energy_acryl, transmittance_acryl)
 
         return self._water_to_acryl
 
@@ -411,21 +365,20 @@ class OpticalSurfaceRegistry:
             return self._air_to_borosilicate
 
         self._air_to_borosilicate = g4.solid.OpticalSurface(
-            name="PMTBorosilikatSurface",
-            finish="polished",  # Finish of surface
-            model="glisur",  # Model of surface
-            surf_type="dielectric_dielectric",  # Type of surface
-            value=0.01,  # parameter ((max. absorbance?) --> bei glisur 0.0 vollständig diffuse 1.0 vollständig spekulare reflektion
+            name="pmt_borosilikatSurface",
+            finish="polished",
+            model="glisur",
+            surf_type="dielectric_dielectric",
+            value=0.01,
             registry=self.g4_registry,
         )
 
-        # Optional: Reflexions- und Transmissionsparameter (nicht immer nötig für 'dielectric_dielectric')
-        photon_energy_borosilicate = np.array([1.0, 6.0])  # Beispiel-Energiebereich in eV
+        photon_energy_borosilicate = np.array([1.0, 6.0]) * u.eV
         transmittance_borosilicate = [1.0 - 0.036, 1.0 - 0.036]  # 100% Transmission
 
         path = Path(__file__).resolve().parent
 
-        file_path = path / "PMT_QE.csv"
+        file_path = path / "pmt_qe.csv"
 
         data = np.loadtxt(file_path, delimiter=",")
 
@@ -435,22 +388,14 @@ class OpticalSurfaceRegistry:
         # Convert wavelengths to energy using hc/λ (in eV)
         h_planck = 4.1357e-15  # eV·s
         c_speed = 299792458  # m/s
-        photon_energy = h_planck * c_speed / (wavelengths * 1e-9)
+        photon_energy = h_planck * c_speed / (wavelengths * 1e-9) * u.eV
         reflectivity_max = ((1 - 1.49) / (1 + 1.49)) ** 2  # n=1.49 borosilicate
         reflectivity = [reflectivity_max - 0.01] * len(wavelengths)
-        reflectivity_matrix_borosilicate = defines.MatrixFromVectors(
-            photon_energy, reflectivity, "ReflectivityMatrixBorosilicate", self.g4_registry, "eV", ""
-        )
-        efficiency_matrix_borosilicate = defines.MatrixFromVectors(
-            photon_energy_borosilicate,
-            transmittance_borosilicate,
-            "TransmittanceMatrixBorosilicate",
-            self.g4_registry,
-            "eV",
-            "",
-        )
 
-        self._air_to_borosilicate.addProperty("REFLECTIVITY", reflectivity_matrix_borosilicate)
-        self._air_to_borosilicate.addProperty("TRANSMITTANCE", efficiency_matrix_borosilicate)
+        with u.context("sp"):
+            self._air_to_borosilicate.addVecPropertyPint("REFLECTIVITY", photon_energy, reflectivity)
+            self._air_to_borosilicate.addVecPropertyPint(
+                "TRANSMITTANCE", photon_energy_borosilicate, transmittance_borosilicate
+            )
 
         return self._air_to_borosilicate
