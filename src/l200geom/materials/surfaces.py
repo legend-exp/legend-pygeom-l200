@@ -8,6 +8,7 @@ import legendoptics.copper
 import legendoptics.germanium
 import legendoptics.silicon
 import legendoptics.tetratex
+import legendoptics.utils
 import numpy as np
 import pint
 import pyg4ometry.geant4 as g4
@@ -277,11 +278,12 @@ class OpticalSurfaceRegistry:
 
         file_path = path / "pmt_qe.csv"
 
-        data = np.loadtxt(file_path, delimiter=",")  # load data
+        data = legendoptics.utils.readdatafile(file_path)
+        data = np.array(data)
+        data = data.astype(float)
 
-        # Split the data into two arrays: wavelengths and efficiencies
-        wavelengths = data[:, 0]  # First column: wavelengths
-        pmt_quantum_efficiencies = data[:, 1]  # Define wavelength range (nm) and corresponding efficiencies
+        wavelengths = data[:, 0]
+        pmt_quantum_efficiencies = data[:, 1]
         pmt_quantum_efficiencies = pmt_quantum_efficiencies * 0.01  # in percent
 
         # Convert wavelengths to energy using hc/λ (in eV)
@@ -380,10 +382,11 @@ class OpticalSurfaceRegistry:
 
         file_path = path / "pmt_qe.csv"
 
-        data = np.loadtxt(file_path, delimiter=",")
+        data = legendoptics.utils.readdatafile(file_path)
+        data = np.array(data)
+        data = data.astype(float)
 
-        # Split the data into two arrays: wavelengths and efficiencies
-        wavelengths = data[:, 0]  # First column: wavelengths
+        wavelengths = data[:, 0]
 
         # Convert wavelengths to energy using hc/λ (in eV)
         h_planck = 4.1357e-15  # eV·s
