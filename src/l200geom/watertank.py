@@ -8,11 +8,11 @@ from math import pi
 import numpy as np
 import pyg4ometry as pyg4
 import pyg4ometry.geant4 as g4
-from scipy.spatial.transform import Rotation as R
+from scipy.spatial.transform import Rotation
 
 from . import cryo, materials
 
-PMT_ID = np.array(
+pmt_id = np.array(
     [
         "Ch29_312",
         "Ch18_301",
@@ -72,133 +72,148 @@ PMT_ID = np.array(
 
 
 # Water tank with water and air buffer
-WaterTankThickness = 7.0
-WaterTankHeight = 8900.0
-InnerTankHeight = WaterTankHeight - 2 * WaterTankThickness
-InnerRadius = 0.0
-WaterRadius = 5000.0
-WaterHeight = 8400.0
+water_tank_thickness = 7.0
+water_tank_height = 8900.0
+inner_tank_height = water_tank_height - 2 * water_tank_thickness
+inner_radius = 0.0
+water_radius = 5000.0
+water_height = 8400.0
 
 # Reflective foil
-ReflectiveFoilThickness = 0.04
+reflective_foil_thickness = 0.04
 
 # Pillbox
-ShieldingFootOR = 2000.0
-ShieldingFootThickness = 1.2
-ShieldingFootIR = ShieldingFootOR - ShieldingFootThickness - ReflectiveFoilThickness
-CryoBottomHeight = 1300.0  # K. Freund https://publikationen.uni-tuebingen.de/xmlui/bitstream/handle/10900/57937/KFreundPhD.pdf?sequence=1&isAllowed=y
-PillboxOffset = -WaterHeight / 2 + 0.5 * CryoBottomHeight
-PillboxTubeFoilOffset = PillboxOffset
+shielding_foot_or = 2000.0
+shielding_foot_thickness = 1.2
+shielding_foot_ir = shielding_foot_or - shielding_foot_thickness - reflective_foil_thickness
+cryo_bottom_height = (
+    (inner_tank_height / 2)
+    - (cryo.cryo_tub_height / 2)
+    - cryo.cryo_bottom_height
+    - reflective_foil_thickness
+    - cryo.access_overlap
+    + cryo.cryo_wall
+    + cryo.cryo_access_wall
+)
+pillbox_offset = -water_height / 2 + 0.5 * cryo_bottom_height
+pillbox_tube_foil_offset = pillbox_offset
 
 # Air buffer
-OuterWaterTankRadius = WaterRadius + WaterTankThickness
-AirBufferRadius = WaterRadius
-AirBufferHeight = WaterTankHeight - 2.0 * WaterTankThickness - WaterHeight
+outer_water_tank_radius = water_radius + water_tank_thickness
+air_buffer_radius = water_radius
+air_buffer_height = water_tank_height - 2.0 * water_tank_thickness - water_height
 
 
 # z-axis Offsets
-AirBufferOffset = 0.5 * (InnerTankHeight - AirBufferHeight)
-TankOffset = 0.5 * AirBufferHeight
-BottomFoilOffset = -0.5 * WaterHeight + 0.5 * ReflectiveFoilThickness
+air_buffer_offset = 0.5 * (inner_tank_height - air_buffer_height)
+tank_offset = 0.5 * air_buffer_height
+bottom_foil_offset = -0.5 * water_height + 0.5 * reflective_foil_thickness
 
 
 # PMTs
-PMTStartingAngle = 0.0  # in degrees
-PMTEndingAngle = 2 * pi  # in degrees
+pmt_starting_angle = 0.0  # in degrees
+pmt_ending_angle = 2 * pi  # in degrees
 
-PhotocathodeInnerRadius = 100.0
-PhotocathodeOuterRadius = 100.16
-PhotocathodeThetaStart = 0.0  # in degrees
-PhotocathodeThetaEnd = (80.0 / 180.0) * pi  # in degrees
-PhotocatodeHeight = PhotocathodeOuterRadius * (1 - math.cos(PhotocathodeThetaEnd))
-PhotocathodeHeightDifference = PhotocathodeOuterRadius - PhotocatodeHeight
+photocathode_inner_radius = 100.0
+photocathode_outer_radius = 100.16
+photocathode_theta_start = 0.0  # in degrees
+photocathode_theta_end = (80.0 / 180.0) * pi  # in degrees
+photocatode_height = photocathode_outer_radius * (1 - math.cos(photocathode_theta_end))
+photocathode_height_difference = photocathode_outer_radius - photocatode_height
 
-PMTInnerRadius = 100.16
-PMTOuterRadius = 101.0
-PMTThetaIn = 0.0  # in degrees
-PMTThetaEnd = 0.5 * pi  # in degrees
-BorosilikatGlassThickness = 1.0
+pmt_inner_radius = 100.16
+pmt_outer_radius = 101.0
+pmt_theta_tn = 0.0  # in degrees
+pmt_theta_end = 0.5 * pi  # in degrees
+borosilikat_glass_thickness = 1.0
 
-PMTSteelConeThickness = 4.0
-PMTSteelConeHeight = 300.0
-PMTSteelConeUpperRmin = PMTOuterRadius
-PMTSteelConeUpperRmax = PMTOuterRadius + PMTSteelConeThickness
-PMTSteelConeLowerRmin = PMTOuterRadius / 3.0
-PMTSteelConeLowerRmax = PMTSteelConeLowerRmin + PMTSteelConeThickness
+pmt_steel_cone_thickness = 4.0
+pmt_steel_cone_height = 300.0
+pmt_steel_cone_upper_rmin = pmt_outer_radius
+pmt_steel_cone_upper_rmax = pmt_outer_radius + pmt_steel_cone_thickness
+pmt_steel_cone_lower_rmin = pmt_outer_radius / 3.0
+pmt_steel_cone_lower_rmax = pmt_steel_cone_lower_rmin + pmt_steel_cone_thickness
 
-PMTBorosilikatGlassInnerRadius = PhotocathodeInnerRadius
-PMTBorosilikatGlassOuterRadius = PhotocathodeOuterRadius + BorosilikatGlassThickness
-PMTBorosilikatGlassThetaStart = 0.0  # in degrees
-PMTBorosilikatGlassThetaEnd = (80.0 / 180.0) * pi  # in degrees
-PMTBorosilikatGlassHeight = PMTBorosilikatGlassOuterRadius * (1 - math.cos(PMTBorosilikatGlassThetaEnd))
-PMTBorosilikatGlassHeightDifference = PMTBorosilikatGlassOuterRadius - PMTBorosilikatGlassHeight
-
-PMTAirInnerRadius = PhotocathodeInnerRadius
-PMTAirOuterRadius = PMTSteelConeUpperRmax
-PMTAirThetaStart = 0.0  # in degrees
-PMTAirThetaEnd = (80.0 / 180.0) * pi  # in degrees
-PMTAirHeight = PMTAirOuterRadius * (1 - math.cos(PMTAirThetaEnd))
-PMTAirHeightDifference = PMTAirOuterRadius - PMTAirHeight
-
-AcrylInnerRadius = PhotocathodeInnerRadius
-AcrylOuterRadius = PMTSteelConeUpperRmax + 5.5
-AcrylThetaStart = 0.0  # in degrees
-AcrylThetaEnd = (80.0 / 180.0) * pi  # in degrees
-AcrylHeight = AcrylOuterRadius * (1 - math.cos(AcrylThetaEnd))
-AcrylHeightDifference = AcrylOuterRadius - AcrylHeight
-
-
-PMTSteelBottomHeight = 30.0
-
-PMTHeight = PhotocatodeHeight + 0.5 * PMTSteelConeHeight + PMTSteelBottomHeight
-
-PMTCathodeOffset = (
-    -WaterHeight / 2
-    + ReflectiveFoilThickness
-    - PhotocathodeHeightDifference
-    + 0.5 * PMTSteelConeHeight
-    + PMTSteelBottomHeight
+pmt_borosilikat_glass_inner_radius = photocathode_inner_radius
+pmt_borosilikat_glass_outer_radius = photocathode_outer_radius + borosilikat_glass_thickness
+pmt_borosilikat_glass_theta_start = 0.0  # in degrees
+pmt_borosilikat_glass_theta_end = (80.0 / 180.0) * pi  # in degrees
+pmt_borosilikat_glass_height = pmt_borosilikat_glass_outer_radius * (
+    1 - math.cos(pmt_borosilikat_glass_theta_end)
 )
-PMTConeOffset = -WaterHeight / 2 + ReflectiveFoilThickness + 0.25 * PMTSteelConeHeight + PMTSteelBottomHeight
-PMTBottomOffset = -WaterHeight / 2 + ReflectiveFoilThickness + 0.5 * PMTSteelBottomHeight
+pmt_borosilikat_glass_height_difference = pmt_borosilikat_glass_outer_radius - pmt_borosilikat_glass_height
 
-DistancePMTBaseTank = (
-    WaterRadius
-    - ReflectiveFoilThickness
-    - np.sqrt((WaterRadius - ReflectiveFoilThickness) ** 2 - PMTSteelConeLowerRmax**2)
+pmt_air_inner_radius = photocathode_inner_radius
+pmt_air_outer_radius = pmt_steel_cone_upper_rmax
+pmt_air_theta_start = 0.0  # in degrees
+pmt_air_theta_end = (80.0 / 180.0) * pi  # in degrees
+pmt_air_height = pmt_air_outer_radius * (1 - math.cos(pmt_air_theta_end))
+pmt_air_height_difference = pmt_air_outer_radius - pmt_air_height
+
+acryl_inner_radius = photocathode_inner_radius
+acryl_outer_radius = pmt_steel_cone_upper_rmax + 5.5
+acryl_theta_start = 0.0  # in degrees
+acryl_theta_end = (80.0 / 180.0) * pi  # in degrees
+acryl_height = acryl_outer_radius * (1 - math.cos(acryl_theta_end))
+acryl_height_difference = acryl_outer_radius - acryl_height
+
+
+pmt_steel_bottom_height = 30.0
+
+pmt_height = photocatode_height + 0.5 * pmt_steel_cone_height + pmt_steel_bottom_height
+
+pmt_cathode_offset = (
+    -water_height / 2
+    + reflective_foil_thickness
+    - photocathode_height_difference
+    + 0.5 * pmt_steel_cone_height
+    + pmt_steel_bottom_height
+)
+pmt_cone_offset = (
+    -water_height / 2 + reflective_foil_thickness + 0.25 * pmt_steel_cone_height + pmt_steel_bottom_height
+)
+pmt_bottom_offset = -water_height / 2 + reflective_foil_thickness + 0.5 * pmt_steel_bottom_height
+
+distance_pmt_base_tank = (
+    water_radius
+    - reflective_foil_thickness
+    - np.sqrt((water_radius - reflective_foil_thickness) ** 2 - pmt_steel_cone_lower_rmax**2)
 )
 
 
 def construct_tank(reg: g4.Registry, tank_material: g4.Material) -> g4.LogicalVolume:
-    WaterTankWall = g4.solid.Tubs(
-        "WaterTankWall", WaterRadius, OuterWaterTankRadius, InnerTankHeight, 0, 2 * pi, reg
+    water_tank_wall = g4.solid.Tubs(
+        "water_tank_wall", water_radius, outer_water_tank_radius, inner_tank_height, 0, 2 * pi, reg
     )
-    WaterTankFloor = g4.solid.Tubs(
-        "WaterTankFloor", InnerRadius, OuterWaterTankRadius, WaterTankThickness, 0, 2 * pi, reg
+    water_tank_floor = g4.solid.Tubs(
+        "water_tank_floor", inner_radius, outer_water_tank_radius, water_tank_thickness, 0, 2 * pi, reg
     )
 
-    tank_union1_transform = [[0, 0, 0], [0, 0, -0.5 * (InnerTankHeight + WaterTankThickness)]]
-    tank_union2_transform = [[0, 0, 0], [0, 0, 0.5 * (InnerTankHeight + WaterTankThickness)]]
+    tank_union1_transform = [[0, 0, 0], [0, 0, -0.5 * (inner_tank_height + water_tank_thickness)]]
+    tank_union2_transform = [[0, 0, 0], [0, 0, 0.5 * (inner_tank_height + water_tank_thickness)]]
 
-    WaterTankUnionSolid1 = g4.solid.Union(
-        "WaterTankUnionSolid1", WaterTankWall, WaterTankFloor, tank_union1_transform, reg
+    water_tank_union_solid1 = g4.solid.Union(
+        "water_tank_union_solid1", water_tank_wall, water_tank_floor, tank_union1_transform, reg
     )
-    WaterTankUnionSolid2 = g4.solid.Union(
-        "WaterTankUnionSolid2", WaterTankUnionSolid1, WaterTankFloor, tank_union2_transform, reg
+    water_tank_union_solid2 = g4.solid.Union(
+        "water_tank_union_solid2", water_tank_union_solid1, water_tank_floor, tank_union2_transform, reg
     )
-    return g4.LogicalVolume(WaterTankUnionSolid2, tank_material, "WaterTankUnionSolid_lv", reg)
+    return g4.LogicalVolume(water_tank_union_solid2, tank_material, "water_tank_union_solid_lv", reg)
 
 
 def place_tank(
-    reg: g4.Registry, WaterTankUnionSolid_lv: g4.LogicalVolume, world_lv: g4.LogicalVolume, TankOffset: float
+    reg: g4.Registry,
+    water_tank_union_solid_lv: g4.LogicalVolume,
+    world_lv: g4.LogicalVolume,
+    tank_offset: float,
 ) -> g4.PhysicalVolume:
     return g4.PhysicalVolume(
-        [0, 0, 0], [0, 0, TankOffset], WaterTankUnionSolid_lv, "WaterTankUnionSolid_pv", world_lv, reg
+        [0, 0, 0], [0, 0, tank_offset], water_tank_union_solid_lv, "water_tank_union_solid_pv", world_lv, reg
     )
 
 
 def construct_water(reg: g4.Registry, water_material: g4.Material) -> g4.LogicalVolume:
-    water_solid = g4.solid.Tubs("water", InnerRadius, WaterRadius, WaterHeight, 0, 2 * pi, reg)
+    water_solid = g4.solid.Tubs("water", inner_radius, water_radius, water_height, 0, 2 * pi, reg)
     water_lv = g4.LogicalVolume(water_solid, water_material, "water_lv", reg)
     water_lv.pygeom_color_rgba = [0, 0, 1, 0.08]
     return water_lv
@@ -207,11 +222,13 @@ def construct_water(reg: g4.Registry, water_material: g4.Material) -> g4.Logical
 def place_water(
     reg: g4.Registry, water_lv: g4.LogicalVolume, world_lv: g4.LogicalVolume
 ) -> g4.PhysicalVolume:
-    return g4.PhysicalVolume([0, 0, 0], [0, 0, -AirBufferHeight / 2], water_lv, "water_pv", world_lv, reg)
+    return g4.PhysicalVolume([0, 0, 0], [0, 0, -air_buffer_height / 2], water_lv, "water_pv", world_lv, reg)
 
 
 def construct_air_buffer(reg: g4.Registry, air_material: g4.Material) -> g4.LogicalVolume:
-    air_buffer = g4.solid.Tubs("air_buffer", InnerRadius, AirBufferRadius, AirBufferHeight, 0, 2 * pi, reg)
+    air_buffer = g4.solid.Tubs(
+        "air_buffer", inner_radius, air_buffer_radius, air_buffer_height, 0, 2 * pi, reg
+    )
     return g4.LogicalVolume(air_buffer, air_material, "air_buffer_lv", reg)
 
 
@@ -219,20 +236,20 @@ def place_air_buffer(
     reg: g4.Registry, air_buffer_lv: g4.LogicalVolume, world_lv: g4.LogicalVolume
 ) -> g4.PhysicalVolume:
     return g4.PhysicalVolume(
-        [0, 0, 0], [0, 0, AirBufferOffset], air_buffer_lv, "air_buffer_pv", world_lv, reg
+        [0, 0, 0], [0, 0, air_buffer_offset], air_buffer_lv, "air_buffer_pv", world_lv, reg
     )
 
 
 def construct_pillbox(reg: g4.Registry, pillbox_material: g4.Material) -> g4.LogicalVolume:
-    ManholeOuterRadius = 400.0
+    manhole_outer_radius = 400.0
     x_rot_drehvol = 0
     y_rot_drehvol = np.pi / 2.0
     z_rot_drehvol = np.pi / 2.0
 
     # rotation matrix around Z, Y and X
-    rot_z = R.from_euler("z", z_rot_drehvol, degrees=False)
-    rot_y = R.from_euler("y", y_rot_drehvol, degrees=False)
-    rot_x = R.from_euler("x", x_rot_drehvol, degrees=False)
+    rot_z = Rotation.from_euler("z", z_rot_drehvol, degrees=False)
+    rot_y = Rotation.from_euler("y", y_rot_drehvol, degrees=False)
+    rot_x = Rotation.from_euler("x", x_rot_drehvol, degrees=False)
 
     # combine rotations
     combined_rotation = rot_y * rot_z * rot_x
@@ -241,919 +258,1063 @@ def construct_pillbox(reg: g4.Registry, pillbox_material: g4.Material) -> g4.Log
     euler_angles = combined_rotation.as_euler("xyz", degrees=False)
     x_rot_global, y_rot_global, z_rot_global = euler_angles
 
-    PillboxTube = g4.solid.Tubs(
-        "PillboxTube",
-        ShieldingFootIR,
-        ShieldingFootOR,
-        CryoBottomHeight - ShieldingFootThickness,
+    pillbox_tube = g4.solid.Tubs(
+        "pillbox_tube",
+        shielding_foot_ir,
+        shielding_foot_or,
+        cryo_bottom_height - shielding_foot_thickness,
         0,
         2 * pi,
         reg,
     )  # outer steel cylinder
 
     # Define parameters for the semi-cylinder (half-tube) for the manhole
-    ManholeInnerRadius = 0  # No inner radius for the manhole
-    ManholeHeight = 2 * (ShieldingFootOR + ReflectiveFoilThickness)
-    ManholeAngle = math.pi  # Half-circle (180 degrees)
+    manhole_inner_radius = 0  # No inner radius for the manhole
+    manhole_height = 2 * (shielding_foot_or + reflective_foil_thickness)
+    manhole_angle = math.pi  # Half-circle (180 degrees)
 
     # Create the half-tube (semi-cylinder) for the manhole
-    ManholePillboxArc = g4.solid.Tubs(
-        "ManholePillbox", ManholeInnerRadius, ManholeOuterRadius, ManholeHeight, 0, ManholeAngle, reg
+    manhole_pillbox_arc = g4.solid.Tubs(
+        "manhole_pillbox", manhole_inner_radius, manhole_outer_radius, manhole_height, 0, manhole_angle, reg
     )
-    ManholePillboxBox = g4.solid.Box(
-        "ManholePillboxBox", 2 * ManholeOuterRadius, ManholeOuterRadius, ManholeHeight, reg
+    manholepillbox_box = g4.solid.Box(
+        "manholepillbox_box", 2 * manhole_outer_radius, manhole_outer_radius, manhole_height, reg
     )
 
     # Position the first manhole (half-tube) along the x-axis
     # Rotate the manhole to align it with the x-axis (rotating by 90 degrees around the y-axis)
-    ManholeRotation = [x_rot_global, y_rot_global, z_rot_global]
-    union_transform = [[0, 0, 0], [0, -0.5 * ManholeOuterRadius, 0]]
-    ManholePillbox = g4.solid.Union(
-        "ManholeUnion", ManholePillboxArc, ManholePillboxBox, union_transform, reg
+    manhole_rotation = [x_rot_global, y_rot_global, z_rot_global]
+    union_transform = [[0, 0, 0], [0, -0.5 * manhole_outer_radius, 0]]
+    manhole_pillbox = g4.solid.Union(
+        "manhole_union", manhole_pillbox_arc, manholepillbox_box, union_transform, reg
     )
 
     # Subtract the first manhole (half-tube) from the pillbox
-    ManHoleOffset = 0.5 * CryoBottomHeight - ManholeOuterRadius
+    man_hole_offset = 0.5 * cryo_bottom_height - manhole_outer_radius
     pillbox = g4.solid.Subtraction(
-        "pillbox_subtraction1", PillboxTube, ManholePillbox, [ManholeRotation, [0, 0, 0 - ManHoleOffset]], reg
+        "pillbox_subtraction1",
+        pillbox_tube,
+        manhole_pillbox,
+        [manhole_rotation, [0, 0, 0 - man_hole_offset]],
+        reg,
     )
     pillbox_lv = g4.LogicalVolume(pillbox, pillbox_material, "pillbox_lv", reg)
 
-    return pillbox_lv, ManholePillbox, ManholeRotation, ManHoleOffset
+    return pillbox_lv, manhole_pillbox, manhole_rotation, man_hole_offset
 
 
 def place_pillbox(
     reg: g4.Registry, pillbox_lv: g4.LogicalVolume, water_lv: g4.LogicalVolume
 ) -> g4.PhysicalVolume:
-    return g4.PhysicalVolume([0, 0, 0], [0, 0, PillboxOffset], pillbox_lv, "pillbox_pv", water_lv, reg)
+    return g4.PhysicalVolume([0, 0, 0], [0, 0, pillbox_offset], pillbox_lv, "pillbox_pv", water_lv, reg)
 
 
-def insert_VM2000(
+def insert_vm2000(
     reg: g4.Registry,
-    VM2000_material: g4.Material,
+    vm2000_material: g4.Material,
     water_lv: g4.LogicalVolume,
     water_pv: g4.PhysicalVolume,
-    ManholePillbox: g4.solid.Union,
-    ManholeRotation: list,
-    ManHoleOffset: float,
+    manhole_pillbox: g4.solid.Union,
+    manhole_rotation: list,
+    man_hole_offset: float,
     cryo_displacement_z: float,
 ):
     # VM2000 at inside of water tank tube
-    WaterTankReflectionFoilTube = g4.solid.Tubs(
-        "WaterTankReflectionFoilTube",
-        WaterRadius - ReflectiveFoilThickness,
-        WaterRadius,
-        WaterHeight,
+    water_tank_reflection_foil_tube = g4.solid.Tubs(
+        "water_tank_reflection_foil_tube",
+        water_radius - reflective_foil_thickness,
+        water_radius,
+        water_height,
         0,
         2 * pi,
         reg,
     )
-    WaterTankReflectionFoilTube_lv = g4.LogicalVolume(
-        WaterTankReflectionFoilTube, VM2000_material, "WaterTankReflectionFoilTube_lv", reg
+    water_tank_reflection_foil_tube_lv = g4.LogicalVolume(
+        water_tank_reflection_foil_tube, vm2000_material, "water_tank_reflection_foil_tube_lv", reg
     )
-    WaterTankReflectionFoilTube_pv = g4.PhysicalVolume(
-        [0, 0, 0], [0, 0, 0], WaterTankReflectionFoilTube_lv, "WaterTankReflectionFoilTube_pv", water_lv, reg
+    water_tank_reflection_foil_tube_pv = g4.PhysicalVolume(
+        [0, 0, 0],
+        [0, 0, 0],
+        water_tank_reflection_foil_tube_lv,
+        "water_tank_reflection_foil_tube_pv",
+        water_lv,
+        reg,
     )
 
     # VM2000 at bottom of water tank tube
-    WaterTankReflectionFoilBottom = g4.solid.Tubs(
-        "WaterTankReflectionFoilBottom",
-        ShieldingFootOR + ReflectiveFoilThickness,
-        WaterRadius - ReflectiveFoilThickness,
-        ReflectiveFoilThickness,
+    water_tank_reflection_foil_bottom = g4.solid.Tubs(
+        "water_tank_reflection_foil_bottom",
+        shielding_foot_or + reflective_foil_thickness,
+        water_radius - reflective_foil_thickness,
+        reflective_foil_thickness,
         0,
         2 * pi,
         reg,
     )
-    WaterTankReflectionFoilBottom_lv = g4.LogicalVolume(
-        WaterTankReflectionFoilBottom, VM2000_material, "WaterTankReflectionFoilBottom_lv", reg
+    water_tank_reflection_foil_bottom_lv = g4.LogicalVolume(
+        water_tank_reflection_foil_bottom, vm2000_material, "water_tank_reflection_foil_bottom_lv", reg
     )
-    WaterTankReflectionFoilBottom_pv = g4.PhysicalVolume(
+    water_tank_reflection_foil_bottom_pv = g4.PhysicalVolume(
         [0, 0, 0],
-        [0, 0, BottomFoilOffset],
-        WaterTankReflectionFoilBottom_lv,
-        "WaterTankReflectionFoilBottom_pv",
+        [0, 0, bottom_foil_offset],
+        water_tank_reflection_foil_bottom_lv,
+        "water_tank_reflection_foil_bottom_pv",
         water_lv,
         reg,
     )
 
     # Pillbox
     # VM2000 at inside of water tank tube
-    PillboxOuterReflectionFoilTubeSubtraction1 = g4.solid.Tubs(
-        "PillboxOuterReflectionFoilTubeSubtraction1",
-        ShieldingFootOR,
-        ShieldingFootOR + ReflectiveFoilThickness,
-        CryoBottomHeight,
+    pillbox_outer_reflection_foil_tube_subtraction1 = g4.solid.Tubs(
+        "pillbox_outer_reflection_foil_tube_subtraction1",
+        shielding_foot_or,
+        shielding_foot_or + reflective_foil_thickness,
+        cryo_bottom_height,
         0,
         2 * pi,
         reg,
     )
-    PillboxOuterReflectionFoilTube = g4.solid.Subtraction(
-        "PillboxOuterReflectionFoilTube ",
-        PillboxOuterReflectionFoilTubeSubtraction1,
-        ManholePillbox,
-        [ManholeRotation, [0, 0, 0 - ManHoleOffset]],
+    pillbox_outer_reflection_foil_tube = g4.solid.Subtraction(
+        "pillbox_outer_reflection_foil_tube ",
+        pillbox_outer_reflection_foil_tube_subtraction1,
+        manhole_pillbox,
+        [manhole_rotation, [0, 0, 0 - man_hole_offset]],
         reg,
     )
-    PillboxOuterReflectionFoilTube_lv = g4.LogicalVolume(
-        PillboxOuterReflectionFoilTube, VM2000_material, "PillboxOuterReflectionFoilTube_lv", reg
+    pillbox_outer_reflection_foil_tube_lv = g4.LogicalVolume(
+        pillbox_outer_reflection_foil_tube, vm2000_material, "pillbox_outer_reflection_foil_tube_lv", reg
     )
-    PillboxOuterReflectionFoilTube_pv = g4.PhysicalVolume(
+    pillbox_outer_reflection_foil_tube_pv = g4.PhysicalVolume(
         [0, 0, 0],
-        [0, 0, PillboxOffset],
-        PillboxOuterReflectionFoilTube_lv,
-        "PillboxOuterReflectionFoilTube_pv",
+        [0, 0, pillbox_offset],
+        pillbox_outer_reflection_foil_tube_lv,
+        "pillbox_outer_reflection_foil_tube_pv",
         water_lv,
         reg,
     )
 
     # VM2000 at inside of water tank tube
-    PillboxInnerReflectionFoilTubeSubtraction1 = g4.solid.Tubs(
-        "PillboxInnerReflectionFoilTubeSubtraction1",
-        ShieldingFootIR - ReflectiveFoilThickness,
-        ShieldingFootIR,
-        CryoBottomHeight - ShieldingFootThickness,
+    pillbox_inner_reflection_foil_tube_subtraction1 = g4.solid.Tubs(
+        "pillbox_inner_reflection_foil_tube_subtraction1",
+        shielding_foot_ir - reflective_foil_thickness,
+        shielding_foot_ir,
+        cryo_bottom_height - shielding_foot_thickness,
         0,
         2 * pi,
         reg,
     )
-    PillboxInnerReflectionFoilTube = g4.solid.Subtraction(
-        "PillboInnerReflectionFoilTube ",
-        PillboxInnerReflectionFoilTubeSubtraction1,
-        ManholePillbox,
-        [ManholeRotation, [0, 0, 0 - ManHoleOffset]],
+    pillbox_inner_reflection_foil_tube = g4.solid.Subtraction(
+        "pillbox_inner_reflection_foil_tube ",
+        pillbox_inner_reflection_foil_tube_subtraction1,
+        manhole_pillbox,
+        [manhole_rotation, [0, 0, 0 - man_hole_offset]],
         reg,
     )
-    PillboxInnerReflectionFoilTube_lv = g4.LogicalVolume(
-        PillboxInnerReflectionFoilTube, VM2000_material, "PillboxInnerReflectionFoilTube_lv", reg
+    pillbox_inner_reflection_foil_tube_lv = g4.LogicalVolume(
+        pillbox_inner_reflection_foil_tube, vm2000_material, "pillbox_inner_reflection_foil_tube_lv", reg
     )
-    PillboxInnerReflectionFoilTube_pv = g4.PhysicalVolume(
+    pillbox_inner_reflection_foil_tube_pv = g4.PhysicalVolume(
         [0, 0, 0],
-        [0, 0, PillboxOffset],
-        PillboxInnerReflectionFoilTube_lv,
-        "PillboxInnerReflectionFoilTube_pv",
+        [0, 0, pillbox_offset],
+        pillbox_inner_reflection_foil_tube_lv,
+        "pillbox_inner_reflection_foil_tube_pv",
         water_lv,
         reg,
     )
 
     # VM2000 at bottom of water tank tube
-    PillboxReflectionFoilTop = g4.solid.Tubs(
-        "PillboxReflectionFoilTop", InnerRadius, ShieldingFootIR, ReflectiveFoilThickness, 0, 2 * pi, reg
+    pillbox_reflection_foil_top = g4.solid.Tubs(
+        "pillbox_reflection_foil_top",
+        inner_radius,
+        shielding_foot_ir,
+        reflective_foil_thickness,
+        0,
+        2 * pi,
+        reg,
     )
-    PillboxReflectionFoilTop_lv = g4.LogicalVolume(
-        PillboxReflectionFoilTop, VM2000_material, "PillboxReflectionFoilTop_lv", reg
+    pillbox_reflection_foil_top_lv = g4.LogicalVolume(
+        pillbox_reflection_foil_top, vm2000_material, "pillbox_reflection_foil_top_lv", reg
     )
-    PillboxReflectionFoilTop_pv = g4.PhysicalVolume(
+    pillbox_reflection_foil_top_pv = g4.PhysicalVolume(
         [0, 0, 0],
-        [0, 0, BottomFoilOffset + CryoBottomHeight - 2 * ReflectiveFoilThickness],
-        PillboxReflectionFoilTop_lv,
-        "PillboxReflectionFoilTop_pv",
+        [0, 0, bottom_foil_offset + cryo_bottom_height - 2 * reflective_foil_thickness],
+        pillbox_reflection_foil_top_lv,
+        "pillbox_reflection_foil_top_pv",
         water_lv,
         reg,
     )
 
     # VM2000 at bottom of water tank tube
-    PillboxReflectionFoilBottom = g4.solid.Tubs(
-        "PillboxReflectionFoilBottom", InnerRadius, ShieldingFootIR, ReflectiveFoilThickness, 0, 2 * pi, reg
+    pillbox_reflection_foil_bottom = g4.solid.Tubs(
+        "pillbox_reflection_foil_bottom",
+        inner_radius,
+        shielding_foot_ir,
+        reflective_foil_thickness,
+        0,
+        2 * pi,
+        reg,
     )
-    PillboxReflectionFoilBottom_lv = g4.LogicalVolume(
-        PillboxReflectionFoilBottom, VM2000_material, "PillboxReflectionFoilBottom_lv", reg
+    pillbox_reflection_foil_bottom_lv = g4.LogicalVolume(
+        pillbox_reflection_foil_bottom, vm2000_material, "pillbox_reflection_foil_bottom_lv", reg
     )
-    PillboxReflectionFoilBottom_pv = g4.PhysicalVolume(
+    pillbox_reflection_foil_bottom_pv = g4.PhysicalVolume(
         [0, 0, 0],
-        [0, 0, BottomFoilOffset],
-        PillboxReflectionFoilBottom_lv,
-        "PillboxReflectionFoilBottom_pv",
+        [0, 0, bottom_foil_offset],
+        pillbox_reflection_foil_bottom_lv,
+        "pillbox_reflection_foil_bottom_pv",
         water_lv,
         reg,
     )
 
     # TODO: adjust height and z position of CryoReflectionFoil to close the gap in between PillboxOuterReflectionFoilTube and CryoReflectionFoil
-    CryoReflectionFoil = g4.solid.Tubs(
-        "CryoReflectionFoil",
+    cryo_reflection_foil = g4.solid.Tubs(
+        "cryo_reflection_foil",
         cryo.cryo_radius + cryo.cryo_wall,
-        cryo.cryo_radius + cryo.cryo_wall + ReflectiveFoilThickness,
+        cryo.cryo_radius + cryo.cryo_wall + reflective_foil_thickness,
         cryo.cryo_tub_height + cryo.cryo_top_height + cryo.cryo_bottom_height + 2 * cryo.cryo_wall,
         0,
         2 * pi,
         reg,
     )
-    CryoReflectionFoil_lv = g4.LogicalVolume(
-        CryoReflectionFoil, VM2000_material, "CryoReflectionFoil_lv", reg
+    cryo_reflection_foil_lv = g4.LogicalVolume(
+        cryo_reflection_foil, vm2000_material, "cryo_reflection_foil_lv", reg
     )
-    CryoReflectionFoil_pv = g4.PhysicalVolume(
+    cryo_reflection_foil_pv = g4.PhysicalVolume(
         [0, 0, 0],
         [0, 0, cryo_displacement_z + cryo.access_overlap + 2 * cryo.cryo_wall],
-        CryoReflectionFoil_lv,
-        "CryoReflectionFoil_pv",
+        cryo_reflection_foil_lv,
+        "cryo_reflection_foil_pv",
         water_lv,
         reg,
     )
 
-    VM2000BorderOptTable = materials.surfaces.OpticalSurfaceRegistry(reg).water_to_VM2000
-    VM2000OptTable = materials.surfaces.OpticalSurfaceRegistry(reg).to_VM2000
+    vm2000_border_opt_table = materials.surfaces.OpticalSurfaceRegistry(reg).water_to_vm2000
+    vm2000_opt_table = materials.surfaces.OpticalSurfaceRegistry(reg).to_vm2000
 
     # Border Surfaces
     g4.BorderSurface(
-        "PillboxOuterTubeFoilBorderSurface",
-        PillboxOuterReflectionFoilTube_pv,
+        "pillbox_outer_tube_foil_border_surface",
+        pillbox_outer_reflection_foil_tube_pv,
         water_pv,
-        VM2000BorderOptTable,
+        vm2000_border_opt_table,
         reg,
     )
     g4.BorderSurface(
-        "PillboxInneTubeFoilBorderSurface",
-        PillboxInnerReflectionFoilTube_pv,
+        "pillbox_inner_tube_foil_border_surface",
+        pillbox_inner_reflection_foil_tube_pv,
         water_pv,
-        VM2000BorderOptTable,
+        vm2000_border_opt_table,
         reg,
     )
     g4.BorderSurface(
-        "PillboxBottomFoilBorderSurface", PillboxReflectionFoilBottom_pv, water_pv, VM2000BorderOptTable, reg
-    )
-    g4.BorderSurface(
-        "PillboxTopFoilBorderSurface", PillboxReflectionFoilTop_pv, water_pv, VM2000BorderOptTable, reg
-    )
-    g4.BorderSurface(
-        "WaterTankTubeFoilBorderSurface", WaterTankReflectionFoilTube_pv, water_pv, VM2000BorderOptTable, reg
-    )
-    g4.BorderSurface(
-        "WaterTankBottomFoilBorderSurface",
-        WaterTankReflectionFoilBottom_pv,
+        "pillbox_bottom_foil_border_surface",
+        pillbox_reflection_foil_bottom_pv,
         water_pv,
-        VM2000BorderOptTable,
+        vm2000_border_opt_table,
         reg,
     )
-    g4.BorderSurface("CryoBorderSurface", CryoReflectionFoil_pv, water_pv, VM2000BorderOptTable, reg)
+    g4.BorderSurface(
+        "pillbox_top_foil_border_surface",
+        pillbox_reflection_foil_top_pv,
+        water_pv,
+        vm2000_border_opt_table,
+        reg,
+    )
+    g4.BorderSurface(
+        "watertank_tube_foil_border_surface",
+        water_tank_reflection_foil_tube_pv,
+        water_pv,
+        vm2000_border_opt_table,
+        reg,
+    )
+    g4.BorderSurface(
+        "watertank_bottom_foil_border_surface",
+        water_tank_reflection_foil_bottom_pv,
+        water_pv,
+        vm2000_border_opt_table,
+        reg,
+    )
+    g4.BorderSurface("cryo_border_surface", cryo_reflection_foil_pv, water_pv, vm2000_border_opt_table, reg)
 
-    g4.SkinSurface("PillboxOuterTubeFoilSkinSurface", PillboxOuterReflectionFoilTube_lv, VM2000OptTable, reg)
-    g4.SkinSurface("PillboxInneTubeFoilSkinSurface", PillboxInnerReflectionFoilTube_lv, VM2000OptTable, reg)
-    g4.SkinSurface("PillboxBottomFoilSkinSurface", PillboxReflectionFoilBottom_lv, VM2000OptTable, reg)
-    g4.SkinSurface("PillboxTopFoilSkinSurface", PillboxReflectionFoilTop_lv, VM2000OptTable, reg)
-    g4.SkinSurface("WaterTankTubeFoilSkinSurface", WaterTankReflectionFoilTube_lv, VM2000OptTable, reg)
-    g4.SkinSurface("WaterTankBottomFoilSkinSurface", WaterTankReflectionFoilBottom_lv, VM2000OptTable, reg)
-    g4.SkinSurface("CryoSkinFoilSurface", CryoReflectionFoil_lv, VM2000OptTable, reg)
+    g4.SkinSurface(
+        "pillbox_outer_tube_foil_skin_surface", pillbox_outer_reflection_foil_tube_lv, vm2000_opt_table, reg
+    )
+    g4.SkinSurface(
+        "pillbox_inner_tube_foil_skin_surface", pillbox_inner_reflection_foil_tube_lv, vm2000_opt_table, reg
+    )
+    g4.SkinSurface(
+        "pillbox_bottom_foil_skin_surface", pillbox_reflection_foil_bottom_lv, vm2000_opt_table, reg
+    )
+    g4.SkinSurface("pillbox_top_foil_skin_surface", pillbox_reflection_foil_top_lv, vm2000_opt_table, reg)
+    g4.SkinSurface(
+        "watertank_tube_foil_skin_surface", water_tank_reflection_foil_tube_lv, vm2000_opt_table, reg
+    )
+    g4.SkinSurface(
+        "watertank_bottom_foil_skin_surface", water_tank_reflection_foil_bottom_lv, vm2000_opt_table, reg
+    )
+    g4.SkinSurface("cryo_skin_foil_surface", cryo_reflection_foil_lv, vm2000_opt_table, reg)
 
     return (
-        WaterTankReflectionFoilTube_pv,
-        WaterTankReflectionFoilBottom_pv,
-        PillboxOuterReflectionFoilTube_pv,
-        PillboxInnerReflectionFoilTube_pv,
-        PillboxReflectionFoilTop_pv,
-        PillboxReflectionFoilBottom_pv,
+        water_tank_reflection_foil_tube_pv,
+        water_tank_reflection_foil_bottom_pv,
+        pillbox_outer_reflection_foil_tube_pv,
+        pillbox_inner_reflection_foil_tube_pv,
+        pillbox_reflection_foil_top_pv,
+        pillbox_reflection_foil_bottom_pv,
     )
 
 
-def insert_PMTs(
+def insert_pmts(
     reg: g4.Registry,
-    PMT_steel_material: g4.Material,
-    cathodeAl: g4.Material,
-    PMT_air_material: g4.Material,
+    pmt_steel_material: g4.Material,
+    cathode_al: g4.Material,
+    pmt_air_material: g4.Material,
     water_lv: g4.LogicalVolume,
     water_pv: g4.PhysicalVolume,
     acryl_material: g4.Material,
     borosilicate_material: g4.Material,
-    PMT_configuration: str = "LEGEND200",
+    pmt_configuration: str = "LEGEND200",
 ):
     # Photocathode and PMT encapsulation
-    Acryl = g4.solid.Sphere(
-        "Acryl",
-        AcrylInnerRadius,
-        AcrylOuterRadius,
-        PMTStartingAngle,
-        PMTEndingAngle,
-        AcrylThetaStart,
-        AcrylThetaEnd,
+    acryl = g4.solid.Sphere(
+        "acryl",
+        acryl_inner_radius,
+        acryl_outer_radius,
+        pmt_starting_angle,
+        pmt_ending_angle,
+        acryl_theta_start,
+        acryl_theta_end,
         reg,
     )
-    PMTAir = g4.solid.Sphere(
-        "PMTAir",
-        PhotocathodeInnerRadius,
-        PMTAirOuterRadius,
-        PMTStartingAngle,
-        PMTEndingAngle,
-        PhotocathodeThetaStart,
-        PhotocathodeThetaEnd,
+    pmt_air = g4.solid.Sphere(
+        "pmt_air",
+        photocathode_inner_radius,
+        pmt_air_outer_radius,
+        pmt_starting_angle,
+        pmt_ending_angle,
+        photocathode_theta_start,
+        photocathode_theta_end,
         reg,
     )
-    PMTBorosilikatGlass = g4.solid.Sphere(
-        "PMTBorosilikatGlass",
-        PhotocathodeInnerRadius,
-        PMTBorosilikatGlassOuterRadius,
-        PMTStartingAngle,
-        PMTEndingAngle,
-        PhotocathodeThetaStart,
-        PhotocathodeThetaEnd,
+    pmt_borosilikat_glass = g4.solid.Sphere(
+        "pmt_borosilikat_glass",
+        photocathode_inner_radius,
+        pmt_borosilikat_glass_outer_radius,
+        pmt_starting_angle,
+        pmt_ending_angle,
+        photocathode_theta_start,
+        photocathode_theta_end,
         reg,
     )
-    Photocathode = g4.solid.Sphere(
-        "Photocathode",
-        PhotocathodeInnerRadius,
-        PhotocathodeOuterRadius,
-        PMTStartingAngle,
-        PMTEndingAngle,
-        PhotocathodeThetaStart,
-        PhotocathodeThetaEnd,
+    photocathode = g4.solid.Sphere(
+        "photocathode",
+        photocathode_inner_radius,
+        photocathode_outer_radius,
+        pmt_starting_angle,
+        pmt_ending_angle,
+        photocathode_theta_start,
+        photocathode_theta_end,
         reg,
     )
 
     optical_steel_surface = materials.surfaces.OpticalSurfaceRegistry(reg).to_steel
-    optical_PMT_surface = materials.surfaces.OpticalSurfaceRegistry(reg).to_photocathode
+    optical_pmt_surface = materials.surfaces.OpticalSurfaceRegistry(reg).to_photocathode
     optical_border_air_acryl = materials.surfaces.OpticalSurfaceRegistry(reg).acryl_to_air
     optical_border_water_acryl = materials.surfaces.OpticalSurfaceRegistry(reg).water_to_acryl
     optical_border_air_borosilicate = materials.surfaces.OpticalSurfaceRegistry(reg).air_to_borosilicate
 
     # PMT encapsulation steel cone for Cherenkov veto
-    PMTSteelCone = g4.solid.Cons(
-        "PMTSteelCone",
-        PMTSteelConeLowerRmin,
-        PMTSteelConeLowerRmax,
-        PMTSteelConeUpperRmin,
-        PMTSteelConeUpperRmax,
-        PMTSteelConeHeight * 0.5,
-        PMTStartingAngle,
-        PMTEndingAngle,
+    pmt_steel_cone = g4.solid.Cons(
+        "pmt_steel_cone",
+        pmt_steel_cone_lower_rmin,
+        pmt_steel_cone_lower_rmax,
+        pmt_steel_cone_upper_rmin,
+        pmt_steel_cone_upper_rmax,
+        pmt_steel_cone_height * 0.5,
+        pmt_starting_angle,
+        pmt_ending_angle,
         reg,
     )
-    PMTSteelCone_lv = g4.LogicalVolume(PMTSteelCone, PMT_steel_material, "PMTSteelCone_lv", reg)
-    g4.SkinSurface("PMTConeOpticalSurface", PMTSteelCone_lv, optical_steel_surface, reg)
+    pmt_steel_cone_lv = g4.LogicalVolume(pmt_steel_cone, pmt_steel_material, "pmt_steel_cone_lv", reg)
+    g4.SkinSurface("pmt_cone_optical_surface", pmt_steel_cone_lv, optical_steel_surface, reg)
 
     # PMT encapsulation bottom for Cherenkov veto
-    PMTSteelBottom = g4.solid.Tubs(
-        "PMTSteelBottom",
+    pmt_steel_bottom = g4.solid.Tubs(
+        "pmt_steel_bottom",
         0,
-        PMTSteelConeLowerRmax,
-        PMTSteelBottomHeight,
-        PMTStartingAngle,
-        PMTEndingAngle,
+        pmt_steel_cone_lower_rmax,
+        pmt_steel_bottom_height,
+        pmt_starting_angle,
+        pmt_ending_angle,
         reg,
     )
-    PMTSteelBottom_lv = g4.LogicalVolume(PMTSteelBottom, PMT_steel_material, "PMTSteelBottom_lv", reg)
-    g4.SkinSurface("PMTBottomOpticalSurface", PMTSteelBottom_lv, optical_steel_surface, reg)
+    pmt_steel_bottom_lv = g4.LogicalVolume(pmt_steel_bottom, pmt_steel_material, "pmt_steel_bottom_lv", reg)
+    g4.SkinSurface("pmt_bottom_optical_surface", pmt_steel_bottom_lv, optical_steel_surface, reg)
 
     ############################################ PMT positions #########################################
-    Num_PMTs = 0
-    Working_PMTs = 0
+    num_pmts = 0
+    working_pmts = 0
 
     # Bottom outer ring
-    N_PMT_per_ring_bo = 24  # spaces, in total 14 PMTs
-    R_pos = 4250.0
-    dPhi = 2.0 * np.pi / N_PMT_per_ring_bo
-    dPhi_c = dPhi
+    n_pmt_per_ring_bo = 24  # spaces, in total 14 PMTs
+    r_pos = 4250.0
+    dphi = 2.0 * np.pi / n_pmt_per_ring_bo
+    dphi_c = dphi
 
-    no_PMT_in_outer_bottom_ring = np.array([3, 5, 7, 9, 11, 15, 17, 19, 21, 23])
-    broken_but_inside_PMT_in_outer_bottom_ring_GERDA = np.array([])
+    no_pmt_in_outer_bottom_ring = np.array([3, 5, 7, 9, 11, 15, 17, 19, 21, 23])
+    broken_but_inside_pmt_in_outer_bottom_ring_gerda = np.array([])
 
     # PMTs
-    for k in range(N_PMT_per_ring_bo):
-        if k in no_PMT_in_outer_bottom_ring:
+    for k in range(n_pmt_per_ring_bo):
+        if k in no_pmt_in_outer_bottom_ring:
             continue
-        dPhi_c = dPhi * k
-        xpos = R_pos * np.cos(dPhi_c)
-        ypos = R_pos * np.sin(dPhi_c)
+        dphi_c = dphi * k
+        xpos = r_pos * np.cos(dphi_c)
+        ypos = r_pos * np.sin(dphi_c)
 
         # get names
-        if k in broken_but_inside_PMT_in_outer_bottom_ring_GERDA:
-            namephotocathode_lv = f"GERDA_PMTcathode_lv_{Num_PMTs}"
-            namephotocathode = f"GERDA_PMTcathode_{Num_PMTs}"
-            namesteelcone = f"GERDA_PMTcone_{Num_PMTs}"
-            Photocathode_lv = g4.LogicalVolume(Photocathode, cathodeAl, namephotocathode_lv, reg)
-            namePMTair_lv = f"GERDA_PMTair_lv_{Num_PMTs}"
-            namePMTair = f"GERDA_PMTair_{Num_PMTs}"
-            PMTAir_lv = g4.LogicalVolume(PMTAir, PMT_air_material, namePMTair_lv, reg)
-            PMTAir_pv = g4.PhysicalVolume(
-                [0, 0, 0], [xpos, ypos, PMTCathodeOffset], PMTAir_lv, namePMTair, water_lv, reg
+        if k in broken_but_inside_pmt_in_outer_bottom_ring_gerda:
+            namephotocathode_lv = f"gerda_pmt_cathode_lv_{num_pmts}"
+            namephotocathode = f"gerda_pmt_cathode_{num_pmts}"
+            namesteelcone = f"gerda_pmt_cone_{num_pmts}"
+            photocathode_lv = g4.LogicalVolume(photocathode, cathode_al, namephotocathode_lv, reg)
+            name_pmt_air_lv = f"gerda_pmt_air_lv_{num_pmts}"
+            name_pmt_air = f"gerda_pmt_air_{num_pmts}"
+            pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
+            pmt_air_pv = g4.PhysicalVolume(
+                [0, 0, 0], [xpos, ypos, pmt_cathode_offset], pmt_air_lv, name_pmt_air, water_lv, reg
             )
 
-            namePMTacryl_lv = f"GERDA_PMTacryl_lv_{Num_PMTs}"
-            namePMTacryl = f"GERDA_PMTacryl_{Num_PMTs}"
-            Acryl_lv = g4.LogicalVolume(Acryl, acryl_material, namePMTacryl_lv, reg)
-            Acryl_pv = g4.PhysicalVolume(
-                [0, 0, 0], [xpos, ypos, PMTCathodeOffset], Acryl_lv, namePMTacryl, water_lv, reg
+            name_pmt_acryl_lv = f"gerda_pmt_acryl_lv_{num_pmts}"
+            name_pmt_acryl = f"gerda_pmt_acryl_{num_pmts}"
+            acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
+            acryl_pv = g4.PhysicalVolume(
+                [0, 0, 0], [xpos, ypos, pmt_cathode_offset], acryl_lv, name_pmt_acryl, water_lv, reg
             )
-            namesteelbottom = f"GERDA_PMTbottom_{Num_PMTs}"
-            namePMTborosilikat_lv = f"GERDA_PMTborosilikat_lv_{Num_PMTs}"
-            namePMTborosilikat = f"GERDA_PMTborosilikat_{Num_PMTs}"
+            namesteelbottom = f"gerda_pmt_bottom_{num_pmts}"
+            gerda_pmt_borosilikat_lv_ = f"gerda_pmt_borosilikat_lv_{num_pmts}"
+            name_pmt_borosilikat = f"GERDA_PMTborosilikat_{num_pmts}"
             borosilikat_lv = g4.LogicalVolume(
-                PMTBorosilikatGlass, borosilicate_material, namePMTborosilikat_lv, reg
+                pmt_borosilikat_glass, borosilicate_material, gerda_pmt_borosilikat_lv_, reg
             )
             borosilikat_pv = g4.PhysicalVolume(
-                [0, 0, 0], [xpos, ypos, PMTCathodeOffset], borosilikat_lv, namePMTborosilikat, water_lv, reg
+                [0, 0, 0],
+                [xpos, ypos, pmt_cathode_offset],
+                borosilikat_lv,
+                name_pmt_borosilikat,
+                water_lv,
+                reg,
             )
-            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], Photocathode_lv, namephotocathode, borosilikat_lv, reg)
+            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], photocathode_lv, namephotocathode, borosilikat_lv, reg)
         else:
-            namephotocathode_lv = f"PMTcathode_lv_{PMT_ID[Working_PMTs]}"
-            namephotocathode = f"PMTcathode_{PMT_ID[Working_PMTs]}"
-            namesteelcone = f"PMTcone_{PMT_ID[Working_PMTs]}"
-            namesteelbottom = f"PMTbottom_{PMT_ID[Working_PMTs]}"
-            Photocathode_lv = g4.LogicalVolume(Photocathode, cathodeAl, namephotocathode_lv, reg)
-            namePMTair_lv = f"PMTair_lv_{PMT_ID[Working_PMTs]}"
-            namePMTair = f"PMTair_{PMT_ID[Working_PMTs]}"
-            PMTAir_lv = g4.LogicalVolume(PMTAir, PMT_air_material, namePMTair_lv, reg)
-            PMTAir_pv = g4.PhysicalVolume(
-                [0, 0, 0], [xpos, ypos, PMTCathodeOffset], PMTAir_lv, namePMTair, water_lv, reg
+            namephotocathode_lv = f"pmt_cathode_lv_{pmt_id[working_pmts]}"
+            namephotocathode = f"pmt_cathode_{pmt_id[working_pmts]}"
+            namesteelcone = f"pmt_cone_{pmt_id[working_pmts]}"
+            namesteelbottom = f"pmt_bottom_{pmt_id[working_pmts]}"
+            photocathode_lv = g4.LogicalVolume(photocathode, cathode_al, namephotocathode_lv, reg)
+            name_pmt_air_lv = f"pmt_air_lv_{pmt_id[working_pmts]}"
+            name_pmt_air = f"pmt_air_{pmt_id[working_pmts]}"
+            pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
+            pmt_air_pv = g4.PhysicalVolume(
+                [0, 0, 0], [xpos, ypos, pmt_cathode_offset], pmt_air_lv, name_pmt_air, water_lv, reg
             )
 
-            namePMTacryl_lv = f"PMTacryl_lv_{PMT_ID[Working_PMTs]}"
-            namePMTacryl = f"PMTacryl_{PMT_ID[Working_PMTs]}"
-            Acryl_lv = g4.LogicalVolume(Acryl, acryl_material, namePMTacryl_lv, reg)
-            Acryl_pv = g4.PhysicalVolume(
-                [0, 0, 0], [xpos, ypos, PMTCathodeOffset], Acryl_lv, namePMTacryl, water_lv, reg
+            name_pmt_acryl_lv = f"pmt_acryl_lv_{pmt_id[working_pmts]}"
+            name_pmt_acryl = f"pmt_acryl_{pmt_id[working_pmts]}"
+            acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
+            acryl_pv = g4.PhysicalVolume(
+                [0, 0, 0], [xpos, ypos, pmt_cathode_offset], acryl_lv, name_pmt_acryl, water_lv, reg
             )
 
-            namePMTborosilikat_lv = f"PMTborosilikat_lv_{PMT_ID[Working_PMTs]}"
-            namePMTborosilikat = f"PMTborosilikat_{PMT_ID[Working_PMTs]}"
+            name_pmt_borosilikat_lv = f"pmt_borosilikat_lv_{pmt_id[working_pmts]}"
+            name_pmt_borosilikat = f"pmt_borosilikat_{pmt_id[working_pmts]}"
             borosilikat_lv = g4.LogicalVolume(
-                PMTBorosilikatGlass, borosilicate_material, namePMTborosilikat_lv, reg
+                pmt_borosilikat_glass, borosilicate_material, name_pmt_borosilikat_lv, reg
             )
             borosilikat_pv = g4.PhysicalVolume(
-                [0, 0, 0], [xpos, ypos, PMTCathodeOffset], borosilikat_lv, namePMTborosilikat, water_lv, reg
+                [0, 0, 0],
+                [xpos, ypos, pmt_cathode_offset],
+                borosilikat_lv,
+                name_pmt_borosilikat,
+                water_lv,
+                reg,
             )
             g4.BorderSurface(
-                f"AirAcrylSurface{PMT_ID[Working_PMTs]}", PMTAir_pv, Acryl_pv, optical_border_air_acryl, reg
+                f"air_acryl_surface{pmt_id[working_pmts]}",
+                pmt_air_pv,
+                acryl_pv,
+                optical_border_air_acryl,
+                reg,
             )
             g4.BorderSurface(
-                f"WaterAcrylSurface{PMT_ID[Working_PMTs]}",
+                f"water_acryl_surface{pmt_id[working_pmts]}",
                 water_pv,
-                Acryl_pv,
+                acryl_pv,
                 optical_border_water_acryl,
                 reg,
             )
             g4.BorderSurface(
-                f"AirBorosilicateSurface{PMT_ID[Working_PMTs]}",
-                PMTAir_pv,
+                f"air_borosilicate_surface{pmt_id[working_pmts]}",
+                pmt_air_pv,
                 borosilikat_pv,
                 optical_border_air_borosilicate,
                 reg,
             )
-            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], Photocathode_lv, namephotocathode, borosilikat_lv, reg)
+            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], photocathode_lv, namephotocathode, borosilikat_lv, reg)
             g4.SkinSurface(
-                f"PMTCathodeSkinSurface{PMT_ID[Working_PMTs]}", Photocathode_lv, optical_PMT_surface, reg
+                f"pmt_cathode_skin_surface{pmt_id[working_pmts]}", photocathode_lv, optical_pmt_surface, reg
             )
-            Working_PMTs += 1
+            working_pmts += 1
 
         g4.PhysicalVolume(
-            [0, 0, 0], [xpos, ypos, PMTConeOffset], PMTSteelCone_lv, namesteelcone, water_lv, reg
+            [0, 0, 0], [xpos, ypos, pmt_cone_offset], pmt_steel_cone_lv, namesteelcone, water_lv, reg
         )
         g4.PhysicalVolume(
-            [0, 0, 0], [xpos, ypos, PMTBottomOffset], PMTSteelBottom_lv, namesteelbottom, water_lv, reg
+            [0, 0, 0], [xpos, ypos, pmt_bottom_offset], pmt_steel_bottom_lv, namesteelbottom, water_lv, reg
         )
 
-        dPhi_c += dPhi
-        Num_PMTs += 1
+        dphi_c += dphi
+        num_pmts += 1
 
     # Bottom inner ring
-    N_PMT_per_ring_bi = 8  # 8 PMTs in inner ring
-    R_pos = 2750.0  # radius of PMT positions
-    dPhi = 2.0 * np.pi / N_PMT_per_ring_bi
-    dPhi_c = dPhi
+    n_pmt_per_ring_bi = 8  # 8 PMTs in inner ring
+    r_pos = 2750.0  # radius of PMT positions
+    dphi = 2.0 * np.pi / n_pmt_per_ring_bi
+    dphi_c = dphi
 
-    broken_but_inside_PMT_in_inner_bottom_ring_GERDA = np.array([4, 7])
-    no_PMT_in_inner_bottom_ring = np.array([])
+    broken_but_inside_pmt_in_inner_bottom_ring_gerda = np.array([4, 7])
+    no_pmt_in_inner_bottom_ring = np.array([])
 
     # place PMTs
-    for k in range(N_PMT_per_ring_bi):
-        if k in no_PMT_in_inner_bottom_ring:
+    for k in range(n_pmt_per_ring_bi):
+        if k in no_pmt_in_inner_bottom_ring:
             continue
-        dPhi_c = dPhi * k
-        xpos = R_pos * np.cos(dPhi_c)
-        ypos = R_pos * np.sin(dPhi_c)
+        dphi_c = dphi * k
+        xpos = r_pos * np.cos(dphi_c)
+        ypos = r_pos * np.sin(dphi_c)
 
-        if k in broken_but_inside_PMT_in_inner_bottom_ring_GERDA:
-            if PMT_configuration == "LEGEND200":
+        if k in broken_but_inside_pmt_in_inner_bottom_ring_gerda:
+            if pmt_configuration == "LEGEND200":
                 continue
-            namephotocathode_lv = f"GERDA_PMTcathode_lv_{Num_PMTs}"
-            namephotocathode = f"GERDA_PMTcathode_{Num_PMTs}"
-            namesteelcone = f"GERDA_PMTcone_{Num_PMTs}"
-            Photocathode_lv = g4.LogicalVolume(Photocathode, cathodeAl, namephotocathode_lv, reg)
-            namePMTair_lv = f"GERDA_PMTair_lv_{Num_PMTs}"
-            namePMTair = f"GERDA_PMTair_{Num_PMTs}"
-            PMTAir_lv = g4.LogicalVolume(PMTAir, PMT_air_material, namePMTair_lv, reg)
-            PMTAir_pv = g4.PhysicalVolume(
-                [0, 0, 0], [xpos, ypos, PMTCathodeOffset], PMTAir_lv, namePMTair, water_lv, reg
+            namephotocathode_lv = f"gerda_pmt_cathode_lv_{num_pmts}"
+            namephotocathode = f"gerda_pmt_cathode_{num_pmts}"
+            namesteelcone = f"gerda_pmt_cone_{num_pmts}"
+            photocathode_lv = g4.LogicalVolume(photocathode, cathode_al, namephotocathode_lv, reg)
+            name_pmt_air_lv = f"gerda_pmt_air_lv_{num_pmts}"
+            name_pmt_air = f"gerda_pmt_air_{num_pmts}"
+            pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
+            pmt_air_pv = g4.PhysicalVolume(
+                [0, 0, 0], [xpos, ypos, pmt_cathode_offset], pmt_air_lv, name_pmt_air, water_lv, reg
             )
 
-            namePMTacryl_lv = f"GERDA_PMTacryl_lv_{Num_PMTs}"
-            namePMTacryl = f"GERDA_PMTacryl_{Num_PMTs}"
-            Acryl_lv = g4.LogicalVolume(Acryl, acryl_material, namePMTacryl_lv, reg)
-            Acryl_pv = g4.PhysicalVolume(
-                [0, 0, 0], [xpos, ypos, PMTCathodeOffset], Acryl_lv, namePMTacryl, water_lv, reg
+            name_pmt_acryl_lv = f"gerda_pmt_acryl_lv_{num_pmts}"
+            name_pmt_acryl = f"gerda_pmt_acryl_{num_pmts}"
+            acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
+            acryl_pv = g4.PhysicalVolume(
+                [0, 0, 0], [xpos, ypos, pmt_cathode_offset], acryl_lv, name_pmt_acryl, water_lv, reg
             )
-            namesteelbottom = f"GERDA_PMTbottom_{Num_PMTs}"
-            namePMTborosilikat_lv = f"GERDA_PMTborosilikat_lv_{Num_PMTs}"
-            namePMTborosilikat = f"GERDA_PMTborosilikat_{Num_PMTs}"
+            namesteelbottom = f"gerda_pmt_bottom_{num_pmts}"
+            gerda_pmt_borosilikat_lv_ = f"gerda_pmt_borosilikat_lv_{num_pmts}"
+            name_pmt_borosilikat = f"GERDA_PMTborosilikat_{num_pmts}"
             borosilikat_lv = g4.LogicalVolume(
-                PMTBorosilikatGlass, borosilicate_material, namePMTborosilikat_lv, reg
+                pmt_borosilikat_glass, borosilicate_material, gerda_pmt_borosilikat_lv_, reg
             )
             borosilikat_pv = g4.PhysicalVolume(
-                [0, 0, 0], [xpos, ypos, PMTCathodeOffset], borosilikat_lv, namePMTborosilikat, water_lv, reg
+                [0, 0, 0],
+                [xpos, ypos, pmt_cathode_offset],
+                borosilikat_lv,
+                name_pmt_borosilikat,
+                water_lv,
+                reg,
             )
-            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], Photocathode_lv, namephotocathode, borosilikat_lv, reg)
+            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], photocathode_lv, namephotocathode, borosilikat_lv, reg)
         else:
-            namephotocathode_lv = f"PMTcathode_lv_{PMT_ID[Working_PMTs]}"
-            namephotocathode = f"PMTcathode_{PMT_ID[Working_PMTs]}"
-            namesteelcone = f"PMTcone_{PMT_ID[Working_PMTs]}"
-            namesteelbottom = f"PMTbottom_{PMT_ID[Working_PMTs]}"
-            Photocathode_lv = g4.LogicalVolume(Photocathode, cathodeAl, namephotocathode_lv, reg)
-
-            namePMTair_lv = f"PMTair_lv_{PMT_ID[Working_PMTs]}"
-            namePMTair = f"PMTair_{PMT_ID[Working_PMTs]}"
-            PMTAir_lv = g4.LogicalVolume(PMTAir, PMT_air_material, namePMTair_lv, reg)
-            PMTAir_pv = g4.PhysicalVolume(
-                [0, 0, 0], [xpos, ypos, PMTCathodeOffset], PMTAir_lv, namePMTair, water_lv, reg
+            namephotocathode_lv = f"pmt_cathode_lv_{pmt_id[working_pmts]}"
+            namephotocathode = f"pmt_cathode_{pmt_id[working_pmts]}"
+            namesteelcone = f"pmt_cone_{pmt_id[working_pmts]}"
+            namesteelbottom = f"pmt_bottom_{pmt_id[working_pmts]}"
+            photocathode_lv = g4.LogicalVolume(photocathode, cathode_al, namephotocathode_lv, reg)
+            name_pmt_air_lv = f"pmt_air_lv_{pmt_id[working_pmts]}"
+            name_pmt_air = f"pmt_air_{pmt_id[working_pmts]}"
+            pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
+            pmt_air_pv = g4.PhysicalVolume(
+                [0, 0, 0], [xpos, ypos, pmt_cathode_offset], pmt_air_lv, name_pmt_air, water_lv, reg
             )
 
-            namePMTacryl_lv = f"PMTacryl_lv_{PMT_ID[Working_PMTs]}"
-            namePMTacryl = f"PMTacryl_{PMT_ID[Working_PMTs]}"
-            Acryl_lv = g4.LogicalVolume(Acryl, acryl_material, namePMTacryl_lv, reg)
-            Acryl_pv = g4.PhysicalVolume(
-                [0, 0, 0], [xpos, ypos, PMTCathodeOffset], Acryl_lv, namePMTacryl, water_lv, reg
+            name_pmt_acryl_lv = f"pmt_acryl_lv_{pmt_id[working_pmts]}"
+            name_pmt_acryl = f"pmt_acryl_{pmt_id[working_pmts]}"
+            acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
+            acryl_pv = g4.PhysicalVolume(
+                [0, 0, 0], [xpos, ypos, pmt_cathode_offset], acryl_lv, name_pmt_acryl, water_lv, reg
             )
 
-            namePMTborosilikat_lv = f"PMTborosilikat_lv_{PMT_ID[Working_PMTs]}"
-            namePMTborosilikat = f"PMTborosilikat_{PMT_ID[Working_PMTs]}"
+            name_pmt_borosilikat_lv = f"pmt_borosilikat_lv_{pmt_id[working_pmts]}"
+            name_pmt_borosilikat = f"pmt_borosilikat_{pmt_id[working_pmts]}"
             borosilikat_lv = g4.LogicalVolume(
-                PMTBorosilikatGlass, borosilicate_material, namePMTborosilikat_lv, reg
+                pmt_borosilikat_glass, borosilicate_material, name_pmt_borosilikat_lv, reg
             )
             borosilikat_pv = g4.PhysicalVolume(
-                [0, 0, 0], [xpos, ypos, PMTCathodeOffset], borosilikat_lv, namePMTborosilikat, water_lv, reg
+                [0, 0, 0],
+                [xpos, ypos, pmt_cathode_offset],
+                borosilikat_lv,
+                name_pmt_borosilikat,
+                water_lv,
+                reg,
             )
             g4.BorderSurface(
-                f"AirAcrylSurface{PMT_ID[Working_PMTs]}", PMTAir_pv, Acryl_pv, optical_border_air_acryl, reg
+                f"air_acryl_surface{pmt_id[working_pmts]}",
+                pmt_air_pv,
+                acryl_pv,
+                optical_border_air_acryl,
+                reg,
             )
             g4.BorderSurface(
-                f"WaterAcrylSurface{PMT_ID[Working_PMTs]}",
+                f"water_acryl_surface{pmt_id[working_pmts]}",
                 water_pv,
-                Acryl_pv,
+                acryl_pv,
                 optical_border_water_acryl,
                 reg,
             )
             g4.BorderSurface(
-                f"AirBorosilicateSurface{PMT_ID[Working_PMTs]}",
-                PMTAir_pv,
+                f"air_borosilicate_surface{pmt_id[working_pmts]}",
+                pmt_air_pv,
                 borosilikat_pv,
                 optical_border_air_borosilicate,
                 reg,
             )
-            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], Photocathode_lv, namephotocathode, borosilikat_lv, reg)
+            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], photocathode_lv, namephotocathode, borosilikat_lv, reg)
             g4.SkinSurface(
-                f"PMTCathodeSkinSurface{PMT_ID[Working_PMTs]}", Photocathode_lv, optical_PMT_surface, reg
+                f"pmt_cathode_skin_surface{pmt_id[working_pmts]}", photocathode_lv, optical_pmt_surface, reg
             )
-            Working_PMTs += 1
+            working_pmts += 1
 
         g4.PhysicalVolume(
-            [0, 0, 0], [xpos, ypos, PMTConeOffset], PMTSteelCone_lv, namesteelcone, water_lv, reg
+            [0, 0, 0], [xpos, ypos, pmt_cone_offset], pmt_steel_cone_lv, namesteelcone, water_lv, reg
         )
         g4.PhysicalVolume(
-            [0, 0, 0], [xpos, ypos, PMTBottomOffset], PMTSteelBottom_lv, namesteelbottom, water_lv, reg
+            [0, 0, 0], [xpos, ypos, pmt_bottom_offset], pmt_steel_bottom_lv, namesteelbottom, water_lv, reg
         )
 
-        dPhi_c += dPhi
-        Num_PMTs += 1
+        dphi_c += dphi
+        num_pmts += 1
 
     # Pillbox Bottom ring
-    N_PMT_per_ring_bpb = 6
-    R_pos = (
-        ShieldingFootIR
-        - 0.5 * PMTSteelConeHeight
-        - PhotocathodeHeightDifference
-        - PMTSteelBottomHeight
-        - ReflectiveFoilThickness
+    n_pmt_per_ring_bpb = 6
+    r_pos = (
+        shielding_foot_ir
+        - 0.5 * pmt_steel_cone_height
+        - photocathode_height_difference
+        - pmt_steel_bottom_height
+        - reflective_foil_thickness
     )
-    dPhi = 2.0 * np.pi / N_PMT_per_ring_bpb
-    dPhi_c = dPhi
+    dphi = 2.0 * np.pi / n_pmt_per_ring_bpb
+    dphi_c = dphi
 
-    broken_but_inside_PMT_in_pillbox_bottom_ring = np.array([])
-    no_PMT_in_pillbox_bottom_ring = np.array([0, 3])
+    broken_but_inside_pmt_in_pillbox_bottom_ring = np.array([])
+    no_pmt_in_pillbox_bottom_ring = np.array([0, 3])
 
     # PMTs
-    for k in range(N_PMT_per_ring_bpb):
-        if k in no_PMT_in_pillbox_bottom_ring:
+    for k in range(n_pmt_per_ring_bpb):
+        if k in no_pmt_in_pillbox_bottom_ring:
             continue
 
-        dPhi_c = dPhi * k
-        xpos = R_pos * np.cos(dPhi_c)
-        ypos = R_pos * np.sin(dPhi_c)
+        dphi_c = dphi * k
+        xpos = r_pos * np.cos(dphi_c)
+        ypos = r_pos * np.sin(dphi_c)
 
-        if k in broken_but_inside_PMT_in_pillbox_bottom_ring:
-            namephotocathode_lv = f"GERDA_PMTcathode_lv_{Num_PMTs}"
-            namephotocathode = f"GERDA_PMTcathode_{Num_PMTs}"
-            namesteelcone = f"GERDA_PMTcone_{Num_PMTs}"
-            Photocathode_lv = g4.LogicalVolume(Photocathode, cathodeAl, namephotocathode_lv, reg)
-            namePMTair_lv = f"GERDA_PMTair_lv_{Num_PMTs}"
-            namePMTair = f"GERDA_PMTair_{Num_PMTs}"
-            PMTAir_lv = g4.LogicalVolume(PMTAir, PMT_air_material, namePMTair_lv, reg)
-            PMTAir_pv = g4.PhysicalVolume(
-                [0, 0, 0], [xpos, ypos, PMTCathodeOffset], PMTAir_lv, namePMTair, water_lv, reg
+        if k in broken_but_inside_pmt_in_pillbox_bottom_ring:
+            namephotocathode_lv = f"gerda_pmt_cathode_lv_{num_pmts}"
+            namephotocathode = f"gerda_pmt_cathode_{num_pmts}"
+            namesteelcone = f"gerda_pmt_cone_{num_pmts}"
+            photocathode_lv = g4.LogicalVolume(photocathode, cathode_al, namephotocathode_lv, reg)
+            name_pmt_air_lv = f"gerda_pmt_air_lv_{num_pmts}"
+            name_pmt_air = f"gerda_pmt_air_{num_pmts}"
+            pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
+            pmt_air_pv = g4.PhysicalVolume(
+                [0, 0, 0], [xpos, ypos, pmt_cathode_offset], pmt_air_lv, name_pmt_air, water_lv, reg
             )
 
-            namePMTacryl_lv = f"GERDA_PMTacryl_lv_{Num_PMTs}"
-            namePMTacryl = f"GERDA_PMTacryl_{Num_PMTs}"
-            Acryl_lv = g4.LogicalVolume(Acryl, acryl_material, namePMTacryl_lv, reg)
-            Acryl_pv = g4.PhysicalVolume(
-                [0, 0, 0], [xpos, ypos, PMTCathodeOffset], Acryl_lv, namePMTacryl, water_lv, reg
+            name_pmt_acryl_lv = f"gerda_pmt_acryl_lv_{num_pmts}"
+            name_pmt_acryl = f"gerda_pmt_acryl_{num_pmts}"
+            acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
+            acryl_pv = g4.PhysicalVolume(
+                [0, 0, 0], [xpos, ypos, pmt_cathode_offset], acryl_lv, name_pmt_acryl, water_lv, reg
             )
-            namesteelbottom = f"GERDA_PMTbottom_{Num_PMTs}"
-            namePMTborosilikat_lv = f"GERDA_PMTborosilikat_lv_{Num_PMTs}"
-            namePMTborosilikat = f"GERDA_PMTborosilikat_{Num_PMTs}"
+            namesteelbottom = f"gerda_pmt_bottom_{num_pmts}"
+            gerda_pmt_borosilikat_lv_ = f"gerda_pmt_borosilikat_lv_{num_pmts}"
+            name_pmt_borosilikat = f"GERDA_PMTborosilikat_{num_pmts}"
             borosilikat_lv = g4.LogicalVolume(
-                PMTBorosilikatGlass, borosilicate_material, namePMTborosilikat_lv, reg
+                pmt_borosilikat_glass, borosilicate_material, gerda_pmt_borosilikat_lv_, reg
             )
             borosilikat_pv = g4.PhysicalVolume(
-                [0, 0, 0], [xpos, ypos, PMTCathodeOffset], borosilikat_lv, namePMTborosilikat, water_lv, reg
+                [0, 0, 0],
+                [xpos, ypos, pmt_cathode_offset],
+                borosilikat_lv,
+                name_pmt_borosilikat,
+                water_lv,
+                reg,
             )
-            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], Photocathode_lv, namephotocathode, borosilikat_lv, reg)
+            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], photocathode_lv, namephotocathode, borosilikat_lv, reg)
         else:
-            namephotocathode_lv = f"PMTcathode_lv_{PMT_ID[Working_PMTs]}"
-            namephotocathode = f"PMTcathode_{PMT_ID[Working_PMTs]}"
-            namesteelcone = f"PMTcone_{PMT_ID[Working_PMTs]}"
-            namesteelbottom = f"PMTbottom_{PMT_ID[Working_PMTs]}"
-            Photocathode_lv = g4.LogicalVolume(Photocathode, cathodeAl, namephotocathode_lv, reg)
-
-            namePMTair_lv = f"PMTair_lv_{PMT_ID[Working_PMTs]}"
-            namePMTair = f"PMTair_{PMT_ID[Working_PMTs]}"
-            PMTAir_lv = g4.LogicalVolume(PMTAir, PMT_air_material, namePMTair_lv, reg)
-            PMTAir_pv = g4.PhysicalVolume(
-                [0, 0, 0], [xpos, ypos, PMTCathodeOffset], PMTAir_lv, namePMTair, water_lv, reg
+            namephotocathode_lv = f"pmt_cathode_lv_{pmt_id[working_pmts]}"
+            namephotocathode = f"pmt_cathode_{pmt_id[working_pmts]}"
+            namesteelcone = f"pmt_cone_{pmt_id[working_pmts]}"
+            namesteelbottom = f"pmt_bottom_{pmt_id[working_pmts]}"
+            photocathode_lv = g4.LogicalVolume(photocathode, cathode_al, namephotocathode_lv, reg)
+            name_pmt_air_lv = f"pmt_air_lv_{pmt_id[working_pmts]}"
+            name_pmt_air = f"pmt_air_{pmt_id[working_pmts]}"
+            pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
+            pmt_air_pv = g4.PhysicalVolume(
+                [0, 0, 0], [xpos, ypos, pmt_cathode_offset], pmt_air_lv, name_pmt_air, water_lv, reg
             )
 
-            namePMTacryl_lv = f"PMTacryl_lv_{PMT_ID[Working_PMTs]}"
-            namePMTacryl = f"PMTacryl_{PMT_ID[Working_PMTs]}"
-            Acryl_lv = g4.LogicalVolume(Acryl, acryl_material, namePMTacryl_lv, reg)
-            Acryl_pv = g4.PhysicalVolume(
-                [0, 0, 0], [xpos, ypos, PMTCathodeOffset], Acryl_lv, namePMTacryl, water_lv, reg
+            name_pmt_acryl_lv = f"pmt_acryl_lv_{pmt_id[working_pmts]}"
+            name_pmt_acryl = f"pmt_acryl_{pmt_id[working_pmts]}"
+            acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
+            acryl_pv = g4.PhysicalVolume(
+                [0, 0, 0], [xpos, ypos, pmt_cathode_offset], acryl_lv, name_pmt_acryl, water_lv, reg
             )
 
-            namePMTborosilikat_lv = f"PMTborosilikat_lv_{PMT_ID[Working_PMTs]}"
-            namePMTborosilikat = f"PMTborosilikat_{PMT_ID[Working_PMTs]}"
+            name_pmt_borosilikat_lv = f"pmt_borosilikat_lv_{pmt_id[working_pmts]}"
+            name_pmt_borosilikat = f"pmt_borosilikat_{pmt_id[working_pmts]}"
             borosilikat_lv = g4.LogicalVolume(
-                PMTBorosilikatGlass, borosilicate_material, namePMTborosilikat_lv, reg
+                pmt_borosilikat_glass, borosilicate_material, name_pmt_borosilikat_lv, reg
             )
             borosilikat_pv = g4.PhysicalVolume(
-                [0, 0, 0], [xpos, ypos, PMTCathodeOffset], borosilikat_lv, namePMTborosilikat, water_lv, reg
+                [0, 0, 0],
+                [xpos, ypos, pmt_cathode_offset],
+                borosilikat_lv,
+                name_pmt_borosilikat,
+                water_lv,
+                reg,
             )
             g4.BorderSurface(
-                f"AirAcrylSurface{PMT_ID[Working_PMTs]}", PMTAir_pv, Acryl_pv, optical_border_air_acryl, reg
+                f"air_acryl_surface{pmt_id[working_pmts]}",
+                pmt_air_pv,
+                acryl_pv,
+                optical_border_air_acryl,
+                reg,
             )
             g4.BorderSurface(
-                f"WaterAcrylSurface{PMT_ID[Working_PMTs]}",
+                f"water_acryl_surface{pmt_id[working_pmts]}",
                 water_pv,
-                Acryl_pv,
+                acryl_pv,
                 optical_border_water_acryl,
                 reg,
             )
             g4.BorderSurface(
-                f"AirBorosilicateSurface{PMT_ID[Working_PMTs]}",
-                PMTAir_pv,
+                f"air_borosilicate_surface{pmt_id[working_pmts]}",
+                pmt_air_pv,
                 borosilikat_pv,
                 optical_border_air_borosilicate,
                 reg,
             )
-            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], Photocathode_lv, namephotocathode, borosilikat_lv, reg)
+            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], photocathode_lv, namephotocathode, borosilikat_lv, reg)
             g4.SkinSurface(
-                f"PMTCathodeSkinSurface{PMT_ID[Working_PMTs]}", Photocathode_lv, optical_PMT_surface, reg
+                f"pmt_cathode_skin_surface{pmt_id[working_pmts]}", photocathode_lv, optical_pmt_surface, reg
             )
-            Working_PMTs += 1
+            working_pmts += 1
 
         g4.PhysicalVolume(
-            [0, 0, 0], [xpos, ypos, PMTConeOffset], PMTSteelCone_lv, namesteelcone, water_lv, reg
+            [0, 0, 0], [xpos, ypos, pmt_cone_offset], pmt_steel_cone_lv, namesteelcone, water_lv, reg
         )
         g4.PhysicalVolume(
-            [0, 0, 0], [xpos, ypos, PMTBottomOffset], PMTSteelBottom_lv, namesteelbottom, water_lv, reg
+            [0, 0, 0], [xpos, ypos, pmt_bottom_offset], pmt_steel_bottom_lv, namesteelbottom, water_lv, reg
         )
 
-        dPhi_c += dPhi
-        Num_PMTs += 1
+        dphi_c += dphi
+        num_pmts += 1
 
-    N_PMT_per_ring = 10  # PMTs per ring
+    n_pmt_per_ring = 10  # PMTs per ring
 
     distancetobottom = 200.0  # distance of pillbox wall PMTs to bottom
-    R_pos = (
-        WaterRadius
-        - ReflectiveFoilThickness
-        - DistancePMTBaseTank
-        - PMTSteelConeHeight * 0.5
-        - PMTSteelBottomHeight
+    r_pos = (
+        water_radius
+        - reflective_foil_thickness
+        - distance_pmt_base_tank
+        - pmt_steel_cone_height * 0.5
+        - pmt_steel_bottom_height
     )
-    dPhi = 2.0 * np.pi / N_PMT_per_ring
+    dphi = 2.0 * np.pi / n_pmt_per_ring
 
     for i in [0, 1, 2, 3, 4]:
         if i == 0:
             # PMT row (2m)
-            N_PMT_per_ring = 10
-            dPhi = 2.0 * np.pi / N_PMT_per_ring
-            no_PMT_in_wall_ring = np.array([])
-            broken_but_inside_PMT_in_wall_ring_GERDA = np.array([4, 5, 6, 7])
+            n_pmt_per_ring = 10
+            dphi = 2.0 * np.pi / n_pmt_per_ring
+            no_pmt_in_wall_ring = np.array([])
+            broken_but_inside_pmt_in_wall_ring_gerda = np.array([4, 5, 6, 7])
             zpos = -2450.0
-            dPhi_c = dPhi * 0.5
+            dphi_c = dphi * 0.5
         elif i == 1:
             # PMT row (3.5 m)
-            N_PMT_per_ring = 10
-            dPhi = 2.0 * np.pi / N_PMT_per_ring
-            no_PMT_in_wall_ring = np.array([])
-            broken_but_inside_PMT_in_wall_ring_GERDA = np.array([4, 5])
+            n_pmt_per_ring = 10
+            dphi = 2.0 * np.pi / n_pmt_per_ring
+            no_pmt_in_wall_ring = np.array([])
+            broken_but_inside_pmt_in_wall_ring_gerda = np.array([4, 5])
             zpos = -950.0
-            dPhi_c = 0.0
+            dphi_c = 0.0
         elif i == 2:
             # PMT row (5 m)
-            N_PMT_per_ring = 10
-            dPhi = 2.0 * np.pi / N_PMT_per_ring
-            no_PMT_in_wall_ring = np.array([])
-            broken_but_inside_PMT_in_wall_ring_GERDA = np.array([0, 3])
+            n_pmt_per_ring = 10
+            dphi = 2.0 * np.pi / n_pmt_per_ring
+            no_pmt_in_wall_ring = np.array([])
+            broken_but_inside_pmt_in_wall_ring_gerda = np.array([0, 3])
             zpos = 550.0
             # zpos=-2450.0
-            dPhi_c = dPhi * 0.5
+            dphi_c = dphi * 0.5
         elif i == 3:
             # PMT row (6.5 m)
-            N_PMT_per_ring = 10
-            dPhi = 2.0 * np.pi / N_PMT_per_ring
-            no_PMT_in_wall_ring = np.array([0, 2, 3, 4, 5, 6, 7, 8, 9])
+            n_pmt_per_ring = 10
+            dphi = 2.0 * np.pi / n_pmt_per_ring
+            no_pmt_in_wall_ring = np.array([0, 2, 3, 4, 5, 6, 7, 8, 9])
             zpos = 2050.0
-            dPhi_c = 0.0
+            dphi_c = 0.0
         elif i == 4:
             # Pillbox wall mounted PMTs
-            no_PMT_in_wall_ring = np.array([])
-            broken_but_inside_PMT_in_wall_ring_GERDA = np.array([])
-            N_PMT_per_ring = 6
-            R_pos = (
-                ShieldingFootIR - ReflectiveFoilThickness - PMTSteelConeHeight * 0.5 - PMTSteelBottomHeight
+            no_pmt_in_wall_ring = np.array([])
+            broken_but_inside_pmt_in_wall_ring_gerda = np.array([])
+            n_pmt_per_ring = 6
+            r_pos = (
+                shielding_foot_ir
+                - reflective_foil_thickness
+                - pmt_steel_cone_height * 0.5
+                - pmt_steel_bottom_height
             )
-            zpos = -(WaterHeight / 2.0) + distancetobottom * 3
-            dPhi = 2 * np.pi / N_PMT_per_ring
-            dPhi_c = dPhi * 0.5
+            zpos = -(water_height / 2.0) + distancetobottom * 3
+            dphi = 2 * np.pi / n_pmt_per_ring
+            dphi_c = dphi * 0.5
 
         x_rot_drehvol = 0
         y_rot_drehvol = np.pi / 2.0
 
         # placing of PMTs in ring
-        for k in range(N_PMT_per_ring):
-            if k in no_PMT_in_wall_ring:
+        for k in range(n_pmt_per_ring):
+            if k in no_pmt_in_wall_ring:
                 continue
 
-            dPhi_c = dPhi * k + 0.5 * dPhi if i in (0, 2, 4) else dPhi * k
+            dphi_c = dphi * k + 0.5 * dphi if i in (0, 2, 4) else dphi * k
 
-            xpos = (R_pos + PhotocathodeHeightDifference) * np.cos(dPhi_c)
-            ypos = (R_pos + PhotocathodeHeightDifference) * np.sin(dPhi_c)
+            xpos = (r_pos + photocathode_height_difference) * np.cos(dphi_c)
+            ypos = (r_pos + photocathode_height_difference) * np.sin(dphi_c)
 
             if i in (0, 2, 4):
-                z_rot_drehvol = -0.5 * dPhi + N_PMT_per_ring * dPhi - k * dPhi
+                z_rot_drehvol = -0.5 * dphi + n_pmt_per_ring * dphi - k * dphi
             else:
-                z_rot_drehvol = N_PMT_per_ring * dPhi - k * dPhi
+                z_rot_drehvol = n_pmt_per_ring * dphi - k * dphi
 
             # rotations around Z, Y and X
-            rot_z = R.from_euler("z", z_rot_drehvol, degrees=False)
-            rot_y = R.from_euler("y", y_rot_drehvol, degrees=False)
-            rot_x = R.from_euler("x", x_rot_drehvol, degrees=False)
+            rot_z = Rotation.from_euler("z", z_rot_drehvol, degrees=False)
+            rot_y = Rotation.from_euler("y", y_rot_drehvol, degrees=False)
+            rot_x = Rotation.from_euler("x", x_rot_drehvol, degrees=False)
 
             combined_rotation = rot_y * rot_z * rot_x
 
             euler_angles = combined_rotation.as_euler("xyz", degrees=False)
             x_rot_global, y_rot_global, z_rot_global = euler_angles
 
-            if k in broken_but_inside_PMT_in_wall_ring_GERDA:
-                if PMT_configuration == "LEGEND200":
+            if k in broken_but_inside_pmt_in_wall_ring_gerda:
+                if pmt_configuration == "LEGEND200":
                     continue
-                namephotocathode_lv = f"GERDA_PMTcathode_lv_{Num_PMTs}"
-                namephotocathode = f"GERDA_PMTcathode_{Num_PMTs}"
-                namesteelcone = f"GERDA_PMTcone_{Num_PMTs}"
-                Photocathode_lv = g4.LogicalVolume(Photocathode, cathodeAl, namephotocathode_lv, reg)
-                namePMTair_lv = f"GERDA_PMTair_lv_{Num_PMTs}"
-                namePMTair = f"GERDA_PMTair_{Num_PMTs}"
-                PMTAir_lv = g4.LogicalVolume(PMTAir, PMT_air_material, namePMTair_lv, reg)
-                PMTAir_pv = g4.PhysicalVolume(
+                namephotocathode_lv = f"gerda_pmt_cathode_lv_{num_pmts}"
+                namephotocathode = f"gerda_pmt_cathode_{num_pmts}"
+                namesteelcone = f"gerda_pmt_cone_{num_pmts}"
+                photocathode_lv = g4.LogicalVolume(photocathode, cathode_al, namephotocathode_lv, reg)
+                name_pmt_air_lv = f"gerda_pmt_air_lv_{num_pmts}"
+                name_pmt_air = f"gerda_pmt_air_{num_pmts}"
+                pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
+                pmt_air_pv = g4.PhysicalVolume(
                     [x_rot_global, y_rot_global, z_rot_global],
                     [xpos, ypos, zpos],
-                    PMTAir_lv,
-                    namePMTair,
+                    pmt_air_lv,
+                    name_pmt_air,
                     water_lv,
                     reg,
                 )
 
-                namePMTacryl_lv = f"GERDA_PMTacryl_lv_{Num_PMTs}"
-                namePMTacryl = f"GERDA_PMTacryl_{Num_PMTs}"
-                Acryl_lv = g4.LogicalVolume(Acryl, acryl_material, namePMTacryl_lv, reg)
-                Acryl_pv = g4.PhysicalVolume(
+                name_pmt_acryl_lv = f"gerda_pmt_acryl_lv_{num_pmts}"
+                name_pmt_acryl = f"gerda_pmt_acryl_{num_pmts}"
+                acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
+                acryl_pv = g4.PhysicalVolume(
                     [x_rot_global, y_rot_global, z_rot_global],
                     [xpos, ypos, zpos],
-                    Acryl_lv,
-                    namePMTacryl,
+                    acryl_lv,
+                    name_pmt_acryl,
                     water_lv,
                     reg,
                 )
-                namesteelbottom = f"GERDA_PMTbottom_{Num_PMTs}"
-                namePMTborosilikat_lv = f"GERDA_PMTborosilikat_lv_{Num_PMTs}"
-                namePMTborosilikat = f"GERDA_PMTborosilikat_{Num_PMTs}"
+                namesteelbottom = f"gerda_pmt_bottom_{num_pmts}"
+                name_pmt_borosilikat_lv = f"gerda_pmt_borosilikat_lv_{num_pmts}"
+                name_pmt_borosilikat = f"gerda_pmt_borosilikat_{num_pmts}"
                 borosilikat_lv = g4.LogicalVolume(
-                    PMTBorosilikatGlass, borosilicate_material, namePMTborosilikat_lv, reg
+                    pmt_borosilikat_glass, borosilicate_material, name_pmt_borosilikat_lv, reg
                 )
                 borosilikat_pv = g4.PhysicalVolume(
                     [x_rot_global, y_rot_global, z_rot_global],
                     [xpos, ypos, zpos],
                     borosilikat_lv,
-                    namePMTborosilikat,
+                    name_pmt_borosilikat,
                     water_lv,
                     reg,
                 )
                 g4.PhysicalVolume(
-                    [0, 0, 0], [0, 0, 0], Photocathode_lv, namephotocathode, borosilikat_lv, reg
+                    [0, 0, 0], [0, 0, 0], photocathode_lv, namephotocathode, borosilikat_lv, reg
                 )
             else:
-                namephotocathode_lv = f"PMTcathode_lv_{PMT_ID[Working_PMTs]}"
-                namephotocathode = f"PMTcathode_{PMT_ID[Working_PMTs]}"
-                namesteelcone = f"PMTcone_{PMT_ID[Working_PMTs]}"
-                namesteelbottom = f"PMTbottom_{PMT_ID[Working_PMTs]}"
-                Photocathode_lv = g4.LogicalVolume(Photocathode, cathodeAl, namephotocathode_lv, reg)
+                namephotocathode_lv = f"pmt_cathode_lv_{pmt_id[working_pmts]}"
+                namephotocathode = f"pmt_cathode_{pmt_id[working_pmts]}"
+                namesteelcone = f"pmt_cone_{pmt_id[working_pmts]}"
+                namesteelbottom = f"pmt_bottom_{pmt_id[working_pmts]}"
+                photocathode_lv = g4.LogicalVolume(photocathode, cathode_al, namephotocathode_lv, reg)
 
-                namePMTair_lv = f"PMTair_lv_{PMT_ID[Working_PMTs]}"
-                namePMTair = f"PMTair_{PMT_ID[Working_PMTs]}"
-                PMTAir_lv = g4.LogicalVolume(PMTAir, PMT_air_material, namePMTair_lv, reg)
-                PMTAir_pv = g4.PhysicalVolume(
+                name_pmt_air_lv = f"pmt_air_lv_{pmt_id[working_pmts]}"
+                name_pmt_air = f"pmt_air_{pmt_id[working_pmts]}"
+                pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
+                pmt_air_pv = g4.PhysicalVolume(
                     [x_rot_global, y_rot_global, z_rot_global],
                     [xpos, ypos, zpos],
-                    PMTAir_lv,
-                    namePMTair,
+                    pmt_air_lv,
+                    name_pmt_air,
                     water_lv,
                     reg,
                 )
 
-                namePMTacryl_lv = f"PMTacryl_lv_{PMT_ID[Working_PMTs]}"
-                namePMTacryl = f"PMTacryl_{PMT_ID[Working_PMTs]}"
-                Acryl_lv = g4.LogicalVolume(Acryl, acryl_material, namePMTacryl_lv, reg)
-                Acryl_pv = g4.PhysicalVolume(
+                name_pmt_acryl_lv = f"pmt_acryl_lv_{pmt_id[working_pmts]}"
+                name_pmt_acryl = f"PMTacryl_{pmt_id[working_pmts]}"
+                acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
+                acryl_pv = g4.PhysicalVolume(
                     [x_rot_global, y_rot_global, z_rot_global],
                     [xpos, ypos, zpos],
-                    Acryl_lv,
-                    namePMTacryl,
+                    acryl_lv,
+                    name_pmt_acryl,
                     water_lv,
                     reg,
                 )
 
-                namePMTborosilikat_lv = f"PMTborosilikat_lv_{PMT_ID[Working_PMTs]}"
-                namePMTborosilikat = f"PMTborosilikat_{PMT_ID[Working_PMTs]}"
+                name_pmt_borosilikat_lv = f"pmt_borosilikat_lv_{pmt_id[working_pmts]}"
+                name_pmt_borosilikat = f"pmt_borosilikat_{pmt_id[working_pmts]}"
                 borosilikat_lv = g4.LogicalVolume(
-                    PMTBorosilikatGlass, borosilicate_material, namePMTborosilikat_lv, reg
+                    pmt_borosilikat_glass, borosilicate_material, name_pmt_borosilikat_lv, reg
                 )
                 borosilikat_pv = g4.PhysicalVolume(
                     [x_rot_global, y_rot_global, z_rot_global],
                     [xpos, ypos, zpos],
                     borosilikat_lv,
-                    namePMTborosilikat,
+                    name_pmt_borosilikat,
                     water_lv,
                     reg,
                 )
                 g4.BorderSurface(
-                    f"AirAcrylSurface{PMT_ID[Working_PMTs]}",
-                    PMTAir_pv,
-                    Acryl_pv,
+                    f"air_acryl_aurface{pmt_id[working_pmts]}",
+                    pmt_air_pv,
+                    acryl_pv,
                     optical_border_air_acryl,
                     reg,
                 )
                 g4.BorderSurface(
-                    f"WaterAcrylSurface{PMT_ID[Working_PMTs]}",
+                    f"water_acryl_surface{pmt_id[working_pmts]}",
                     water_pv,
-                    Acryl_pv,
+                    acryl_pv,
                     optical_border_water_acryl,
                     reg,
                 )
                 g4.BorderSurface(
-                    f"AirBorosilicateSurface{PMT_ID[Working_PMTs]}",
-                    PMTAir_pv,
+                    f"air_borosilicate_surface{pmt_id[working_pmts]}",
+                    pmt_air_pv,
                     borosilikat_pv,
                     optical_border_air_borosilicate,
                     reg,
                 )
                 g4.PhysicalVolume(
-                    [0, 0, 0], [0, 0, 0], Photocathode_lv, namephotocathode, borosilikat_lv, reg
+                    [0, 0, 0], [0, 0, 0], photocathode_lv, namephotocathode, borosilikat_lv, reg
                 )
                 g4.SkinSurface(
-                    f"PMTCathodeSkinSurface{PMT_ID[Working_PMTs]}", Photocathode_lv, optical_PMT_surface, reg
+                    f"pmt_cathode_skin_surface{pmt_id[working_pmts]}",
+                    photocathode_lv,
+                    optical_pmt_surface,
+                    reg,
                 )
-                Working_PMTs += 1
+                working_pmts += 1
 
             # PMT cone
-            xpos_cone = (R_pos + PMTSteelConeHeight * 0.25) * np.cos(dPhi_c)
-            ypos_cone = (R_pos + PMTSteelConeHeight * 0.25) * np.sin(dPhi_c)
+            xpos_cone = (r_pos + pmt_steel_cone_height * 0.25) * np.cos(dphi_c)
+            ypos_cone = (r_pos + pmt_steel_cone_height * 0.25) * np.sin(dphi_c)
             pyg4.geant4.PhysicalVolume(
                 [x_rot_global, y_rot_global, z_rot_global],
                 [xpos_cone, ypos_cone, zpos],
-                PMTSteelCone_lv,
+                pmt_steel_cone_lv,
                 namesteelcone,
                 water_lv,
                 reg,
             )
 
             # PMT bottom
-            xpos_bottom = (R_pos + PMTSteelConeHeight * 0.5 + PMTSteelBottomHeight * 0.5) * np.cos(dPhi_c)
-            ypos_bottom = (R_pos + PMTSteelConeHeight * 0.5 + PMTSteelBottomHeight * 0.5) * np.sin(dPhi_c)
+            xpos_bottom = (r_pos + pmt_steel_cone_height * 0.5 + pmt_steel_bottom_height * 0.5) * np.cos(
+                dphi_c
+            )
+            ypos_bottom = (r_pos + pmt_steel_cone_height * 0.5 + pmt_steel_bottom_height * 0.5) * np.sin(
+                dphi_c
+            )
 
             pyg4.geant4.PhysicalVolume(
                 [x_rot_global, y_rot_global, z_rot_global],
                 [xpos_bottom, ypos_bottom, zpos],
-                PMTSteelBottom_lv,
+                pmt_steel_bottom_lv,
                 namesteelbottom,
                 water_lv,
                 reg,
             )
 
-            dPhi_c += dPhi
-            Num_PMTs += 1
+            dphi_c += dphi
+            num_pmts += 1
+
+
+def insert_muon_veto(
+    reg: g4.Registry,
+    world_lv: g4.LogicalVolume,
+    tank_z_displacement: float,
+    cryo_z_displacement: float,
+    water_material: g4.Material,
+    vm2000_material: g4.Material,
+    pmt_air_material: g4.Material,
+    acryl_material: g4.Material,
+    borosilicate_material: g4.Material,
+    pmt_configuration_mv: str = "LEGEND200",
+):
+    water_tank_union_solid_lv = construct_tank(reg, "G4_STAINLESS-STEEL")
+    place_tank(reg, water_tank_union_solid_lv, world_lv, tank_z_displacement)
+
+    water_lv = construct_water(reg, water_material)
+    water_pv = place_water(reg, water_lv, water_tank_union_solid_lv)
+
+    air_buffer_lv = construct_air_buffer(reg, "G4_AIR")
+    place_air_buffer(reg, air_buffer_lv, water_tank_union_solid_lv)
+
+    pillbox_lv, manhole_pillbox, manhole_rotation, manhole_offset = construct_pillbox(
+        reg, "G4_STAINLESS-STEEL"
+    )
+    place_pillbox(reg, pillbox_lv, water_lv)
+
+    insert_vm2000(
+        reg,
+        vm2000_material,
+        water_lv,
+        water_pv,
+        manhole_pillbox,
+        manhole_rotation,
+        manhole_offset,
+        cryo_z_displacement,
+    )
+
+    insert_pmts(
+        reg,
+        "G4_STAINLESS-STEEL",
+        "G4_Al",
+        pmt_air_material,
+        water_lv,
+        water_pv,
+        acryl_material,
+        borosilicate_material,
+        pmt_configuration_mv,
+    )
+    return water_tank_union_solid_lv
