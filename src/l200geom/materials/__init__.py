@@ -428,17 +428,17 @@ class OpticalMaterialRegistry:
         # Photon energy values corresponding to the wavelengths (in eV)
         photon_energy_water = np.array(
             [
-                1.239841939 / 0.6,  # ~206.6 nm
-                1.239841939 / 0.55,  # ~224.5 nm
-                1.239841939 / 0.50,  # ~248.0 nm
-                1.239841939 / 0.45,  # ~275.5 nm
-                1.239841939 / 0.40,  # ~310 nm
-                1.239841939 / 0.35,  # ~354.0 nm
-                1.239841939 / 0.30,  # ~413.3 nm
-                1.239841939 / 0.25,  # ~496.0 nm
-                1.239841939 / 0.20,  # ~620 nm
-                1.239841939 / 0.19,  # ~652.6 nm
-                1.239841939 / 0.10,  # ~1240 nm
+                0.6,  # ~206.6 nm
+                0.55,  # ~224.5 nm
+                0.50,  # ~248.0 nm
+                0.45,  # ~275.5 nm
+                0.40,  # ~310 nm
+                0.35,  # ~354.0 nm
+                0.30,  # ~413.3 nm
+                0.25,  # ~496.0 nm
+                0.20,  # ~620 nm
+                0.19,  # ~652.6 nm
+                0.10,  # ~1240 nm
             ]
         )
 
@@ -468,10 +468,10 @@ class OpticalMaterialRegistry:
     @property
     def nylon_vm2000(self) -> g4.Material:
         """Material for the reflective foil VM2000."""
-        if hasattr(self, "_nylon"):
-            return self._nylon
+        if hasattr(self, "_vm2000"):
+            return self._vm2000
 
-        self._nylon = g4.MaterialCompound(
+        self._vm2000 = g4.MaterialCompound(
             name="nylon",
             density=1.15,
             number_of_components=4,
@@ -479,30 +479,26 @@ class OpticalMaterialRegistry:
         )
 
         # Add elements with their mass fractions
-        self._nylon.add_element_natoms(self.get_element("H"), natoms=2)
-        self._nylon.add_element_natoms(self.get_element("N"), natoms=2)
-        self._nylon.add_element_natoms(self.get_element("O"), natoms=3)
-        self._nylon.add_element_natoms(self.get_element("C"), natoms=13)
+        self._vm2000.add_element_natoms(self.get_element("H"), natoms=2)
+        self._vm2000.add_element_natoms(self.get_element("N"), natoms=2)
+        self._vm2000.add_element_natoms(self.get_element("O"), natoms=3)
+        self._vm2000.add_element_natoms(self.get_element("C"), natoms=13)
 
-        num1 = 251
-        refraction = np.ones(num1) * 1.15  # Estimated refractive index
-        absorptionl = np.ones(num1) * 50.0  # 50 m
-        refraction[0] = refraction[1]
-        absorptionl[0] = absorptionl[1]
+        vm2000_energy_range, _, _, wls_absorption, wls_emission = vm2000.vm2000_parameters()
 
-        params = vm2000.vm2000_parameters()
-        vm2000_energy_range, wls_absorption, wls_emission = params[0], params[3], params[4]
+        refraction = np.ones_like(vm2000_energy_range) * 1.15  # Estimated refractive index
+        absorptionl = np.ones_like(vm2000_energy_range) * 50.0  # 50 m
 
         with u.context("sp"):
-            self._nylon.addVecProperty("RINDEX", vm2000_energy_range, refraction)
-            self._nylon.addVecProperty("ABSLENGTH", vm2000_energy_range, absorptionl)
-            self._nylon.addVecProperty("WLSABSLENGTH", vm2000_energy_range, wls_absorption)
-            self._nylon.addVecProperty("WLSCOMPONENT", vm2000_energy_range, wls_emission)
+            self._vm2000.addVecProperty("RINDEX", vm2000_energy_range, refraction)
+            self._vm2000.addVecProperty("ABSLENGTH", vm2000_energy_range, absorptionl)
+            self._vm2000.addVecProperty("WLSABSLENGTH", vm2000_energy_range, wls_absorption)
+            self._vm2000.addVecProperty("WLSCOMPONENT", vm2000_energy_range, wls_emission)
 
-        legendoptics.pen.pyg4_pen_attach_scintillation(self._nylon, self.g4_registry)
-        self._nylon.addConstProperty("WLSTIMECONSTANT", 0.5 * 10e-3)  # ns
+        legendoptics.pen.pyg4_pen_attach_scintillation(self._vm2000, self.g4_registry)
+        self._vm2000.addConstProperty("WLSTIMECONSTANT", 0.5 * 10e-3)  # ns
 
-        return self._nylon
+        return self._vm2000
 
     @property
     def pmt_air(self) -> g4.Material:
@@ -524,9 +520,8 @@ class OpticalMaterialRegistry:
         refractive_index_air = [1.0, 1.0]
         absorption_length_air = [100000.0, 100000.0]
 
-        with u.context("sp"):
-            self._pmt_air.addVecProperty("RINDEX", photon_energy_air, refractive_index_air)
-            self._pmt_air.addVecProperty("ABSLENGTH", photon_energy_air, absorption_length_air)
+        self._pmt_air.addVecProperty("RINDEX", photon_energy_air, refractive_index_air)
+        self._pmt_air.addVecProperty("ABSLENGTH", photon_energy_air, absorption_length_air)
 
         return self._pmt_air
 
@@ -548,11 +543,10 @@ class OpticalMaterialRegistry:
 
         photon_energy_acryl = np.array([1.0, 6.0])
         refractive_index_acryl = [1.489, 1.489]
-        absorption_length_acryl = [2500.0, 3500.0]  # in mm, 3,5 m for all energies
+        absorption_length_acryl = [2500.0, 3500.0]  # in mm, 2,5 m up to 3,5 m
 
-        with u.context("sp"):
-            self._acryl.addVecProperty("RINDEX", photon_energy_acryl, refractive_index_acryl)
-            self._acryl.addVecProperty("ABSLENGTH", photon_energy_acryl, absorption_length_acryl)
+        self._acryl.addVecProperty("RINDEX", photon_energy_acryl, refractive_index_acryl)
+        self._acryl.addVecProperty("ABSLENGTH", photon_energy_acryl, absorption_length_acryl)
 
         return self._acryl
 
@@ -585,8 +579,7 @@ class OpticalMaterialRegistry:
         refractive_index_cathode = [1.49, 1.49]
         absorption_length_cathode = [2000.0, 3000.0]
 
-        with u.context("sp"):
-            self._borosilicate.addVecProperty("RINDEX", photon_energy_cathode, refractive_index_cathode)
-            self._borosilicate.addVecProperty("ABSLENGTH", photon_energy_cathode, absorption_length_cathode)
+        self._borosilicate.addVecProperty("RINDEX", photon_energy_cathode, refractive_index_cathode)
+        self._borosilicate.addVecProperty("ABSLENGTH", photon_energy_cathode, absorption_length_cathode)
 
         return self._borosilicate

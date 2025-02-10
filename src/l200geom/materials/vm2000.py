@@ -23,22 +23,15 @@ def initialize_vm2000_spectrum():
     successful_initialization = False
     npoints = 251  # Set number of points
     script_dir = Path(__file__).resolve().parent
-    file_path = script_dir / "VM2000_em_spec.dat"
+    file_path = script_dir / "vm2000_em_spec.dat"
 
-    try:
-        with file_path.open() as file:  # "VM2000_em_spec.dat" TPBOnVM2000Emission
-            for i in range(npoints):
-                line = file.readline().split()
-                if line:
-                    gg, hh = map(float, line)
-                    frequencyv[i] = gg * 1e-9  # Convert nanometers to meters
-                    efficiencyv[i] = hh
-            successful_initialization = True
-
-    except FileNotFoundError:
-        for i in range(251):
-            frequencyv[i] = (i + 350) * 1e-9  # Convert from mm to nanometers
-            efficiencyv[i] = 20
+    with file_path.open() as file:  # "VM2000_em_spec.dat"
+        for i in range(npoints):
+            line = file.readline().split()
+            if line:
+                gg, hh = map(float, line)
+                frequencyv[i] = gg * 1e-9  # Convert nanometers to meters
+                efficiencyv[i] = hh
         successful_initialization = True
 
     return frequencyv, efficiencyv, successful_initialization, npoints

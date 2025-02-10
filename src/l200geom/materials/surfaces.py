@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import legendoptics.copper
 import legendoptics.germanium
 import legendoptics.silicon
@@ -13,8 +11,8 @@ import numpy as np
 import pint
 import pyg4ometry.geant4 as g4
 
-from . import vm2000
 from .ketek_sipm import ketek_sipm_efficiency
+from .vm2000 import vm2000_parameters
 
 u = pint.get_application_registry()
 
@@ -200,8 +198,7 @@ class OpticalSurfaceRegistry:
             registry=self.g4_registry,
         )
 
-        params = vm2000.vm2000_parameters()
-        vm2000_energy_range, vm2000_reflectivity, vm2000_efficiency = params[0], params[1], params[2]
+        vm2000_energy_range, vm2000_reflectivity, vm2000_efficiency, _, _ = vm2000_parameters()
         vm2000_energy_range = vm2000_energy_range * u.eV
 
         with u.context("sp"):
@@ -226,8 +223,7 @@ class OpticalSurfaceRegistry:
             registry=self.g4_registry,
         )
 
-        params = vm2000.vm2000_parameters()
-        vm2000_energy_range, vm2000_reflectivity, vm2000_efficiency = params[0], params[1], params[2]
+        vm2000_energy_range, vm2000_reflectivity, vm2000_efficiency, _, _ = vm2000_parameters()
         vm2000_energy_range = vm2000_energy_range * u.eV
 
         reflectivity_front = vm2000_reflectivity * 0
@@ -274,22 +270,7 @@ class OpticalSurfaceRegistry:
         if hasattr(self, "_to_photocathode"):
             return self._to_photocathode
 
-        path = Path(__file__).resolve().parent
-
-        file_path = path / "pmt_qe.csv"
-
-        data = legendoptics.utils.readdatafile(file_path)
-        data = np.array(data)
-        data = data.astype(float)
-
-        wavelengths = data[:, 0]
-        pmt_quantum_efficiencies = data[:, 1]
-        pmt_quantum_efficiencies = pmt_quantum_efficiencies * 0.01  # in percent
-
-        # Convert wavelengths to energy using hc/λ (in eV)
-        h_planck = 4.1357e-15  # eV·s
-        c_speed = 299792458  # m/s
-        photon_energy = h_planck * c_speed / (wavelengths * 1e-9) * u.eV
+        wvl, pmt_qe = legendoptics.utils.readdatafile("pmt_qe.csv", pkg="l200geom.materials")
 
         # Detector Surface
         self._to_photocathode = g4.solid.OpticalSurface(
@@ -302,11 +283,10 @@ class OpticalSurfaceRegistry:
         )
 
         collection_efficiency = 0.85
+        pmt_qe = pmt_qe.to("dimensionless") * collection_efficiency
 
         with u.context("sp"):
-            self._to_photocathode.addVecPropertyPint(
-                "EFFICIENCY", photon_energy, pmt_quantum_efficiencies * collection_efficiency
-            )
+            self._to_photocathode.addVecPropertyPint("EFFICIENCY", wvl.to("eV"), pmt_qe)
 
         return self._to_photocathode
 
@@ -329,9 +309,8 @@ class OpticalSurfaceRegistry:
         reflectivity_air = [0.0386, 0.0386]
         transmittance_air = [1.0 - 0.0386, 1.0 - 0.0386]
 
-        with u.context("sp"):
-            self._acryl_to_air.addVecPropertyPint("REFLECTIVITY", photon_energy_air, reflectivity_air)
-            self._acryl_to_air.addVecPropertyPint("TRANSMITTANCE", photon_energy_air, transmittance_air)
+        self._acryl_to_air.addVecPropertyPint("REFLECTIVITY", photon_energy_air, reflectivity_air)
+        self._acryl_to_air.addVecPropertyPint("TRANSMITTANCE", photon_energy_air, transmittance_air)
 
         return self._acryl_to_air
 
@@ -378,25 +357,13 @@ class OpticalSurfaceRegistry:
         photon_energy_borosilicate = np.array([1.0, 6.0]) * u.eV
         transmittance_borosilicate = [1.0 - 0.036, 1.0 - 0.036]  # 100% Transmission
 
-        path = Path(__file__).resolve().parent
+        wvl, pmt_qe = legendoptics.utils.readdatafile("pmt_qe.csv", pkg="l200geom.materials")
 
-        file_path = path / "pmt_qe.csv"
-
-        data = legendoptics.utils.readdatafile(file_path)
-        data = np.array(data)
-        data = data.astype(float)
-
-        wavelengths = data[:, 0]
-
-        # Convert wavelengths to energy using hc/λ (in eV)
-        h_planck = 4.1357e-15  # eV·s
-        c_speed = 299792458  # m/s
-        photon_energy = h_planck * c_speed / (wavelengths * 1e-9) * u.eV
         reflectivity_max = ((1 - 1.49) / (1 + 1.49)) ** 2  # n=1.49 borosilicate
-        reflectivity = [reflectivity_max - 0.01] * len(wavelengths)
+        reflectivity = [reflectivity_max - 0.01] * len(wvl)
 
         with u.context("sp"):
-            self._air_to_borosilicate.addVecPropertyPint("REFLECTIVITY", photon_energy, reflectivity)
+            self._air_to_borosilicate.addVecPropertyPint("REFLECTIVITY", wvl.to("eV"), reflectivity)
             self._air_to_borosilicate.addVecPropertyPint(
                 "TRANSMITTANCE", photon_energy_borosilicate, transmittance_borosilicate
             )
