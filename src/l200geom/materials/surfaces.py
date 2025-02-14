@@ -199,7 +199,6 @@ class OpticalSurfaceRegistry:
         )
 
         vm2000_energy_range, vm2000_reflectivity, vm2000_efficiency, _, _ = vm2000_parameters()
-        vm2000_energy_range = vm2000_energy_range * u.eV
 
         with u.context("sp"):
             self._to_vm2000.addVecPropertyPint("REFLECTIVITY", vm2000_energy_range, vm2000_reflectivity)
@@ -224,7 +223,6 @@ class OpticalSurfaceRegistry:
         )
 
         vm2000_energy_range, vm2000_reflectivity, vm2000_efficiency, _, _ = vm2000_parameters()
-        vm2000_energy_range = vm2000_energy_range * u.eV
 
         reflectivity_front = vm2000_reflectivity * 0
         efficiency_border = vm2000_efficiency * 0
@@ -333,9 +331,8 @@ class OpticalSurfaceRegistry:
         reflectivity_acryl = [0.00318, 0.00318]
         transmittance_acryl = [1.0 - 0.00318, 1.0 - 0.00318]
 
-        with u.context("sp"):
-            self._water_to_acryl.addVecPropertyPint("REFLECTIVITY", photon_energy_acryl, reflectivity_acryl)
-            self._water_to_acryl.addVecPropertyPint("TRANSMITTANCE", photon_energy_acryl, transmittance_acryl)
+        self._water_to_acryl.addVecPropertyPint("REFLECTIVITY", photon_energy_acryl, reflectivity_acryl)
+        self._water_to_acryl.addVecPropertyPint("TRANSMITTANCE", photon_energy_acryl, transmittance_acryl)
 
         return self._water_to_acryl
 
