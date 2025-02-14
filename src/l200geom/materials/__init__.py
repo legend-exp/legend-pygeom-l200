@@ -428,17 +428,17 @@ class OpticalMaterialRegistry:
         # add attenuation length
         # Photon energy absorption corresponding to the wavelengths
         photon_energy_water = [
-            1.239841939 / 0.6,  # ~206.6 nm
-            1.239841939 / 0.55,  # ~224.5 nm
-            1.239841939 / 0.50,  # ~248.0 nm
-            1.239841939 / 0.45,  # ~275.5 nm
-            1.239841939 / 0.40,  # ~310 nm
-            1.239841939 / 0.35,  # ~354.0 nm
-            1.239841939 / 0.30,  # ~413.3 nm
-            1.239841939 / 0.25,  # ~496.0 nm
-            1.239841939 / 0.20,  # ~620 nm
-            1.239841939 / 0.19,  # ~652.6 nm
-            1.239841939 / 0.10,  # ~1240 nm
+            0.6,
+            0.55,
+            0.50,
+            0.45,
+            0.40,
+            0.35,
+            0.30,
+            0.25,
+            0.20,
+            0.19,
+            0.10,
         ] * u.eV
 
         # Corresponding attenuation lengths (in mm)
