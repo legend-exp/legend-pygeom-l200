@@ -422,7 +422,7 @@ class OpticalMaterialRegistry:
         self._water.add_element_natoms(self.get_element("O"), natoms=1)
 
         # add refraction index
-        photon_energy = [1.0, 6.0]
+        photon_energy = [1.0, 6.0] * u.eV
         refractive_index = [1.33, 1.33]
 
         # add attenuation length
