@@ -6,6 +6,7 @@ import legendoptics.fibers
 import legendoptics.lar
 import legendoptics.nylon
 import legendoptics.pen
+import legendoptics.pyg4utils
 import legendoptics.tpb
 import numpy as np
 import pint
@@ -425,54 +426,50 @@ class OpticalMaterialRegistry:
         refractive_index = [1.33, 1.33]
 
         # add attenuation length
-        # Photon energy values corresponding to the wavelengths (in eV)
-        photon_energy_water = np.array(
-            [
-                0.6,  # ~206.6 nm
-                0.55,  # ~224.5 nm
-                0.50,  # ~248.0 nm
-                0.45,  # ~275.5 nm
-                0.40,  # ~310 nm
-                0.35,  # ~354.0 nm
-                0.30,  # ~413.3 nm
-                0.25,  # ~496.0 nm
-                0.20,  # ~620 nm
-                0.19,  # ~652.6 nm
-                0.10,  # ~1240 nm
-            ]
-        )
+        # Photon energy absorption corresponding to the wavelengths
+        photon_energy_water = [
+            1.239841939 / 0.6,  # ~206.6 nm
+            1.239841939 / 0.55,  # ~224.5 nm
+            1.239841939 / 0.50,  # ~248.0 nm
+            1.239841939 / 0.45,  # ~275.5 nm
+            1.239841939 / 0.40,  # ~310 nm
+            1.239841939 / 0.35,  # ~354.0 nm
+            1.239841939 / 0.30,  # ~413.3 nm
+            1.239841939 / 0.25,  # ~496.0 nm
+            1.239841939 / 0.20,  # ~620 nm
+            1.239841939 / 0.19,  # ~652.6 nm
+            1.239841939 / 0.10,  # ~1240 nm
+        ]
 
         # Corresponding attenuation lengths (in mm)
-        absorption_lengths = np.array(
-            [
-                10 * 1000,  # 10 m for 206.6 nm
-                20 * 1000,  # 20 m for 224.5 nm
-                50 * 1000,  # 50 m for 248.0 nm
-                100 * 1000,  # 100 m for 275.5 nm
-                100 * 1000,  # 100 m for 310 nm
-                100 * 1000,  # 100 m for 354 nm
-                90 * 1000,  # 90 m for 413.3 nm
-                20 * 1000,  # 20 m for 496.0 nm
-                1 * 1000,  # 1 m for 620 nm
-                0.001,  # 0.001 mm for 652.6 nm
-                0.0001,  # 0.0001 mm for 1240 nm
-            ]
-        )
+        absorption_lengths = [
+            10 * 1000,  # 10 m for 206.6 nm
+            20 * 1000,  # 20 m for 224.5 nm
+            50 * 1000,  # 50 m for 248.0 nm
+            100 * 1000,  # 100 m for 275.5 nm
+            100 * 1000,  # 100 m for 310 nm
+            100 * 1000,  # 100 m for 354 nm
+            90 * 1000,  # 90 m for 413.3 nm
+            20 * 1000,  # 20 m for 496.0 nm
+            1 * 1000,  # 1 m for 620 nm
+            0.001,  # 0.001 mm for 652.6 nm
+            0.0001,  # 0.0001 mm for 1240 nm
+        ] * u.m
 
         with u.context("sp"):
-            self._water.addVecProperty("ABSLENGTH", photon_energy_water, absorption_lengths)
-            self._water.addVecProperty("RINDEX", photon_energy, refractive_index)
+            self._water.addVecPropertyPint("ABSLENGTH", photon_energy_water, absorption_lengths)
+            self._water.addVecPropertyPint("RINDEX", photon_energy, refractive_index)
 
         return self._water
 
     @property
-    def nylon_vm2000(self) -> g4.Material:
-        """Material for the reflective foil VM2000."""
+    def vm2000(self) -> g4.Material:
+        """Material for the reflective foil VM2000 based on nylon (e.g. MaGe)."""
         if hasattr(self, "_vm2000"):
             return self._vm2000
 
         self._vm2000 = g4.MaterialCompound(
-            name="nylon",
+            name="vm2000",
             density=1.15,
             number_of_components=4,
             registry=self.g4_registry,
@@ -487,14 +484,15 @@ class OpticalMaterialRegistry:
         vm2000_energy_range, _, _, wls_absorption, wls_emission = vm2000.vm2000_parameters()
 
         refraction = np.ones_like(vm2000_energy_range) * 1.15  # Estimated refractive index
-        absorptionl = np.ones_like(vm2000_energy_range) * 50.0  # 50 m
+        absorptionl = np.ones_like(vm2000_energy_range) * 50.0 * u.m
 
         with u.context("sp"):
-            self._vm2000.addVecProperty("RINDEX", vm2000_energy_range, refraction)
-            self._vm2000.addVecProperty("ABSLENGTH", vm2000_energy_range, absorptionl)
-            self._vm2000.addVecProperty("WLSABSLENGTH", vm2000_energy_range, wls_absorption)
-            self._vm2000.addVecProperty("WLSCOMPONENT", vm2000_energy_range, wls_emission)
+            self._vm2000.addVecPropertyPint("RINDEX", vm2000_energy_range, refraction)
+            self._vm2000.addVecPropertyPint("ABSLENGTH", vm2000_energy_range, absorptionl)
+            self._vm2000.addVecPropertyPint("WLSABSLENGTH", vm2000_energy_range, wls_absorption)
+            self._vm2000.addVecPropertyPint("WLSCOMPONENT", vm2000_energy_range, wls_emission)
 
+        # VM2000 seem to consist of PMMA and PEN layers https://iopscience.iop.org/article/10.1088/1748-0221/12/06/P06017/pdf
         legendoptics.pen.pyg4_pen_attach_scintillation(self._vm2000, self.g4_registry)
         self._vm2000.addConstProperty("WLSTIMECONSTANT", 0.5 * 10e-3)  # ns
 
@@ -516,12 +514,12 @@ class OpticalMaterialRegistry:
         self._pmt_air.add_element_natoms(self.get_element("N"), natoms=3)
         self._pmt_air.add_element_natoms(self.get_element("O"), natoms=1)
 
-        photon_energy_air = np.array([1.0, 6.0])
+        photon_energy_air = [1.0, 6.0]
         refractive_index_air = [1.0, 1.0]
-        absorption_length_air = [100000.0, 100000.0]
+        absorption_length_air = [100.0, 100.0] * u.m
 
-        self._pmt_air.addVecProperty("RINDEX", photon_energy_air, refractive_index_air)
-        self._pmt_air.addVecProperty("ABSLENGTH", photon_energy_air, absorption_length_air)
+        self._pmt_air.addVecPropertyPint("RINDEX", photon_energy_air, refractive_index_air)
+        self._pmt_air.addVecPropertyPint("ABSLENGTH", photon_energy_air, absorption_length_air)
 
         return self._pmt_air
 
@@ -543,10 +541,10 @@ class OpticalMaterialRegistry:
 
         photon_energy_acryl = np.array([1.0, 6.0])
         refractive_index_acryl = [1.489, 1.489]
-        absorption_length_acryl = [2500.0, 3500.0]  # in mm, 2,5 m up to 3,5 m
+        absorption_length_acryl = [2.5, 3.5] * u.m  # 2,5 m up to 3,5 m
 
-        self._acryl.addVecProperty("RINDEX", photon_energy_acryl, refractive_index_acryl)
-        self._acryl.addVecProperty("ABSLENGTH", photon_energy_acryl, absorption_length_acryl)
+        self._acryl.addVecPropertyPint("RINDEX", photon_energy_acryl, refractive_index_acryl)
+        self._acryl.addVecPropertyPint("ABSLENGTH", photon_energy_acryl, absorption_length_acryl)
 
         return self._acryl
 
@@ -563,23 +561,17 @@ class OpticalMaterialRegistry:
             registry=self.g4_registry,
         )
 
-        self._borosilicate.add_element_massfraction(self.get_element("Si"), 0.806 * 28.09 / (28.09 + 2 * 16))
-        self._borosilicate.add_element_massfraction(self.get_element("O"), 0.54)
-        self._borosilicate.add_element_massfraction(
-            self.get_element("B"), 0.130 * 2 * 10.81 / (2 * 10.81 + 3 * 16)
-        )
-        self._borosilicate.add_element_massfraction(
-            self.get_element("Na"), 0.040 * 2 * 22.99 / (2 * 22.99 + 16)
-        )
-        self._borosilicate.add_element_massfraction(
-            self.get_element("Al"), 0.023 * 2 * 26.98 / (2 * 26.98 + 3 * 16)
-        )
+        self._borosilicate.add_element_massfraction(self.get_element("Si"), 0.376)
+        self._borosilicate.add_element_massfraction(self.get_element("O"), 0.543)
+        self._borosilicate.add_element_massfraction(self.get_element("B"), 0.04)
+        self._borosilicate.add_element_massfraction(self.get_element("Na"), 0.029)
+        self._borosilicate.add_element_massfraction(self.get_element("Al"), 0.012)
 
         photon_energy_cathode = np.array([1.0, 6.0])
         refractive_index_cathode = [1.49, 1.49]
-        absorption_length_cathode = [2000.0, 3000.0]
+        absorption_length_cathode = [2.0, 3.0] * u.m
 
-        self._borosilicate.addVecProperty("RINDEX", photon_energy_cathode, refractive_index_cathode)
-        self._borosilicate.addVecProperty("ABSLENGTH", photon_energy_cathode, absorption_length_cathode)
+        self._borosilicate.addVecPropertyPint("RINDEX", photon_energy_cathode, refractive_index_cathode)
+        self._borosilicate.addVecPropertyPint("ABSLENGTH", photon_energy_cathode, absorption_length_cathode)
 
         return self._borosilicate
