@@ -439,7 +439,7 @@ class OpticalMaterialRegistry:
             1.239841939 / 0.20,  # ~620 nm
             1.239841939 / 0.19,  # ~652.6 nm
             1.239841939 / 0.10,  # ~1240 nm
-        ]
+        ] * u.eV
 
         # Corresponding attenuation lengths (in mm)
         absorption_lengths = [
@@ -454,7 +454,7 @@ class OpticalMaterialRegistry:
             1 * 1000,  # 1 m for 620 nm
             0.001,  # 0.001 mm for 652.6 nm
             0.0001,  # 0.0001 mm for 1240 nm
-        ] * u.m
+        ] * u.mm
 
         with u.context("sp"):
             self._water.addVecPropertyPint("ABSLENGTH", photon_energy_water, absorption_lengths)
@@ -514,7 +514,7 @@ class OpticalMaterialRegistry:
         self._pmt_air.add_element_natoms(self.get_element("N"), natoms=3)
         self._pmt_air.add_element_natoms(self.get_element("O"), natoms=1)
 
-        photon_energy_air = [1.0, 6.0]
+        photon_energy_air = [1.0, 6.0] * u.eV
         refractive_index_air = [1.0, 1.0]
         absorption_length_air = [100.0, 100.0] * u.m
 
@@ -539,7 +539,7 @@ class OpticalMaterialRegistry:
         self._acryl.add_element_natoms(self.get_element("H"), natoms=2)
         self._acryl.add_element_natoms(self.get_element("C"), natoms=1)
 
-        photon_energy_acryl = np.array([1.0, 6.0])
+        photon_energy_acryl = np.array([1.0, 6.0]) * u.eV
         refractive_index_acryl = [1.489, 1.489]
         absorption_length_acryl = [2.5, 3.5] * u.m  # 2,5 m up to 3,5 m
 
@@ -567,7 +567,7 @@ class OpticalMaterialRegistry:
         self._borosilicate.add_element_massfraction(self.get_element("Na"), 0.029)
         self._borosilicate.add_element_massfraction(self.get_element("Al"), 0.012)
 
-        photon_energy_cathode = np.array([1.0, 6.0])
+        photon_energy_cathode = np.array([1.0, 6.0]) * u.eV
         refractive_index_cathode = [1.49, 1.49]
         absorption_length_cathode = [2.0, 3.0] * u.m
 
