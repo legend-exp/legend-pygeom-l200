@@ -100,7 +100,7 @@ def construct(
             -153.0
         )  # (innertank_height/2-cryo_acess_height-cryo_top_height-access_overlap/2)
 
-        water_tank = watertank.insert_muon_veto(
+        water_lv, _ = watertank.insert_muon_veto(
             reg,
             world_lv,
             tank_z_displacement,
@@ -113,7 +113,7 @@ def construct(
             pmt_configuration_mv,
         )
 
-        cryo.place_cryostat(cryostat_lv, water_tank, cryo_z_displacement, reg)
+        cryo.place_cryostat(cryostat_lv, water_lv, cryo_z_displacement, reg)
     else:
         cryo.place_cryostat(cryostat_lv, world_lv, cryo_z_displacement, reg)
     argon_z_displacement = 0  # center argon in cryostat

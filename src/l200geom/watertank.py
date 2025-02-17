@@ -190,7 +190,7 @@ distance_pmt_base_pillbox = (
 
 def construct_tank(reg: g4.Registry, tank_material: g4.Material) -> g4.LogicalVolume:
     water_tank_wall = g4.solid.Tubs(
-        "water_tank_wall", water_radius, outer_water_tank_radius, inner_tank_height, 0, 2 * pi, reg
+        "water_tank_wall", inner_radius, outer_water_tank_radius, inner_tank_height, 0, 2 * pi, reg
     )
     water_tank_floor = g4.solid.Tubs(
         "water_tank_floor", inner_radius, outer_water_tank_radius, water_tank_thickness, 0, 2 * pi, reg
@@ -205,31 +205,27 @@ def construct_tank(reg: g4.Registry, tank_material: g4.Material) -> g4.LogicalVo
     water_tank_union_solid2 = g4.solid.Union(
         "water_tank_union_solid2", water_tank_union_solid1, water_tank_floor, tank_union2_transform, reg
     )
-    return g4.LogicalVolume(water_tank_union_solid2, tank_material, "water_tank_union_solid_lv", reg)
+    return g4.LogicalVolume(water_tank_union_solid2, tank_material, "water_tank_lv", reg)
 
 
 def place_tank(
     reg: g4.Registry,
-    water_tank_union_solid_lv: g4.LogicalVolume,
+    water_tank_lv: g4.LogicalVolume,
     world_lv: g4.LogicalVolume,
     tank_offset: float,
 ) -> g4.PhysicalVolume:
-    return g4.PhysicalVolume(
-        [0, 0, 0], [0, 0, tank_offset], water_tank_union_solid_lv, "water_tank_union_solid_pv", world_lv, reg
-    )
+    return g4.PhysicalVolume([0, 0, 0], [0, 0, tank_offset], water_tank_lv, "water_tank", world_lv, reg)
 
 
 def construct_water(reg: g4.Registry, water_material: g4.Material) -> g4.LogicalVolume:
-    water_solid = g4.solid.Tubs("water", inner_radius, water_radius, water_height, 0, 2 * pi, reg)
+    water_solid = g4.solid.Tubs("water_solid", inner_radius, water_radius, water_height, 0, 2 * pi, reg)
     water_lv = g4.LogicalVolume(water_solid, water_material, "water_lv", reg)
     water_lv.pygeom_color_rgba = [0, 0, 1, 0.08]
     return water_lv
 
 
-def place_water(
-    reg: g4.Registry, water_lv: g4.LogicalVolume, world_lv: g4.LogicalVolume
-) -> g4.PhysicalVolume:
-    return g4.PhysicalVolume([0, 0, 0], [0, 0, 0], water_lv, "water_pv", world_lv, reg)
+def place_water(reg: g4.Registry, water_lv: g4.LogicalVolume, tank_lv: g4.LogicalVolume) -> g4.PhysicalVolume:
+    return g4.PhysicalVolume([0, 0, 0], [0, 0, 0], water_lv, "water_pv", tank_lv, reg)
 
 
 def construct_air_buffer(reg: g4.Registry, air_material: g4.Material) -> g4.LogicalVolume:
@@ -1283,11 +1279,11 @@ def insert_muon_veto(
     borosilicate_material: g4.Material,
     pmt_configuration_mv: str = "LEGEND200",
 ):
-    water_tank = construct_tank(reg, "G4_STAINLESS-STEEL")
-    place_tank(reg, water_tank, world_lv, tank_z_displacement)
+    water_tank_lv = construct_tank(reg, "G4_STAINLESS-STEEL")
+    place_tank(reg, water_tank_lv, world_lv, tank_z_displacement)
 
     water_lv = construct_water(reg, water_material)
-    water_pv = place_water(reg, water_lv, water_tank)
+    water_pv = place_water(reg, water_lv, water_tank_lv)
 
     air_buffer_lv = construct_air_buffer(reg, "G4_AIR")
     place_air_buffer(reg, air_buffer_lv, water_lv)
@@ -1319,4 +1315,4 @@ def insert_muon_veto(
         borosilicate_material,
         pmt_configuration_mv,
     )
-    return water_lv
+    return water_lv, water_tank_lv
