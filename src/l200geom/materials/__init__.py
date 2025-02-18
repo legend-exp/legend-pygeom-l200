@@ -486,11 +486,10 @@ class OpticalMaterialRegistry:
         refraction = np.ones_like(vm2000_energy_range) * 1.15  # Estimated refractive index
         absorptionl = np.ones_like(vm2000_energy_range) * 50.0 * u.m
 
-        with u.context("sp"):
-            self._vm2000.addVecPropertyPint("RINDEX", vm2000_energy_range, refraction)
-            self._vm2000.addVecPropertyPint("ABSLENGTH", vm2000_energy_range, absorptionl)
-            self._vm2000.addVecPropertyPint("WLSABSLENGTH", vm2000_energy_range, wls_absorption)
-            self._vm2000.addVecPropertyPint("WLSCOMPONENT", vm2000_energy_range, wls_emission)
+        self._vm2000.addVecPropertyPint("RINDEX", vm2000_energy_range, refraction)
+        self._vm2000.addVecPropertyPint("ABSLENGTH", vm2000_energy_range, absorptionl)
+        self._vm2000.addVecPropertyPint("WLSABSLENGTH", vm2000_energy_range, wls_absorption)
+        self._vm2000.addVecPropertyPint("WLSCOMPONENT", vm2000_energy_range, wls_emission)
 
         # VM2000 seem to consist of PMMA and PEN layers https://iopscience.iop.org/article/10.1088/1748-0221/12/06/P06017/pdf
         legendoptics.pen.pyg4_pen_attach_scintillation(self._vm2000, self.g4_registry)
