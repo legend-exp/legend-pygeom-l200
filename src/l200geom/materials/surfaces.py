@@ -256,9 +256,8 @@ class OpticalSurfaceRegistry:
         reflectivity_steel = [0.9, 0.9]
         efficiency_steel = np.array([1.0, 1.0])
 
-        with u.context("sp"):
-            self._to_steel.addVecPropertyPint("REFLECTIVITY", photon_energy, reflectivity_steel)
-            self._to_steel.addVecPropertyPint("EFFICIENCY", photon_energy, efficiency_steel)
+        self._to_steel.addVecPropertyPint("REFLECTIVITY", photon_energy, reflectivity_steel)
+        self._to_steel.addVecPropertyPint("EFFICIENCY", photon_energy, efficiency_steel)
 
         return self._to_steel
 
