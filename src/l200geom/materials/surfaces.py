@@ -6,11 +6,13 @@ import legendoptics.copper
 import legendoptics.germanium
 import legendoptics.silicon
 import legendoptics.tetratex
+import legendoptics.utils
 import numpy as np
 import pint
 import pyg4ometry.geant4 as g4
 
 from .ketek_sipm import ketek_sipm_efficiency
+from .vm2000 import vm2000_parameters
 
 u = pint.get_application_registry()
 
@@ -179,3 +181,183 @@ class OpticalSurfaceRegistry:
             self._lar_to_pen.addVecPropertyPint("SPECULARLOBECONSTANT", λ.to("eV"), specular_lobe)
 
         return self._lar_to_pen
+
+    @property
+    def to_vm2000(self) -> g4.solid.OpticalSurface:
+        """Reflective surface for VM2000."""
+        if hasattr(self, "_to_vm2000"):
+            return self._to_vm2000
+
+        # Create material properties table for VM2000 surface
+        self._to_vm2000 = g4.solid.OpticalSurface(
+            name="water_tank_foil_surface",
+            finish="polished",
+            model="glisur",
+            surf_type="dielectric_metal",
+            value=0.01,
+            registry=self.g4_registry,
+        )
+
+        vm2000_energy_range, vm2000_reflectivity, vm2000_efficiency, _, _ = vm2000_parameters()
+
+        self._to_vm2000.addVecPropertyPint("REFLECTIVITY", vm2000_energy_range, vm2000_reflectivity)
+        self._to_vm2000.addVecPropertyPint("EFFICIENCY", vm2000_energy_range, vm2000_efficiency)
+
+        return self._to_vm2000
+
+    @property
+    def water_to_vm2000(self) -> g4.solid.OpticalSurface:
+        """Optical surface between water and VM2000."""
+        if hasattr(self, "_water_to_vm2000"):
+            return self._water_to_vm2000
+
+        # Create material properties table for VM2000 border surface
+        self._water_to_vm2000 = g4.solid.OpticalSurface(
+            name="WaterTankFoilBorder",
+            finish="polished",
+            model="glisur",
+            surf_type="dielectric_metal",
+            value=0.01,
+            registry=self.g4_registry,
+        )
+
+        vm2000_energy_range, vm2000_reflectivity, vm2000_efficiency, _, _ = vm2000_parameters()
+
+        reflectivity_front = vm2000_reflectivity * 0
+        efficiency_border = vm2000_efficiency * 0
+        transmittance_border = [1.0] * len(vm2000_energy_range)
+
+        self._water_to_vm2000.addVecPropertyPint("REFLECTIVITY", vm2000_energy_range, reflectivity_front)
+        self._water_to_vm2000.addVecPropertyPint("EFFICIENCY", vm2000_energy_range, efficiency_border)
+        self._water_to_vm2000.addVecPropertyPint("TRANSMITTANCE", vm2000_energy_range, transmittance_border)
+
+        return self._water_to_vm2000
+
+    @property
+    def to_steel(self) -> g4.solid.OpticalSurface:
+        """Optical surface of steel."""
+        if hasattr(self, "_to_steel"):
+            return self._to_steel
+
+        self._to_steel = g4.solid.OpticalSurface(
+            name="pmt_steel_surface",
+            finish="polished",
+            model="glisur",
+            surf_type="dielectric_metal",
+            value=0.9,
+            registry=self.g4_registry,
+        )
+
+        photon_energy = np.array([1.0, 6.0]) * u.eV
+        reflectivity_steel = [0.9, 0.9]
+        efficiency_steel = np.array([1.0, 1.0])
+
+        self._to_steel.addVecPropertyPint("REFLECTIVITY", photon_energy, reflectivity_steel)
+        self._to_steel.addVecPropertyPint("EFFICIENCY", photon_energy, efficiency_steel)
+
+        return self._to_steel
+
+    @property
+    def to_photocathode(self) -> g4.solid.OpticalSurface:
+        """Optical surface of the PMT photocathode."""
+        if hasattr(self, "_to_photocathode"):
+            return self._to_photocathode
+
+        wvl, pmt_qe = legendoptics.utils.readdatafile("pmt_qe.csv", pkg="l200geom.materials")
+
+        # Detector Surface
+        self._to_photocathode = g4.solid.OpticalSurface(
+            name="pmt_cathode_surface",
+            finish="polished",  # Finish of surface
+            model="glisur",  # Model of surface
+            surf_type="dielectric_metal",  # Type of surface
+            value=0.9,  # parameter ((max. absorbance?)
+            registry=self.g4_registry,
+        )
+
+        collection_efficiency = 0.85
+        pmt_qe = pmt_qe.to("dimensionless") * collection_efficiency
+
+        with u.context("sp"):
+            self._to_photocathode.addVecPropertyPint("EFFICIENCY", wvl.to("eV"), pmt_qe)
+
+        return self._to_photocathode
+
+    @property
+    def acryl_to_air(self) -> g4.solid.OpticalSurface:
+        """Optical surface between acryl and air."""
+        if hasattr(self, "_acryl_to_air"):
+            return self._acryl_to_air
+
+        self._acryl_to_air = g4.solid.OpticalSurface(
+            name="pmt_air_surface",
+            finish="polished",  # Finish of surface
+            model="glisur",  # Model of surface
+            surf_type="dielectric_dielectric",  # Type of surface
+            value=1.0,  # parameter ((max. absorbance?)
+            registry=self.g4_registry,
+        )
+
+        photon_energy_air = np.array([1.0, 6.0]) * u.eV
+        reflectivity_air = [0.0386, 0.0386]
+        transmittance_air = [1.0 - 0.0386, 1.0 - 0.0386]
+
+        self._acryl_to_air.addVecPropertyPint("REFLECTIVITY", photon_energy_air, reflectivity_air)
+        self._acryl_to_air.addVecPropertyPint("TRANSMITTANCE", photon_energy_air, transmittance_air)
+
+        return self._acryl_to_air
+
+    @property
+    def water_to_acryl(self) -> g4.solid.OpticalSurface:
+        """Optical surface between water and acryl."""
+        if hasattr(self, "_water_to_acryl"):
+            return self._water_to_acryl
+
+        self._water_to_acryl = g4.solid.OpticalSurface(
+            name="pmt_acryl_surface",
+            finish="polished",  # Finish of surface
+            model="glisur",  # Model of surface
+            surf_type="dielectric_dielectric",  # Type of surface
+            value=0.01,  # parameter ((max. absorbance?) --> bei glisur 0.0 vollständig diffuse 1.0 vollständig spekulare reflektion
+            registry=self.g4_registry,
+        )
+
+        photon_energy_acryl = np.array([1.0, 6.0]) * u.eV
+        reflectivity_acryl = [0.00318, 0.00318]
+        transmittance_acryl = [1.0 - 0.00318, 1.0 - 0.00318]
+
+        self._water_to_acryl.addVecPropertyPint("REFLECTIVITY", photon_energy_acryl, reflectivity_acryl)
+        self._water_to_acryl.addVecPropertyPint("TRANSMITTANCE", photon_energy_acryl, transmittance_acryl)
+
+        return self._water_to_acryl
+
+    @property
+    def air_to_borosilicate(self) -> g4.solid.OpticalSurface:
+        """Optical surface between water and acryl."""
+        if hasattr(self, "_air_to_borosilicate"):
+            return self._air_to_borosilicate
+
+        self._air_to_borosilicate = g4.solid.OpticalSurface(
+            name="pmt_borosilikatSurface",
+            finish="polished",
+            model="glisur",
+            surf_type="dielectric_dielectric",
+            value=0.01,
+            registry=self.g4_registry,
+        )
+
+        photon_energy_borosilicate = np.array([1.0, 6.0]) * u.eV
+        transmittance_borosilicate = [1.0 - 0.036, 1.0 - 0.036]  # 100% Transmission
+
+        wvl, pmt_qe = legendoptics.utils.readdatafile("pmt_qe.csv", pkg="l200geom.materials")
+
+        reflectivity_max = ((1 - 1.49) / (1 + 1.49)) ** 2  # n=1.49 borosilicate
+        reflectivity = [reflectivity_max - 0.01] * len(wvl)
+
+        with u.context("sp"):
+            self._air_to_borosilicate.addVecPropertyPint("REFLECTIVITY", wvl.to("eV"), reflectivity)
+            self._air_to_borosilicate.addVecPropertyPint(
+                "TRANSMITTANCE", photon_energy_borosilicate, transmittance_borosilicate
+            )
+
+        return self._air_to_borosilicate
