@@ -228,12 +228,9 @@ class OpticalSurfaceRegistry:
         efficiency_border = vm2000_efficiency * 0
         transmittance_border = [1.0] * len(vm2000_energy_range)
 
-        with u.context("sp"):
-            self._water_to_vm2000.addVecPropertyPint("REFLECTIVITY", vm2000_energy_range, reflectivity_front)
-            self._water_to_vm2000.addVecPropertyPint("EFFICIENCY", vm2000_energy_range, efficiency_border)
-            self._water_to_vm2000.addVecPropertyPint(
-                "TRANSMITTANCE", vm2000_energy_range, transmittance_border
-            )
+        self._water_to_vm2000.addVecPropertyPint("REFLECTIVITY", vm2000_energy_range, reflectivity_front)
+        self._water_to_vm2000.addVecPropertyPint("EFFICIENCY", vm2000_energy_range, efficiency_border)
+        self._water_to_vm2000.addVecPropertyPint("TRANSMITTANCE", vm2000_energy_range, transmittance_border)
 
         return self._water_to_vm2000
 
