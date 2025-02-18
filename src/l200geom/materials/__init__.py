@@ -456,9 +456,8 @@ class OpticalMaterialRegistry:
             0.0001,  # 0.0001 mm for 1240 nm
         ] * u.mm
 
-        with u.context("sp"):
-            self._water.addVecPropertyPint("ABSLENGTH", photon_energy_water, absorption_lengths)
-            self._water.addVecPropertyPint("RINDEX", photon_energy, refractive_index)
+        self._water.addVecPropertyPint("ABSLENGTH", photon_energy_water, absorption_lengths)
+        self._water.addVecPropertyPint("RINDEX", photon_energy, refractive_index)
 
         return self._water
 
