@@ -200,9 +200,8 @@ class OpticalSurfaceRegistry:
 
         vm2000_energy_range, vm2000_reflectivity, vm2000_efficiency, _, _ = vm2000_parameters()
 
-        with u.context("sp"):
-            self._to_vm2000.addVecPropertyPint("REFLECTIVITY", vm2000_energy_range, vm2000_reflectivity)
-            self._to_vm2000.addVecPropertyPint("EFFICIENCY", vm2000_energy_range, vm2000_efficiency)
+        self._to_vm2000.addVecPropertyPint("REFLECTIVITY", vm2000_energy_range, vm2000_reflectivity)
+        self._to_vm2000.addVecPropertyPint("EFFICIENCY", vm2000_energy_range, vm2000_efficiency)
 
         return self._to_vm2000
 
