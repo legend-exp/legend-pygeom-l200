@@ -1206,7 +1206,8 @@ def insert_muon_veto(
 
     insert_vm2000(
         reg,
-        vm2000_material,
+        mats.vm2000,
+        mats.surfaces,
         water_lv,
         water_pv,
         manhole_pillbox,
