@@ -1192,7 +1192,7 @@ def insert_muon_veto(
     water_tank_lv = construct_tank(reg, "G4_STAINLESS-STEEL")
     place_tank(reg, water_tank_lv, world_lv, tank_z_displacement)
 
-    water_lv = construct_water(reg, water_material)
+    water_lv = construct_water(reg, mats.water)
     water_pv = place_water(reg, water_lv, water_tank_lv)
 
     air_buffer_lv = construct_air_buffer(reg, "G4_AIR")
