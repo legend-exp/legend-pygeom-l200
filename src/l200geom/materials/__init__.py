@@ -17,8 +17,6 @@ import pyg4ometry.geant4 as g4
 
 from .surfaces import OpticalSurfaceRegistry
 
-u = pint.get_application_registry()
-
 
 class OpticalMaterialRegistry:
     def __init__(self, g4_registry: g4.Registry):
