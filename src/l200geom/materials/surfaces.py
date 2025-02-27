@@ -7,7 +7,6 @@ import legendoptics.germanium
 import legendoptics.pmts
 import legendoptics.silicon
 import legendoptics.tetratex
-import legendoptics.utils
 import legendoptics.vm2000
 import numpy as np
 import pint
