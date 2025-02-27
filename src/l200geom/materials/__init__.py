@@ -7,7 +7,6 @@ import legendoptics.lar
 import legendoptics.nylon
 import legendoptics.pen
 import legendoptics.pmts
-import legendoptics.pyg4utils
 import legendoptics.tpb
 import legendoptics.vm2000
 import legendoptics.water
