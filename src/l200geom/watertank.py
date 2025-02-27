@@ -627,7 +627,7 @@ def insert_pmts(
         reg,
     )
 
-    optical_steel_surface = materials.surfaces.OpticalSurfaceRegistry(reg).to_steel
+    optical_steel_surface = materials.surfaces.OpticalSurfaceRegistry(reg).to_pmt_steel
     optical_pmt_surface = materials.surfaces.OpticalSurfaceRegistry(reg).to_photocathode
 
     # PMT encapsulation steel cone for Cherenkov veto

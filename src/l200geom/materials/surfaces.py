@@ -224,12 +224,12 @@ class OpticalSurfaceRegistry:
         return self._water_to_vm2000
 
     @property
-    def to_steel(self) -> g4.solid.OpticalSurface:
+    def to_pmt_steel(self) -> g4.solid.OpticalSurface:
         """Optical surface of steel."""
-        if hasattr(self, "_to_steel"):
-            return self._to_steel
+        if hasattr(self, "_to_pmt_steel"):
+            return self._to_pmt_steel
 
-        self._to_steel = g4.solid.OpticalSurface(
+        self._to_pmt_steel = g4.solid.OpticalSurface(
             name="pmt_steel_surface",
             finish="polished",
             model="unified",
@@ -238,10 +238,10 @@ class OpticalSurfaceRegistry:
             registry=self.g4_registry,
         )
 
-        legendoptics.pmts.pyg4_pmt_attach_steel_reflectivity(self._to_steel, self.g4_registry)
-        legendoptics.pmts.pyg4_pmt_attach_steel_efficiency(self._to_steel, self.g4_registry)
+        legendoptics.pmts.pyg4_pmt_attach_steel_reflectivity(self._to_pmt_steel, self.g4_registry)
+        legendoptics.pmts.pyg4_pmt_attach_steel_efficiency(self._to_pmt_steel, self.g4_registry)
 
-        return self._to_steel
+        return self._to_pmt_steel
 
     @property
     def to_photocathode(self) -> g4.solid.OpticalSurface:
