@@ -324,6 +324,7 @@ def insert_vm2000(
     reg: g4.Registry,
     vm2000_material: g4.Material,
     surfaces: materials.surfaces.OpticalSurfaceRegistry,
+    surfaces: materials.surfaces.OpticalSurfaceRegistry,
     water_lv: g4.LogicalVolume,
     water_pv: g4.PhysicalVolume,
     manhole_pillbox: g4.solid.Union,
