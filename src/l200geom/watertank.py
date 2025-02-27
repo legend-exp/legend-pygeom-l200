@@ -152,7 +152,7 @@ pmt_air_height = pmt_air_outer_radius * (1 - math.cos(pmt_air_theta_end))
 pmt_air_height_difference = pmt_air_outer_radius - pmt_air_height
 
 acryl_inner_radius = photocathode_inner_radius
-acryl_outer_radius = pmt_steel_cone_upper_rmax + 5.5
+acryl_outer_radius = pmt_steel_cone_upper_rmax + 3
 acryl_theta_start = 0.0  # in degrees
 acryl_theta_end = (80.0 / 180.0) * pi  # in degrees
 acryl_height = acryl_outer_radius * (1 - math.cos(acryl_theta_end))
@@ -477,7 +477,6 @@ def insert_vm2000(
         reg,
     )
 
-    # TODO: adjust height and z position of CryoReflectionFoil to close the gap in between PillboxOuterReflectionFoilTube and CryoReflectionFoil
     cryo_reflection_foil = g4.solid.Tubs(
         "cryo_reflection_foil",
         cryo.cryo_radius + cryo.cryo_wall,
@@ -630,9 +629,6 @@ def insert_pmts(
 
     optical_steel_surface = materials.surfaces.OpticalSurfaceRegistry(reg).to_steel
     optical_pmt_surface = materials.surfaces.OpticalSurfaceRegistry(reg).to_photocathode
-    optical_border_air_acryl = materials.surfaces.OpticalSurfaceRegistry(reg).acryl_to_air
-    optical_border_water_acryl = materials.surfaces.OpticalSurfaceRegistry(reg).water_to_acryl
-    optical_border_air_borosilicate = materials.surfaces.OpticalSurfaceRegistry(reg).air_to_borosilicate
 
     # PMT encapsulation steel cone for Cherenkov veto
     pmt_steel_cone = g4.solid.Cons(
@@ -693,12 +689,12 @@ def insert_pmts(
             name_pmt_acryl_lv = f"gerda_pmt_acryl_lv_{num_pmts}"
             name_pmt_acryl = f"gerda_pmt_acryl_{num_pmts}"
             acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
-            acryl_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], acryl_lv, name_pmt_acryl, water_lv, reg)
+            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], acryl_lv, name_pmt_acryl, water_lv, reg)
 
             name_pmt_air_lv = f"gerda_pmt_air_lv_{num_pmts}"
             name_pmt_air = f"gerda_pmt_air_{num_pmts}"
             pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
-            pmt_air_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
+            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
 
             namesteelbottom = f"gerda_pmt_bottom_{num_pmts}"
             gerda_pmt_borosilikat_lv_ = f"gerda_pmt_borosilikat_lv_{num_pmts}"
@@ -707,7 +703,7 @@ def insert_pmts(
                 pmt_borosilikat_glass, borosilicate_material, gerda_pmt_borosilikat_lv_, reg
             )
 
-            borosilikat_pv = g4.PhysicalVolume(
+            g4.PhysicalVolume(
                 [0, 0, 0],
                 [0, 0, 0],
                 borosilikat_lv,
@@ -726,47 +722,26 @@ def insert_pmts(
             name_pmt_acryl_lv = f"pmt_acryl_lv_{pmt_id[working_pmts]}"
             name_pmt_acryl = f"pmt_acryl_{pmt_id[working_pmts]}"
             acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
-            acryl_pv = g4.PhysicalVolume(
+            g4.PhysicalVolume(
                 [0, 0, 0], [xpos, ypos, pmt_cathode_offset], acryl_lv, name_pmt_acryl, water_lv, reg
             )
 
             name_pmt_air_lv = f"pmt_air_lv_{pmt_id[working_pmts]}"
             name_pmt_air = f"pmt_air_{pmt_id[working_pmts]}"
             pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
-            pmt_air_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
+            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
 
             name_pmt_borosilikat_lv = f"pmt_borosilikat_lv_{pmt_id[working_pmts]}"
             name_pmt_borosilikat = f"pmt_borosilikat_{pmt_id[working_pmts]}"
             borosilikat_lv = g4.LogicalVolume(
                 pmt_borosilikat_glass, borosilicate_material, name_pmt_borosilikat_lv, reg
             )
-            borosilikat_pv = g4.PhysicalVolume(
+            g4.PhysicalVolume(
                 [0, 0, 0],
                 [0, 0, 0],
                 borosilikat_lv,
                 name_pmt_borosilikat,
                 pmt_air_lv,
-                reg,
-            )
-            g4.BorderSurface(
-                f"air_acryl_surface{pmt_id[working_pmts]}",
-                pmt_air_pv,
-                acryl_pv,
-                optical_border_air_acryl,
-                reg,
-            )
-            g4.BorderSurface(
-                f"water_acryl_surface{pmt_id[working_pmts]}",
-                water_pv,
-                acryl_pv,
-                optical_border_water_acryl,
-                reg,
-            )
-            g4.BorderSurface(
-                f"air_borosilicate_surface{pmt_id[working_pmts]}",
-                pmt_air_pv,
-                borosilikat_pv,
-                optical_border_air_borosilicate,
                 reg,
             )
             g4.PhysicalVolume([0, 0, 0], [0, 0, 0], photocathode_lv, namephotocathode, borosilikat_lv, reg)
@@ -813,12 +788,12 @@ def insert_pmts(
             name_pmt_acryl_lv = f"gerda_pmt_acryl_lv_{num_pmts}"
             name_pmt_acryl = f"gerda_pmt_acryl_{num_pmts}"
             acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
-            acryl_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], acryl_lv, name_pmt_acryl, water_lv, reg)
+            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], acryl_lv, name_pmt_acryl, water_lv, reg)
 
             name_pmt_air_lv = f"gerda_pmt_air_lv_{num_pmts}"
             name_pmt_air = f"gerda_pmt_air_{num_pmts}"
             pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
-            pmt_air_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
+            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
 
             namesteelbottom = f"gerda_pmt_bottom_{num_pmts}"
             gerda_pmt_borosilikat_lv_ = f"gerda_pmt_borosilikat_lv_{num_pmts}"
@@ -827,7 +802,7 @@ def insert_pmts(
                 pmt_borosilikat_glass, borosilicate_material, gerda_pmt_borosilikat_lv_, reg
             )
 
-            borosilikat_pv = g4.PhysicalVolume(
+            g4.PhysicalVolume(
                 [0, 0, 0],
                 [0, 0, 0],
                 borosilikat_lv,
@@ -846,47 +821,26 @@ def insert_pmts(
             name_pmt_acryl_lv = f"pmt_acryl_lv_{pmt_id[working_pmts]}"
             name_pmt_acryl = f"pmt_acryl_{pmt_id[working_pmts]}"
             acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
-            acryl_pv = g4.PhysicalVolume(
+            g4.PhysicalVolume(
                 [0, 0, 0], [xpos, ypos, pmt_cathode_offset], acryl_lv, name_pmt_acryl, water_lv, reg
             )
 
             name_pmt_air_lv = f"pmt_air_lv_{pmt_id[working_pmts]}"
             name_pmt_air = f"pmt_air_{pmt_id[working_pmts]}"
             pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
-            pmt_air_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
+            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
 
             name_pmt_borosilikat_lv = f"pmt_borosilikat_lv_{pmt_id[working_pmts]}"
             name_pmt_borosilikat = f"pmt_borosilikat_{pmt_id[working_pmts]}"
             borosilikat_lv = g4.LogicalVolume(
                 pmt_borosilikat_glass, borosilicate_material, name_pmt_borosilikat_lv, reg
             )
-            borosilikat_pv = g4.PhysicalVolume(
+            g4.PhysicalVolume(
                 [0, 0, 0],
                 [0, 0, 0],
                 borosilikat_lv,
                 name_pmt_borosilikat,
                 pmt_air_lv,
-                reg,
-            )
-            g4.BorderSurface(
-                f"air_acryl_surface{pmt_id[working_pmts]}",
-                pmt_air_pv,
-                acryl_pv,
-                optical_border_air_acryl,
-                reg,
-            )
-            g4.BorderSurface(
-                f"water_acryl_surface{pmt_id[working_pmts]}",
-                water_pv,
-                acryl_pv,
-                optical_border_water_acryl,
-                reg,
-            )
-            g4.BorderSurface(
-                f"air_borosilicate_surface{pmt_id[working_pmts]}",
-                pmt_air_pv,
-                borosilikat_pv,
-                optical_border_air_borosilicate,
                 reg,
             )
             g4.PhysicalVolume([0, 0, 0], [0, 0, 0], photocathode_lv, namephotocathode, borosilikat_lv, reg)
@@ -938,12 +892,12 @@ def insert_pmts(
             name_pmt_acryl_lv = f"gerda_pmt_acryl_lv_{num_pmts}"
             name_pmt_acryl = f"gerda_pmt_acryl_{num_pmts}"
             acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
-            acryl_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], acryl_lv, name_pmt_acryl, water_lv, reg)
+            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], acryl_lv, name_pmt_acryl, water_lv, reg)
 
             name_pmt_air_lv = f"gerda_pmt_air_lv_{num_pmts}"
             name_pmt_air = f"gerda_pmt_air_{num_pmts}"
             pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
-            pmt_air_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
+            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
 
             namesteelbottom = f"gerda_pmt_bottom_{num_pmts}"
             gerda_pmt_borosilikat_lv_ = f"gerda_pmt_borosilikat_lv_{num_pmts}"
@@ -952,7 +906,7 @@ def insert_pmts(
                 pmt_borosilikat_glass, borosilicate_material, gerda_pmt_borosilikat_lv_, reg
             )
 
-            borosilikat_pv = g4.PhysicalVolume(
+            g4.PhysicalVolume(
                 [0, 0, 0],
                 [0, 0, 0],
                 borosilikat_lv,
@@ -971,47 +925,26 @@ def insert_pmts(
             name_pmt_acryl_lv = f"pmt_acryl_lv_{pmt_id[working_pmts]}"
             name_pmt_acryl = f"pmt_acryl_{pmt_id[working_pmts]}"
             acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
-            acryl_pv = g4.PhysicalVolume(
+            g4.PhysicalVolume(
                 [0, 0, 0], [xpos, ypos, pmt_cathode_offset], acryl_lv, name_pmt_acryl, water_lv, reg
             )
 
             name_pmt_air_lv = f"pmt_air_lv_{pmt_id[working_pmts]}"
             name_pmt_air = f"pmt_air_{pmt_id[working_pmts]}"
             pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
-            pmt_air_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
+            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
 
             name_pmt_borosilikat_lv = f"pmt_borosilikat_lv_{pmt_id[working_pmts]}"
             name_pmt_borosilikat = f"pmt_borosilikat_{pmt_id[working_pmts]}"
             borosilikat_lv = g4.LogicalVolume(
                 pmt_borosilikat_glass, borosilicate_material, name_pmt_borosilikat_lv, reg
             )
-            borosilikat_pv = g4.PhysicalVolume(
+            g4.PhysicalVolume(
                 [0, 0, 0],
                 [0, 0, 0],
                 borosilikat_lv,
                 name_pmt_borosilikat,
                 pmt_air_lv,
-                reg,
-            )
-            g4.BorderSurface(
-                f"air_acryl_surface{pmt_id[working_pmts]}",
-                pmt_air_pv,
-                acryl_pv,
-                optical_border_air_acryl,
-                reg,
-            )
-            g4.BorderSurface(
-                f"water_acryl_surface{pmt_id[working_pmts]}",
-                water_pv,
-                acryl_pv,
-                optical_border_water_acryl,
-                reg,
-            )
-            g4.BorderSurface(
-                f"air_borosilicate_surface{pmt_id[working_pmts]}",
-                pmt_air_pv,
-                borosilikat_pv,
-                optical_border_air_borosilicate,
                 reg,
             )
             g4.PhysicalVolume([0, 0, 0], [0, 0, 0], photocathode_lv, namephotocathode, borosilikat_lv, reg)
@@ -1133,7 +1066,7 @@ def insert_pmts(
                 name_pmt_acryl_lv = f"gerda_pmt_acryl_lv_{num_pmts}"
                 name_pmt_acryl = f"gerda_pmt_acryl_{num_pmts}"
                 acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
-                acryl_pv = g4.PhysicalVolume(
+                g4.PhysicalVolume(
                     [x_rot_global, y_rot_global, z_rot_global],
                     [xpos, ypos, zpos],
                     acryl_lv,
@@ -1145,7 +1078,7 @@ def insert_pmts(
                 name_pmt_air_lv = f"gerda_pmt_air_lv_{num_pmts}"
                 name_pmt_air = f"gerda_pmt_air_{num_pmts}"
                 pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
-                pmt_air_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
+                g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
 
                 namesteelbottom = f"gerda_pmt_bottom_{num_pmts}"
                 gerda_pmt_borosilikat_lv_ = f"gerda_pmt_borosilikat_lv_{num_pmts}"
@@ -1153,8 +1086,7 @@ def insert_pmts(
                 borosilikat_lv = g4.LogicalVolume(
                     pmt_borosilikat_glass, borosilicate_material, gerda_pmt_borosilikat_lv_, reg
                 )
-
-                borosilikat_pv = g4.PhysicalVolume(
+                g4.PhysicalVolume(
                     [0, 0, 0],
                     [0, 0, 0],
                     borosilikat_lv,
@@ -1175,7 +1107,7 @@ def insert_pmts(
                 name_pmt_acryl_lv = f"pmt_acryl_lv_{pmt_id[working_pmts]}"
                 name_pmt_acryl = f"pmt_acryl_{pmt_id[working_pmts]}"
                 acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
-                acryl_pv = g4.PhysicalVolume(
+                g4.PhysicalVolume(
                     [x_rot_global, y_rot_global, z_rot_global],
                     [xpos, ypos, zpos],
                     acryl_lv,
@@ -1187,40 +1119,19 @@ def insert_pmts(
                 name_pmt_air_lv = f"pmt_air_lv_{pmt_id[working_pmts]}"
                 name_pmt_air = f"pmt_air_{pmt_id[working_pmts]}"
                 pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
-                pmt_air_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
+                g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
 
                 name_pmt_borosilikat_lv = f"pmt_borosilikat_lv_{pmt_id[working_pmts]}"
                 name_pmt_borosilikat = f"pmt_borosilikat_{pmt_id[working_pmts]}"
                 borosilikat_lv = g4.LogicalVolume(
                     pmt_borosilikat_glass, borosilicate_material, name_pmt_borosilikat_lv, reg
                 )
-                borosilikat_pv = g4.PhysicalVolume(
+                g4.PhysicalVolume(
                     [0, 0, 0],
                     [0, 0, 0],
                     borosilikat_lv,
                     name_pmt_borosilikat,
                     pmt_air_lv,
-                    reg,
-                )
-                g4.BorderSurface(
-                    f"air_acryl_surface{pmt_id[working_pmts]}",
-                    pmt_air_pv,
-                    acryl_pv,
-                    optical_border_air_acryl,
-                    reg,
-                )
-                g4.BorderSurface(
-                    f"water_acryl_surface{pmt_id[working_pmts]}",
-                    water_pv,
-                    acryl_pv,
-                    optical_border_water_acryl,
-                    reg,
-                )
-                g4.BorderSurface(
-                    f"air_borosilicate_surface{pmt_id[working_pmts]}",
-                    pmt_air_pv,
-                    borosilikat_pv,
-                    optical_border_air_borosilicate,
                     reg,
                 )
                 g4.PhysicalVolume(

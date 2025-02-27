@@ -6,13 +6,15 @@ import legendoptics.fibers
 import legendoptics.lar
 import legendoptics.nylon
 import legendoptics.pen
+import legendoptics.pmts
 import legendoptics.pyg4utils
 import legendoptics.tpb
+import legendoptics.vm2000
+import legendoptics.water
 import numpy as np
 import pint
 import pyg4ometry.geant4 as g4
 
-from . import vm2000
 from .surfaces import OpticalSurfaceRegistry
 
 u = pint.get_application_registry()
@@ -421,43 +423,8 @@ class OpticalMaterialRegistry:
         self._water.add_element_natoms(self.get_element("H"), natoms=2)
         self._water.add_element_natoms(self.get_element("O"), natoms=1)
 
-        # add refraction index
-        photon_energy = [1.0, 6.0] * u.eV
-        refractive_index = [1.33, 1.33]
-
-        # add attenuation length
-        # Photon energy absorption corresponding to the wavelengths
-        photon_energy_water = [
-            0.6,
-            0.55,
-            0.50,
-            0.45,
-            0.40,
-            0.35,
-            0.30,
-            0.25,
-            0.20,
-            0.19,
-            0.10,
-        ] * u.eV
-
-        # Corresponding attenuation lengths (in mm)
-        absorption_lengths = [
-            10 * 1000,  # 10 m for 206.6 nm
-            20 * 1000,  # 20 m for 224.5 nm
-            50 * 1000,  # 50 m for 248.0 nm
-            100 * 1000,  # 100 m for 275.5 nm
-            100 * 1000,  # 100 m for 310 nm
-            100 * 1000,  # 100 m for 354 nm
-            90 * 1000,  # 90 m for 413.3 nm
-            20 * 1000,  # 20 m for 496.0 nm
-            1 * 1000,  # 1 m for 620 nm
-            0.001,  # 0.001 mm for 652.6 nm
-            0.0001,  # 0.0001 mm for 1240 nm
-        ] * u.mm
-
-        self._water.addVecPropertyPint("ABSLENGTH", photon_energy_water, absorption_lengths)
-        self._water.addVecPropertyPint("RINDEX", photon_energy, refractive_index)
+        legendoptics.water.pyg4_water_attach_rindex(self._water, self.g4_registry)
+        legendoptics.water.pyg4_water_attach_absorption(self._water, self.g4_registry)
 
         return self._water
 
@@ -480,46 +447,14 @@ class OpticalMaterialRegistry:
         self._vm2000.add_element_natoms(self.get_element("O"), natoms=3)
         self._vm2000.add_element_natoms(self.get_element("C"), natoms=13)
 
-        vm2000_energy_range, _, _, wls_absorption, wls_emission = vm2000.vm2000_parameters()
-
-        refraction = np.ones_like(vm2000_energy_range) * 1.15  # Estimated refractive index
-        absorptionl = np.ones_like(vm2000_energy_range) * 50.0 * u.m
-
-        self._vm2000.addVecPropertyPint("RINDEX", vm2000_energy_range, refraction)
-        self._vm2000.addVecPropertyPint("ABSLENGTH", vm2000_energy_range, absorptionl)
-        self._vm2000.addVecPropertyPint("WLSABSLENGTH", vm2000_energy_range, wls_absorption)
-        self._vm2000.addVecPropertyPint("WLSCOMPONENT", vm2000_energy_range, wls_emission)
-
+        legendoptics.vm2000.pyg4_vm2000_attach_absorption_length(self._vm2000, self.g4_registry)
+        legendoptics.vm2000.pyg4_vm2000_attach_rindex(self._vm2000, self.g4_registry)
+        legendoptics.vm2000.pyg4_vm2000_attach_wls(self._vm2000, self.g4_registry)
         # VM2000 seem to consist of PMMA and PEN layers https://iopscience.iop.org/article/10.1088/1748-0221/12/06/P06017/pdf
         legendoptics.pen.pyg4_pen_attach_scintillation(self._vm2000, self.g4_registry)
-        self._vm2000.addConstProperty("WLSTIMECONSTANT", 0.5 * 10e-3)  # ns
+        legendoptics.vm2000.pyg4_vm2000_attach_particle_scintillationyields(self._vm2000, self.g4_registry)
 
         return self._vm2000
-
-    @property
-    def pmt_air(self) -> g4.Material:
-        """Material for the air in between Acryl cap and PMT."""
-        if hasattr(self, "_pmt_air"):
-            return self._pmt_air
-
-        self._pmt_air = g4.MaterialCompound(
-            name="PMT_air",
-            density=0.001225,
-            number_of_components=2,
-            registry=self.g4_registry,
-        )
-
-        self._pmt_air.add_element_natoms(self.get_element("N"), natoms=3)
-        self._pmt_air.add_element_natoms(self.get_element("O"), natoms=1)
-
-        photon_energy_air = [1.0, 6.0] * u.eV
-        refractive_index_air = [1.0, 1.0]
-        absorption_length_air = [100.0, 100.0] * u.m
-
-        self._pmt_air.addVecPropertyPint("RINDEX", photon_energy_air, refractive_index_air)
-        self._pmt_air.addVecPropertyPint("ABSLENGTH", photon_energy_air, absorption_length_air)
-
-        return self._pmt_air
 
     @property
     def acryl(self) -> g4.Material:
@@ -537,14 +472,31 @@ class OpticalMaterialRegistry:
         self._acryl.add_element_natoms(self.get_element("H"), natoms=2)
         self._acryl.add_element_natoms(self.get_element("C"), natoms=1)
 
-        photon_energy_acryl = np.array([1.0, 6.0]) * u.eV
-        refractive_index_acryl = [1.489, 1.489]
-        absorption_length_acryl = [2.5, 3.5] * u.m  # 2,5 m up to 3,5 m
-
-        self._acryl.addVecPropertyPint("RINDEX", photon_energy_acryl, refractive_index_acryl)
-        self._acryl.addVecPropertyPint("ABSLENGTH", photon_energy_acryl, absorption_length_acryl)
+        legendoptics.pmts.pyg4_pmt_attach_acryl_rindex(self._acryl, self.g4_registry)
+        legendoptics.pmts.pyg4_pmt_attach_acryl_absorption_length(self._acryl, self.g4_registry)
 
         return self._acryl
+
+    @property
+    def pmt_air(self) -> g4.Material:
+        """Material for the air in between Acryl cap and PMT."""
+        if hasattr(self, "_pmt_air"):
+            return self._pmt_air
+
+        self._pmt_air = g4.MaterialCompound(
+            name="PMT_air",
+            density=0.001225,
+            number_of_components=2,
+            registry=self.g4_registry,
+        )
+
+        self._pmt_air.add_element_natoms(self.get_element("N"), natoms=3)
+        self._pmt_air.add_element_natoms(self.get_element("O"), natoms=1)
+
+        legendoptics.pmts.pyg4_pmt_attach_air_rindex(self._pmt_air, self.g4_registry)
+        legendoptics.pmts.pyg4_pmt_attach_air_absorption_length(self._pmt_air, self.g4_registry)
+
+        return self._pmt_air
 
     @property
     def borosilicate(self) -> g4.Material:
@@ -565,11 +517,7 @@ class OpticalMaterialRegistry:
         self._borosilicate.add_element_massfraction(self.get_element("Na"), 0.029)
         self._borosilicate.add_element_massfraction(self.get_element("Al"), 0.012)
 
-        photon_energy_cathode = np.array([1.0, 6.0]) * u.eV
-        refractive_index_cathode = [1.49, 1.49]
-        absorption_length_cathode = [2.0, 3.0] * u.m
-
-        self._borosilicate.addVecPropertyPint("RINDEX", photon_energy_cathode, refractive_index_cathode)
-        self._borosilicate.addVecPropertyPint("ABSLENGTH", photon_energy_cathode, absorption_length_cathode)
+        legendoptics.pmts.pyg4_pmt_attach_borosilicate_rindex(self._borosilicate, self.g4_registry)
+        legendoptics.pmts.pyg4_pmt_attach_borosilicate_absorption_length(self._borosilicate, self.g4_registry)
 
         return self._borosilicate
