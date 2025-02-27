@@ -105,11 +105,7 @@ def construct(
             world_lv,
             tank_z_displacement,
             cryo_z_displacement,
-            mats.water,
-            mats.vm2000,
-            mats.pmt_air,
-            mats.acryl,
-            mats.borosilicate,
+            mats,
             pmt_configuration_mv,
         )
 
