@@ -249,7 +249,7 @@ def place_air_buffer(
     )
 
 
-def construct_pillbox(reg: g4.Registry, pillbox_material: g4.Material) -> g4.LogicalVolume:
+def construct_pillbox(reg: g4.Registry, pillbox_material: g4.Material | str) -> g4.LogicalVolume:
     manhole_outer_radius = 400.0
     x_rot_drehvol = 0
     y_rot_drehvol = np.pi / 2.0
