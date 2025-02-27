@@ -583,6 +583,7 @@ def insert_pmts(
     pmt_steel_material: g4.Material,
     cathode_al: g4.Material,
     pmt_air_material: g4.Material,
+    surfaces: materials.surfaces.OpticalSurfaceRegistry,
     water_lv: g4.LogicalVolume,
     water_pv: g4.PhysicalVolume,
     acryl_material: g4.Material,
