@@ -1223,8 +1223,8 @@ def insert_muon_veto(
         pmt_air_material,
         water_lv,
         water_pv,
-        acryl_material,
-        borosilicate_material,
+        mats.acryl,
+        mats.borosilicate,
         pmt_configuration_mv,
     )
     return water_lv, water_tank_lv
