@@ -1185,7 +1185,7 @@ def insert_muon_veto(
     world_lv: g4.LogicalVolume,
     tank_z_displacement: float,
     cryo_z_displacement: float,
-    materials: materials.OpticalMaterialRegistry,
+    mats: materials.OpticalMaterialRegistry,
     pmt_configuration_mv: str = "LEGEND200",
 ):
     water_tank_lv = construct_tank(reg, "G4_STAINLESS-STEEL")
