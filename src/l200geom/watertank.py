@@ -580,8 +580,8 @@ def insert_vm2000(
 
 def insert_pmts(
     reg: g4.Registry,
-    pmt_steel_material: g4.Material,
-    cathode_al: g4.Material,
+    pmt_steel_material: g4.Material | str,
+    cathode_al: g4.Material | str,
     pmt_air_material: g4.Material,
     surfaces: materials.surfaces.OpticalSurfaceRegistry,
     water_lv: g4.LogicalVolume,
