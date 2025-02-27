@@ -498,8 +498,8 @@ def insert_vm2000(
         reg,
     )
 
-    vm2000_border_opt_table = materials.surfaces.OpticalSurfaceRegistry(reg).water_to_vm2000
-    vm2000_opt_table = materials.surfaces.OpticalSurfaceRegistry(reg).to_vm2000
+    vm2000_border_opt_table = surfaces.water_to_vm2000
+    vm2000_opt_table = surfaces.to_vm2000
 
     # Border Surfaces
     g4.BorderSurface(
