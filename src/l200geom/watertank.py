@@ -74,11 +74,10 @@ pmt_id = np.array(
 
 # Water tank with water and air buffer
 water_tank_thickness = 7.0
-water_tank_height = 8900.0
-inner_tank_height = water_tank_height - 2 * water_tank_thickness
+inner_tank_height = 8900.0
 inner_radius = 0.0
 water_radius = 5000.0
-water_height = inner_tank_height
+water_height = inner_tank_height - 2 * water_tank_thickness
 
 # Reflective foil
 reflective_foil_thickness = 0.04
@@ -86,18 +85,16 @@ reflective_foil_thickness = 0.04
 # Pillbox
 shielding_foot_or = 2000.0
 shielding_foot_thickness = 1.2
-shielding_foot_ir = shielding_foot_or - shielding_foot_thickness - reflective_foil_thickness
+shielding_foot_ir = shielding_foot_or - shielding_foot_thickness
 cryo_bottom_height = (
-    (inner_tank_height / 2)
+    (water_height / 2)
     - (cryo.cryo_tub_height / 2)
     - cryo.cryo_bottom_height
-    - reflective_foil_thickness
     - cryo.access_overlap
     + cryo.cryo_wall
     + cryo.cryo_access_wall
 )
 pillbox_offset = -water_height / 2 + 0.5 * cryo_bottom_height
-pillbox_tube_foil_offset = pillbox_offset
 
 # Air buffer
 outer_water_tank_radius = water_radius + water_tank_thickness
@@ -106,8 +103,7 @@ air_buffer_height = 486.0
 
 
 # z-axis Offsets
-air_buffer_offset = 0.5 * (inner_tank_height - air_buffer_height)
-tank_offset = 0.0
+air_buffer_offset = 0.5 * (water_height - air_buffer_height)
 bottom_foil_offset = -0.5 * water_height + 0.5 * reflective_foil_thickness
 
 
@@ -122,10 +118,7 @@ photocathode_theta_end = (80.0 / 180.0) * pi  # in degrees
 photocatode_height = photocathode_outer_radius * (1 - math.cos(photocathode_theta_end))
 photocathode_height_difference = photocathode_outer_radius - photocatode_height
 
-pmt_inner_radius = 100.16
 pmt_outer_radius = 101.0
-pmt_theta_tn = 0.0  # in degrees
-pmt_theta_end = 0.5 * pi  # in degrees
 borosilikat_glass_thickness = 1.0
 
 pmt_steel_cone_thickness = 4.0
@@ -135,33 +128,17 @@ pmt_steel_cone_upper_rmax = pmt_outer_radius + pmt_steel_cone_thickness
 pmt_steel_cone_lower_rmin = pmt_outer_radius / 3.0
 pmt_steel_cone_lower_rmax = pmt_steel_cone_lower_rmin + pmt_steel_cone_thickness
 
-pmt_borosilikat_glass_inner_radius = photocathode_inner_radius
 pmt_borosilikat_glass_outer_radius = photocathode_outer_radius + borosilikat_glass_thickness
-pmt_borosilikat_glass_theta_start = 0.0  # in degrees
-pmt_borosilikat_glass_theta_end = (80.0 / 180.0) * pi  # in degrees
-pmt_borosilikat_glass_height = pmt_borosilikat_glass_outer_radius * (
-    1 - math.cos(pmt_borosilikat_glass_theta_end)
-)
-pmt_borosilikat_glass_height_difference = pmt_borosilikat_glass_outer_radius - pmt_borosilikat_glass_height
 
-pmt_air_inner_radius = photocathode_inner_radius
 pmt_air_outer_radius = pmt_steel_cone_upper_rmax
-pmt_air_theta_start = 0.0  # in degrees
-pmt_air_theta_end = (80.0 / 180.0) * pi  # in degrees
-pmt_air_height = pmt_air_outer_radius * (1 - math.cos(pmt_air_theta_end))
-pmt_air_height_difference = pmt_air_outer_radius - pmt_air_height
 
 acryl_inner_radius = photocathode_inner_radius
 acryl_outer_radius = pmt_steel_cone_upper_rmax + 3
 acryl_theta_start = 0.0  # in degrees
 acryl_theta_end = (80.0 / 180.0) * pi  # in degrees
-acryl_height = acryl_outer_radius * (1 - math.cos(acryl_theta_end))
-acryl_height_difference = acryl_outer_radius - acryl_height
 
 
 pmt_steel_bottom_height = 30.0
-
-pmt_height = photocatode_height + 0.5 * pmt_steel_cone_height + pmt_steel_bottom_height
 
 pmt_cathode_offset = (
     -water_height / 2
@@ -192,20 +169,8 @@ def construct_tank(reg: g4.Registry, tank_material: g4.Material) -> g4.LogicalVo
     water_tank_wall = g4.solid.Tubs(
         "water_tank_wall", inner_radius, outer_water_tank_radius, inner_tank_height, 0, 2 * pi, reg
     )
-    water_tank_floor = g4.solid.Tubs(
-        "water_tank_floor", inner_radius, outer_water_tank_radius, water_tank_thickness, 0, 2 * pi, reg
-    )
 
-    tank_union1_transform = [[0, 0, 0], [0, 0, -0.5 * (inner_tank_height + water_tank_thickness)]]
-    tank_union2_transform = [[0, 0, 0], [0, 0, 0.5 * (inner_tank_height + water_tank_thickness)]]
-
-    water_tank_union_solid1 = g4.solid.Union(
-        "water_tank_union_solid1", water_tank_wall, water_tank_floor, tank_union1_transform, reg
-    )
-    water_tank_union_solid2 = g4.solid.Union(
-        "water_tank_union_solid2", water_tank_union_solid1, water_tank_floor, tank_union2_transform, reg
-    )
-    return g4.LogicalVolume(water_tank_union_solid2, tank_material, "water_tank_lv", reg)
+    return g4.LogicalVolume(water_tank_wall, tank_material, "water_tank_lv", reg)
 
 
 def place_tank(
@@ -273,7 +238,7 @@ def construct_pillbox(reg: g4.Registry, pillbox_material: g4.Material | str) -> 
         "pillbox_tube",
         shielding_foot_ir,
         shielding_foot_or,
-        cryo_bottom_height - shielding_foot_thickness,
+        cryo_bottom_height,
         0,
         2 * pi,
         reg,
@@ -282,7 +247,7 @@ def construct_pillbox(reg: g4.Registry, pillbox_material: g4.Material | str) -> 
     # Define parameters for the semi-cylinder (half-tube) for the manhole
     manhole_inner_radius = 0  # No inner radius for the manhole
     manhole_height = 2 * (shielding_foot_or + reflective_foil_thickness)
-    manhole_angle = math.pi  # Half-circle (180 degrees)
+    manhole_angle = math.pi  # Half-circle (180 degrees), 360 degrees for safety
 
     # Create the half-tube (semi-cylinder) for the manhole
     manhole_pillbox_arc = g4.solid.Tubs(
@@ -292,7 +257,7 @@ def construct_pillbox(reg: g4.Registry, pillbox_material: g4.Material | str) -> 
         "manholepillbox_box", 2 * manhole_outer_radius, manhole_outer_radius, manhole_height, reg
     )
 
-    # Position the first manhole (half-tube) along the x-axis
+    # Position the manhole (half-tube) along the x-axis
     # Rotate the manhole to align it with the x-axis (rotating by 90 degrees around the y-axis)
     manhole_rotation = [x_rot_global, y_rot_global, z_rot_global]
     union_transform = [[0, 0, 0], [0, -0.5 * manhole_outer_radius, 0]]
@@ -300,7 +265,7 @@ def construct_pillbox(reg: g4.Registry, pillbox_material: g4.Material | str) -> 
         "manhole_union", manhole_pillbox_arc, manholepillbox_box, union_transform, reg
     )
 
-    # Subtract the first manhole (half-tube) from the pillbox
+    # Subtract the manhole (half-tube) from the pillbox
     man_hole_offset = 0.5 * cryo_bottom_height - manhole_outer_radius
     pillbox = g4.solid.Subtraction(
         "pillbox_subtraction1",
@@ -376,7 +341,7 @@ def insert_vm2000(
     )
 
     # Pillbox
-    # VM2000 at inside of water tank tube
+    # VM2000 at outside of Pillbox
     pillbox_outer_reflection_foil_tube_subtraction1 = g4.solid.Tubs(
         "pillbox_outer_reflection_foil_tube_subtraction1",
         shielding_foot_or,
@@ -405,7 +370,7 @@ def insert_vm2000(
         reg,
     )
 
-    # VM2000 at inside of water tank tube
+    # VM2000 at inside of Pillbox
     pillbox_inner_reflection_foil_tube_subtraction1 = g4.solid.Tubs(
         "pillbox_inner_reflection_foil_tube_subtraction1",
         shielding_foot_ir - reflective_foil_thickness,
@@ -434,7 +399,7 @@ def insert_vm2000(
         reg,
     )
 
-    # VM2000 at bottom of water tank tube
+    # VM2000 at top of pillbox
     pillbox_reflection_foil_top = g4.solid.Tubs(
         "pillbox_reflection_foil_top",
         inner_radius,
@@ -449,30 +414,18 @@ def insert_vm2000(
     )
     pillbox_reflection_foil_top_pv = g4.PhysicalVolume(
         [0, 0, 0],
-        [0, 0, bottom_foil_offset + cryo_bottom_height - 2 * reflective_foil_thickness],
+        [0, 0, bottom_foil_offset + cryo_bottom_height - reflective_foil_thickness],
         pillbox_reflection_foil_top_lv,
         "pillbox_reflection_foil_top_pv",
         water_lv,
         reg,
     )
 
-    # VM2000 at bottom of water tank tube
-    pillbox_reflection_foil_bottom = g4.solid.Tubs(
-        "pillbox_reflection_foil_bottom",
-        inner_radius,
-        shielding_foot_ir,
-        reflective_foil_thickness,
-        0,
-        2 * pi,
-        reg,
-    )
-    pillbox_reflection_foil_bottom_lv = g4.LogicalVolume(
-        pillbox_reflection_foil_bottom, vm2000_material, "pillbox_reflection_foil_bottom_lv", reg
-    )
+    # VM2000 at bottom of pillbox
     pillbox_reflection_foil_bottom_pv = g4.PhysicalVolume(
         [0, 0, 0],
         [0, 0, bottom_foil_offset],
-        pillbox_reflection_foil_bottom_lv,
+        pillbox_reflection_foil_top_lv,
         "pillbox_reflection_foil_bottom_pv",
         water_lv,
         reg,
@@ -499,7 +452,9 @@ def insert_vm2000(
         reg,
     )
 
-    vm2000_border_opt_table = surfaces.water_to_vm2000
+    vm2000_border_opt_table = (
+        surfaces.water_to_vm2000
+    )  # The name is confusing. This is in the direction vm2000 -> water
     vm2000_opt_table = surfaces.to_vm2000
 
     # Border Surfaces
@@ -553,9 +508,6 @@ def insert_vm2000(
     g4.SkinSurface(
         "pillbox_inner_tube_foil_skin_surface", pillbox_inner_reflection_foil_tube_lv, vm2000_opt_table, reg
     )
-    g4.SkinSurface(
-        "pillbox_bottom_foil_skin_surface", pillbox_reflection_foil_bottom_lv, vm2000_opt_table, reg
-    )
     g4.SkinSurface("pillbox_top_foil_skin_surface", pillbox_reflection_foil_top_lv, vm2000_opt_table, reg)
     g4.SkinSurface(
         "watertank_tube_foil_skin_surface", water_tank_reflection_foil_tube_lv, vm2000_opt_table, reg
@@ -564,6 +516,9 @@ def insert_vm2000(
         "watertank_bottom_foil_skin_surface", water_tank_reflection_foil_bottom_lv, vm2000_opt_table, reg
     )
     g4.SkinSurface("cryo_skin_foil_surface", cryo_reflection_foil_lv, vm2000_opt_table, reg)
+
+    # This means in the direction vm2000 -> water it is governed by vm2000_border_opt_table (which is 100% transmission)
+    # And in the direction water -> vm2000 it is governed by vm2000_opt_table
 
     return (
         water_tank_reflection_foil_tube_pv,
@@ -595,7 +550,7 @@ def insert_pmts(
         pmt_starting_angle,
         pmt_ending_angle,
         acryl_theta_start,
-        acryl_theta_end,
+        acryl_theta_end,  # Is not a half circle, therefore gap i think
         reg,
     )
     pmt_air = g4.solid.Sphere(
