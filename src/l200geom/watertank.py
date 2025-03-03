@@ -86,13 +86,20 @@ reflective_foil_thickness = 0.04
 shielding_foot_or = 2000.0
 shielding_foot_thickness = 1.2
 shielding_foot_ir = shielding_foot_or - shielding_foot_thickness
+
+# Get the distance between Water bottom and cryo bottom
 cryo_bottom_height = (
-    (water_height / 2)
-    - (cryo.cryo_tub_height / 2)
-    - cryo.cryo_bottom_height
-    - cryo.access_overlap
-    + cryo.cryo_wall
-    + cryo.cryo_access_wall
+    (water_height / 2)  # The distance from bottom to the center (0,0,0) of the water
+    + (
+        water_height / 2  # This is the cryo z-displacement. The cryo center is shifted this much up/down
+        - cryo.cryo_access_height
+        - (cryo.cryo_tub_height / 2 + cryo.cryo_top_height)
+        - cryo.access_overlap / 2
+    )
+    - (
+        cryo.cryo_tub_height / 2
+    )  # The lower part of the cryo is shifted this much down compared to the center
+    - (cryo.cryo_bottom_height - cryo.cryo_wall)  # This is the (half)-height of the cryo bottom
 )
 pillbox_offset = -water_height / 2 + 0.5 * cryo_bottom_height
 

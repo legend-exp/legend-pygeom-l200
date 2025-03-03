@@ -97,8 +97,11 @@ def construct(
         # TODO: Shift the global coordinate system that z=0 is a reasonable value for defining hit positions.
         tank_z_displacement = 0.0
         cryo_z_displacement = (
-            -153.0
-        )  # (innertank_height/2-cryo_acess_height-cryo_top_height-access_overlap/2)
+            watertank.water_height / 2
+            - cryo.cryo_access_height
+            - (cryo.cryo_tub_height / 2 + cryo.cryo_top_height)
+            - cryo.access_overlap / 2
+        )  # -153
 
         water_lv, _ = watertank.insert_muon_veto(
             reg,
