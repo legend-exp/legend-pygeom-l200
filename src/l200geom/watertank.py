@@ -99,7 +99,7 @@ cryo_bottom_height = (
     - (
         cryo.cryo_tub_height / 2
     )  # The lower part of the cryo is shifted this much down compared to the center
-    - (cryo.cryo_bottom_height - cryo.cryo_wall)  # This is the (half)-height of the cryo bottom
+    - (cryo.cryo_bottom_height + cryo.cryo_wall)  # This is the (half)-height of the cryo bottom
 )
 pillbox_offset = -water_height / 2 + 0.5 * cryo_bottom_height
 
