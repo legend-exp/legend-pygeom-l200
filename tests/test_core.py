@@ -20,8 +20,9 @@ def test_import():
 def conctruct_fiber_variants():
     from l200geom import core
 
-    reg_detailed = core.construct(use_detailed_fiber_model=True, public_geometry=public_geom)
-    reg_segmented = core.construct(use_detailed_fiber_model=False, public_geometry=public_geom)
+    assemblies = core.DEFINED_ASSEMBLIES
+    reg_detailed = core.construct(assemblies, use_detailed_fiber_model=True, public_geometry=public_geom)
+    reg_segmented = core.construct(assemblies, use_detailed_fiber_model=False, public_geometry=public_geom)
 
     return reg_detailed, reg_segmented
 
