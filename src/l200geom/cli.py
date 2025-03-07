@@ -61,43 +61,46 @@ def dump_gdml_cli() -> None:
     )
 
     # options for geometry generation.
+    #
+    # geometry options can also be specified in the config file, so the "default" argument of the argparse
+    # options cannot be used - we need to distinguish between an unspecified option and an explicitly set
+    # default option.
     geom_opts = parser.add_argument_group("geometry options")
     extra_assemblies = set(core.DEFINED_ASSEMBLIES) - set(core.DEFAULT_ASSEMBLIES)
     geom_opts.add_argument(
         "--assemblies",
         action="store",
-        default=",".join(core.DEFAULT_ASSEMBLIES),
         type=_parse_assemblies,
         help=(
             f"""Select the assemblies to generate in the output.
-            (default: %(default)s;
+            (default: {",".join(core.DEFAULT_ASSEMBLIES)};
             additionally available: {",".join(extra_assemblies)})"""
         ),
     )
+    fiber_modules_default = "segmented"
     geom_opts.add_argument(
         "--fiber-modules",
         action="store",
         choices=("segmented", "detailed"),
-        default="segmented",
-        help="""Select the fiber shroud model, either coarse segments or single fibers. (default: %(default)s)""",
+        help=f"""Select the fiber shroud model, either coarse segments or single fibers. (default: {fiber_modules_default})""",
+    )
+    pmt_config_default = "LEGEND200"
+    geom_opts.add_argument(
+        "--pmt-config",
+        action="store",
+        choices=core.PMT_CONFIGURATIONS,
+        help=f"""Select the PMT configuration of the muon veto. (default: {pmt_config_default})""",
+    )
+    geom_opts.add_argument(
+        "--public-geom",
+        action="store_true",
+        default=None,
+        help="""Create a geometry from public testdata only.""",
     )
     geom_opts.add_argument(
         "--config",
         action="store",
         help="""Select a config file to read geometry config from.""",
-    )
-    geom_opts.add_argument(
-        "--public-geom",
-        action="store_true",
-        help="""Create a geometry from public testdata only.""",
-    )
-
-    geom_opts.add_argument(
-        "--pmt-config",
-        action="store",
-        choices=("LEGEND200", "GERDA"),
-        default="LEGEND200",
-        help="""Select the PMT configuration of the muon veto (choose between "LEGEND200" and "GERDA"). (default: %(default)s)""",
     )
 
     parser.add_argument(
@@ -109,6 +112,16 @@ def dump_gdml_cli() -> None:
 
     args = parser.parse_args()
 
+    config = {}
+    if args.config is not None:
+        config = utils.load_dict(args.config)
+
+    # also load geometry options from config file.
+    _config_or_cli_arg(args, config, "assemblies", core.DEFAULT_ASSEMBLIES)
+    _config_or_cli_arg(args, config, "fiber_modules", fiber_modules_default)
+    _config_or_cli_arg(args, config, "pmt_config", pmt_config_default)
+    _config_or_cli_arg(args, config, "public_geom", False)
+
     if not args.visualize and args.filename == "":
         parser.error("no output file and no visualization specified")
     if (args.vis_macro_file or args.det_macro_file) and args.filename == "":
@@ -118,10 +131,6 @@ def dump_gdml_cli() -> None:
         logging.getLogger("l200geom").setLevel(logging.DEBUG)
     if args.debug:
         logging.root.setLevel(logging.DEBUG)
-
-    config = {}
-    if args.config:
-        config = utils.load_dict(args.config)
 
     vis_scene = {}
     if isinstance(args.visualize, str):
@@ -160,5 +169,13 @@ def dump_gdml_cli() -> None:
         viewer.visualize(registry, vis_scene)
 
 
-def _parse_assemblies(arg: str):
-    return [a for a in arg.split(",") if a != ""]
+def _parse_assemblies(arg: str) -> list[str]:
+    return [a.strip() for a in arg.split(",") if a != ""]
+
+
+def _config_or_cli_arg(args: argparse.Namespace, config: dict, name: str, default) -> None:
+    """Fallback of cli args, to config file, and to default value (in this order)."""
+    val = config.get(name)
+    val = getattr(args, name, val)
+    val = default if val is None else val
+    setattr(args, name, val)
