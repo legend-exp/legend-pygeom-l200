@@ -62,11 +62,17 @@ def dump_gdml_cli() -> None:
 
     # options for geometry generation.
     geom_opts = parser.add_argument_group("geometry options")
+    extra_assemblies = set(core.DEFINED_ASSEMBLIES) - set(core.DEFAULT_ASSEMBLIES)
     geom_opts.add_argument(
         "--assemblies",
         action="store",
-        default=",".join(core.DEFINED_ASSEMBLIES),
-        help="""Select the assemblies to generate in the output. (default: %(default)s)""",
+        default=",".join(core.DEFAULT_ASSEMBLIES),
+        type=_parse_assemblies,
+        help=(
+            f"""Select the assemblies to generate in the output.
+            (default: %(default)s;
+            additionally available: {",".join(extra_assemblies)})"""
+        ),
     )
     geom_opts.add_argument(
         "--fiber-modules",
@@ -124,7 +130,7 @@ def dump_gdml_cli() -> None:
             meshconfig.setGlobalMeshSliceAndStack(100)
 
     registry = core.construct(
-        assemblies=[a for a in args.assemblies.split(",") if a != ""],
+        assemblies=args.assemblies,
         pmt_configuration_mv=args.pmt_config,
         use_detailed_fiber_model=args.fiber_modules == "detailed",
         config=config,
@@ -152,3 +158,7 @@ def dump_gdml_cli() -> None:
         from pygeomtools import viewer
 
         viewer.visualize(registry, vis_scene)
+
+
+def _parse_assemblies(arg: str):
+    return [a for a in arg.split(",") if a != ""]

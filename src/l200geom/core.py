@@ -19,7 +19,8 @@ log = logging.getLogger(__name__)
 
 configs = TextDB(resources.files("l200geom") / "configs" / "extra_meta")
 
-DEFINED_ASSEMBLIES = ["wlsr", "strings", "calibration", "fibers", "top", "watertank"]
+DEFAULT_ASSEMBLIES = ["wlsr", "strings", "calibration", "fibers", "top"]
+DEFINED_ASSEMBLIES = [*DEFAULT_ASSEMBLIES, "watertank"]
 
 PMT_CONFIGURATIONS = ["LEGEND200", "GERDA"]
 
