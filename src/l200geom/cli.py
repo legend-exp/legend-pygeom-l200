@@ -13,6 +13,51 @@ log = logging.getLogger(__name__)
 
 
 def dump_gdml_cli() -> None:
+    args, config = _parse_cli_args()
+
+    if args.verbose:
+        logging.getLogger("l200geom").setLevel(logging.DEBUG)
+    if args.debug:
+        logging.root.setLevel(logging.DEBUG)
+
+    vis_scene = {}
+    if isinstance(args.visualize, str):
+        vis_scene = utils.load_dict(args.visualize)
+        if vis_scene.get("fine_mesh", False):
+            meshconfig.setGlobalMeshSliceAndStack(100)
+
+    registry = core.construct(
+        assemblies=args.assemblies,
+        pmt_configuration_mv=args.pmt_config,
+        use_detailed_fiber_model=args.fiber_modules == "detailed",
+        config=config,
+        public_geometry=args.public_geom,
+    )
+
+    if args.check_overlaps:
+        msg = "checking for overlaps"
+        log.info(msg)
+        registry.worldVolume.checkOverlaps(recursive=True)
+
+    # commit auxvals, and write to GDML file if requested.
+    if args.filename is not None:
+        log.info("exporting GDML geometry to %s", args.filename)
+    write_pygeom(registry, args.filename)
+
+    if args.det_macro_file:
+        detectors.generate_detector_macro(registry, args.det_macro_file)
+
+    if args.vis_macro_file:
+        visualization.generate_color_macro(registry, args.vis_macro_file)
+
+    if args.visualize:
+        log.info("visualizing...")
+        from pygeomtools import viewer
+
+        viewer.visualize(registry, vis_scene)
+
+
+def _parse_cli_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, dict]:
     parser = argparse.ArgumentParser(
         prog="legend-pygeom-l200",
         description="%(prog)s command line interface",
@@ -110,7 +155,7 @@ def dump_gdml_cli() -> None:
         help="""File name for the output GDML geometry.""",
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     config = {}
     if args.config is not None:
@@ -127,46 +172,7 @@ def dump_gdml_cli() -> None:
     if (args.vis_macro_file or args.det_macro_file) and args.filename == "":
         parser.error("writing macro file(s) without gdml file is not possible")
 
-    if args.verbose:
-        logging.getLogger("l200geom").setLevel(logging.DEBUG)
-    if args.debug:
-        logging.root.setLevel(logging.DEBUG)
-
-    vis_scene = {}
-    if isinstance(args.visualize, str):
-        vis_scene = utils.load_dict(args.visualize)
-        if vis_scene.get("fine_mesh", False):
-            meshconfig.setGlobalMeshSliceAndStack(100)
-
-    registry = core.construct(
-        assemblies=args.assemblies,
-        pmt_configuration_mv=args.pmt_config,
-        use_detailed_fiber_model=args.fiber_modules == "detailed",
-        config=config,
-        public_geometry=args.public_geom,
-    )
-
-    if args.check_overlaps:
-        msg = "checking for overlaps"
-        log.info(msg)
-        registry.worldVolume.checkOverlaps(recursive=True)
-
-    # commit auxvals, and write to GDML file if requested.
-    if args.filename is not None:
-        log.info("exporting GDML geometry to %s", args.filename)
-    write_pygeom(registry, args.filename)
-
-    if args.det_macro_file:
-        detectors.generate_detector_macro(registry, args.det_macro_file)
-
-    if args.vis_macro_file:
-        visualization.generate_color_macro(registry, args.vis_macro_file)
-
-    if args.visualize:
-        log.info("visualizing...")
-        from pygeomtools import viewer
-
-        viewer.visualize(registry, vis_scene)
+    return args, config
 
 
 def _parse_assemblies(arg: str) -> list[str]:
@@ -175,7 +181,8 @@ def _parse_assemblies(arg: str) -> list[str]:
 
 def _config_or_cli_arg(args: argparse.Namespace, config: dict, name: str, default) -> None:
     """Fallback of cli args, to config file, and to default value (in this order)."""
-    val = config.get(name)
-    val = getattr(args, name, val)
+    val_cfg = config.get(name)
+    val_attrs = getattr(args, name, None)
+    val = val_cfg if val_attrs is None else val_attrs
     val = default if val is None else val
     setattr(args, name, val)

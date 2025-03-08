@@ -1,0 +1,4 @@
+fiber_modules: detailed
+assemblies:
+  - wlsr
+  - fibers
