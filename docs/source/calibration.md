@@ -69,7 +69,7 @@ source.
 extra_source:
   # x, y, z coordinates. z extends positively downwards, z = 0 is a source
   # "screwed into the top plate" (i.e. z is the coordinate of the top face of the
-  # volume the source wopuld normally be screwed into.
+  # volume the source would normally be screwed into.
   position_in_mm: [0, 0, 700]
   # to identify in geometry, this produces a volume `source_inner{name}`
   name: "_central"
