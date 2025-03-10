@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+from collections.abc import Iterable
 
 from dbetto import utils
 from pyg4ometry import config as meshconfig
@@ -111,11 +112,10 @@ def _parse_cli_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, 
     # options cannot be used - we need to distinguish between an unspecified option and an explicitly set
     # default option.
     geom_opts = parser.add_argument_group("geometry options")
-    extra_assemblies = set(core.DEFINED_ASSEMBLIES) - set(core.DEFAULT_ASSEMBLIES)
+    extra_assemblies = core.DEFINED_ASSEMBLIES - core.DEFAULT_ASSEMBLIES
     geom_opts.add_argument(
         "--assemblies",
         action="store",
-        type=_parse_assemblies,
         help=(
             f"""Select the assemblies to generate in the output.
             (default: {",".join(core.DEFAULT_ASSEMBLIES)};
@@ -162,10 +162,17 @@ def _parse_cli_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, 
         config = utils.load_dict(args.config)
 
     # also load geometry options from config file.
-    _config_or_cli_arg(args, config, "assemblies", core.DEFAULT_ASSEMBLIES)
+    _config_or_cli_arg(args, config, "assemblies", None)
     _config_or_cli_arg(args, config, "fiber_modules", fiber_modules_default)
     _config_or_cli_arg(args, config, "pmt_config", pmt_config_default)
     _config_or_cli_arg(args, config, "public_geom", False)
+
+    # process assembly list after loading all parameter sources.
+    args.assemblies = _parse_assemblies(args.assemblies)
+
+    if args.fiber_modules not in ("segmented", "detailed"):
+        msg = f"invalid fiber module type {args.fiber_modules}"
+        raise ValueError(msg)
 
     if not args.visualize and args.filename == "":
         parser.error("no output file and no visualization specified")
@@ -175,8 +182,37 @@ def _parse_cli_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, 
     return args, config
 
 
-def _parse_assemblies(arg: str) -> list[str]:
-    return [a.strip() for a in arg.split(",") if a != ""]
+def _parse_assemblies(arg: str | Iterable[str] | None) -> set[str]:
+    """Parse an argument string into a set of assemblies to build the geometry for.
+
+    Parameters
+    ----------
+    arg
+        if it is a string, it will be split on commas. Parts can be prefixed by "set operators" '+' or '-',
+        to add or remove items from the list of default assemblies. But either all parts have to be prefixed
+        with such an operator, or none.
+    """
+    if arg is None or len(arg) == 0:
+        return core.DEFAULT_ASSEMBLIES
+
+    parts = [a.strip() for a in arg.split(",") if a.strip() != ""] if isinstance(arg, str) else arg
+
+    with_no_op = [a[0] not in ("+", "-") for a in parts]
+    if any(with_no_op) and not all(with_no_op):
+        msg = "either all or no assemblies can be prefixed by the operators '+' or '-'"
+        raise ValueError(msg)
+
+    if not any(with_no_op):  # all have operators
+        assemblies = core.DEFAULT_ASSEMBLIES
+        for p in parts:
+            if p[0] == "-":
+                assemblies -= {p[1:]}
+            elif p[0] == "+":
+                assemblies |= {p[1:]}
+    else:
+        assemblies = set(parts)
+
+    return assemblies
 
 
 def _config_or_cli_arg(args: argparse.Namespace, config: dict, name: str, default) -> None:

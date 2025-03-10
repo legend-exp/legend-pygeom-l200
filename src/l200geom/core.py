@@ -19,10 +19,10 @@ log = logging.getLogger(__name__)
 
 configs = TextDB(resources.files("l200geom") / "configs" / "extra_meta")
 
-DEFAULT_ASSEMBLIES = ["wlsr", "strings", "calibration", "fibers", "top"]
-DEFINED_ASSEMBLIES = [*DEFAULT_ASSEMBLIES, "watertank"]
+DEFAULT_ASSEMBLIES = {"wlsr", "strings", "calibration", "fibers", "top"}
+DEFINED_ASSEMBLIES = DEFAULT_ASSEMBLIES | {"watertank"}
 
-PMT_CONFIGURATIONS = ["LEGEND200", "GERDA"]
+PMT_CONFIGURATIONS = {"LEGEND200", "GERDA"}
 
 
 class InstrumentationData(NamedTuple):
@@ -49,7 +49,7 @@ class InstrumentationData(NamedTuple):
 
 
 def construct(
-    assemblies: list[str] = DEFINED_ASSEMBLIES,
+    assemblies: list[str] | set[str] = DEFINED_ASSEMBLIES,
     pmt_configuration_mv: str = "LEGEND200",
     use_detailed_fiber_model: bool = False,
     config: dict | None = None,
