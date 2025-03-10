@@ -71,7 +71,7 @@ def test_read_back(tmp_path, conctruct_fiber_variants):
     # try to read it back and check detector info.
     reader = gdml.Reader(gdml_file_detailed)
     reg = reader.getRegistry()
-    ch_count = Counter([d.detector_type for f, d in detectors.walk_detectors(reg)])
+    ch_count = Counter([d.detector_type for f, d in detectors.get_all_sensvols(reg)])
     assert (
         ch_count["germanium"] > 90
     )  # the number of germanium detectors is not constant (public/private geometry).
