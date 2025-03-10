@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 from pyg4ometry import gdml
-from pygeomtools import detectors
+from pygeomtools import detectors, write_pygeom
 
 public_geom = os.getenv("LEGEND_METADATA", "") == ""
 
@@ -66,11 +66,14 @@ def test_read_back(tmp_path, conctruct_fiber_variants):
 
     # write a GDML file.
     gdml_file_detailed = tmp_path / "segmented.gdml"
-    w = gdml.Writer()
-    w.addDetector(reg_segmented)
-    w.write(gdml_file_detailed)
-    # try to read it back.
-    gdml.Reader(gdml_file_detailed)
+    write_pygeom(reg_segmented, gdml_file_detailed)
+
+    # try to read it back and check detector info.
+    reader = gdml.Reader(gdml_file_detailed)
+    reg = reader.getRegistry()
+    ch_count = Counter([d.detector_type for f, d in detectors.walk_detectors(reg)])
+    assert ch_count["germanium"] > 90  # the number of germanium detectors is not constant (public/private geometry).
+    assert ch_count["optical"] == 2 * (9 + 20)  # 2*(IB+OB)
 
 
 def test_material_store():
