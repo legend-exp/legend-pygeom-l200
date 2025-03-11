@@ -1,0 +1,6 @@
+special_metadata: "test_cfg/special_central.yaml"
+channelmap: "test_cfg/channelmap_spms_dummy.json"
+
+extra_source:
+  position_in_mm: [0, 0, 700]
+  source: "Th228+Cu"

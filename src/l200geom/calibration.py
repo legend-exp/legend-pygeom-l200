@@ -40,7 +40,7 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
         )
 
     # place calibration tubes.
-    if len(b.special_metadata.calibration) == 0:
+    if "calibration" not in b.special_metadata or len(b.special_metadata.calibration) == 0:
         return
 
     calib_tubes = {}

@@ -13,8 +13,8 @@ from . import _version, core
 log = logging.getLogger(__name__)
 
 
-def dump_gdml_cli() -> None:
-    args, config = _parse_cli_args()
+def dump_gdml_cli(argv: list[str] | None = None) -> None:
+    args, config = _parse_cli_args(argv)
 
     if args.verbose:
         logging.getLogger("l200geom").setLevel(logging.DEBUG)

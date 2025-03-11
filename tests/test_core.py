@@ -107,3 +107,32 @@ def test_material_store():
     )
     rindex = reg.defineDict["ps_fibers_RINDEX"].eval()
     assert np.all(rindex[:, 1] == [1.6, 1.6])
+
+
+@pytest.fixture
+def change_dir(request):
+    os.chdir(request.fspath.dirname)
+    yield
+    os.chdir(request.config.invocation_params.dir)
+
+
+def test_special(change_dir, tmp_path):
+    from l200geom import cli
+
+    output_file = tmp_path / "special.gdml"
+
+    assert not output_file.exists()
+    cli.dump_gdml_cli(["--config", "test_cfg/cfg_central.yaml", str(output_file)])
+    assert output_file.exists()
+
+    # try to read it back and check detector info.
+    reader = gdml.Reader(output_file)
+    reg = reader.getRegistry()
+    ch_count = Counter([d.detector_type for d in detectors.get_all_sensvols(reg).values()])
+    assert ch_count["germanium"] == 0  # no germanium in channelmap.
+    assert ch_count["optical"] == 2 * (9 + 20)  # 2*(IB+OB)
+
+    # we should have only short hangers and wrapped counterweights.
+    assert "counterweight_wrapped" in reg.solidDict
+    assert "string_support_structure_short" in reg.logicalVolumeDict
+    assert "string_support_structure" not in reg.logicalVolumeDict
