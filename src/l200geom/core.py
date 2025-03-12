@@ -49,7 +49,7 @@ class InstrumentationData(NamedTuple):
 
 
 def construct(
-    assemblies: list[str] | set[str] = DEFINED_ASSEMBLIES,
+    assemblies: list[str] | set[str] = DEFAULT_ASSEMBLIES,
     pmt_configuration_mv: str = "LEGEND200",
     use_detailed_fiber_model: bool = False,
     config: dict | None = None,

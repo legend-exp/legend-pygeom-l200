@@ -203,7 +203,7 @@ def _parse_assemblies(arg: str | Iterable[str] | None) -> set[str]:
         raise ValueError(msg)
 
     if not any(with_no_op):  # all have operators
-        assemblies = core.DEFAULT_ASSEMBLIES
+        assemblies = set(core.DEFAULT_ASSEMBLIES)  # make a copy
         for p in parts:
             if p[0] == "-":
                 assemblies -= {p[1:]}
