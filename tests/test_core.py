@@ -109,6 +109,33 @@ def test_material_store():
     assert np.all(rindex[:, 1] == [1.6, 1.6])
 
 
+def test_material_store_cli(change_dir, tmp_path):
+    # replacing material properties is _not_ a core functionality of this package, but
+    # we have to make sure that replaced material properties from the optics package are
+    # propagated correctly to the generated GDML files.
+
+    from legendoptics import store
+
+    from l200geom import cli
+
+    output_file = tmp_path / "matstore.gdml"
+
+    assert not output_file.exists()
+    cli.dump_gdml_cli(
+        ["--pygeom-optics-plugin", "test_cfg/matprop_change.py", "--assemblies=wlsr", str(output_file)]
+    )
+    assert output_file.exists()
+
+    # test that replaced material properties are reflected in the GDML.
+    reader = gdml.Reader(output_file)
+    reg = reader.getRegistry()
+    rindex = reg.defineDict["tpb_on_tetratex_RINDEX"].eval()
+    assert np.all(rindex[:, 1] == [1234, 1234])
+
+    # this is not a real CLI invocation, so we need to reset the store for the next tests.
+    store.reset_all_to_original()
+
+
 @pytest.fixture
 def change_dir(request):
     os.chdir(request.fspath.dirname)

@@ -26,8 +26,8 @@ PATH. This CLI utility is the primary way to interact with this package. For
 now, you can find usage docs by running `legend-pygeom-l200 -h`.
 
 Some geometry options can both be set on the CLI utility and on the config file.
-Those are described in [the docs on runtime configuration](runtime-cfg), but the
-descriptions similarly apply to the CLI options.
+Those are described in [the docs on geometry configuration](cfg-geometry), but
+the descriptions similarly apply to the CLI options.
 
 ```{toctree}
 :maxdepth: 2
