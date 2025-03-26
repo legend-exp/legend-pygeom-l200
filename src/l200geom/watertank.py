@@ -177,7 +177,9 @@ def construct_tank(reg: g4.Registry, tank_material: g4.Material) -> g4.LogicalVo
         "water_tank_wall", inner_radius, outer_water_tank_radius, inner_tank_height, 0, 2 * pi, reg
     )
 
-    return g4.LogicalVolume(water_tank_wall, tank_material, "water_tank_lv", reg)
+    tank_lv = g4.LogicalVolume(water_tank_wall, tank_material, "water_tank_lv", reg)
+    tank_lv.pygeom_color_rgba = False
+    return tank_lv
 
 
 def place_tank(
@@ -192,7 +194,7 @@ def place_tank(
 def construct_water(reg: g4.Registry, water_material: g4.Material) -> g4.LogicalVolume:
     water_solid = g4.solid.Tubs("water_solid", inner_radius, water_radius, water_height, 0, 2 * pi, reg)
     water_lv = g4.LogicalVolume(water_solid, water_material, "water_lv", reg)
-    water_lv.pygeom_color_rgba = [0, 0, 1, 0.08]
+    water_lv.pygeom_color_rgba = [0, 0, 1, 0.2]
     return water_lv
 
 
@@ -1067,6 +1069,7 @@ def insert_pmts(
                 namesteelcone = f"pmt_cone_{pmt_id[working_pmts]}"
                 namesteelbottom = f"pmt_bottom_{pmt_id[working_pmts]}"
                 photocathode_lv = g4.LogicalVolume(photocathode, cathode_al, namephotocathode_lv, reg)
+                photocathode_lv.pygeom_color_rgba = [0.545, 0.271, 0.074, 1]
 
                 name_pmt_acryl_lv = f"pmt_acryl_lv_{pmt_id[working_pmts]}"
                 name_pmt_acryl = f"pmt_acryl_{pmt_id[working_pmts]}"
@@ -1090,6 +1093,7 @@ def insert_pmts(
                 borosilikat_lv = g4.LogicalVolume(
                     pmt_borosilikat_glass, borosilicate_material, name_pmt_borosilikat_lv, reg
                 )
+                borosilikat_lv.pygeom_color_rgba = [0.9, 0.8, 0.5, 0.5]
                 g4.PhysicalVolume(
                     [0, 0, 0],
                     [0, 0, 0],
