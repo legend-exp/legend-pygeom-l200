@@ -266,6 +266,10 @@ def _place_hpge_unit(
         - thicknesses["cable"]
         - thicknesses["clamp"] / 2.0
         - safety_margin * 4,
+        "pen_top": z_unit_bottom
+        + det_unit.height
+        + thicknesses["insulator"]
+        + thicknesses["pen"]
     }
 
     det_pv = geant4.PhysicalVolume(
@@ -322,7 +326,7 @@ def _place_hpge_unit(
         pen_plate = _get_pen_plate("ppc_small", b.materials, b.registry)
         pen_pv = geant4.PhysicalVolume(
             list(pen_rot),
-            [string_info["x_pos"], string_info["y_pos"], z_pos["pen"]],
+            [string_info["x_pos"], string_info["y_pos"], z_pos["pen_top"]],
             pen_plate,
             "pen_top_" + det_unit.name,
             b.mother_lv,
