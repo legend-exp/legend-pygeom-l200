@@ -449,7 +449,6 @@ class OpticalMaterialRegistry:
 
         return _borosilicate
 
-
     @cached_property
     def ultem(self) -> g4.Material:
         """Ultem for the cable insulator."""
@@ -466,7 +465,6 @@ class OpticalMaterialRegistry:
 
         return _ultem
 
-
     @cached_property
     def silica(self) -> g4.Material:
         """Silica for the fiber core."""
@@ -480,7 +478,6 @@ class OpticalMaterialRegistry:
         _silica.add_element_natoms(self.get_element("O"), natoms=2)
 
         return _silica
-
 
     @cached_property
     def teflon(self) -> g4.Material:
