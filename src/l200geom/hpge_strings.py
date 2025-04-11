@@ -266,10 +266,7 @@ def _place_hpge_unit(
         - thicknesses["cable"]
         - thicknesses["clamp"] / 2.0
         - safety_margin * 4,
-        "pen_top": z_unit_bottom
-        + det_unit.height
-        + thicknesses["insulator"]
-        + thicknesses["pen"]
+        "pen_top": z_unit_bottom + det_unit.height + thicknesses["insulator"] + thicknesses["pen"],
     }
 
     det_pv = geant4.PhysicalVolume(
@@ -294,11 +291,7 @@ def _place_hpge_unit(
 
     baseplate = det_unit.baseplate
     # a lot of Ortec detectors have modified medium plates.
-    if (
-        det_unit.name.startswith("V")
-        and det_unit.baseplate == "medium"
-        and det_unit.manufacturer == "Ortec"
-    ):
+    if det_unit.name.startswith("V") and det_unit.baseplate == "medium" and det_unit.manufacturer == "Ortec":
         # TODO: what is with "V01389A"?
         baseplate = "medium_ortec"
     pen_plate = _get_pen_plate(baseplate, b.materials, b.registry)
@@ -336,10 +329,7 @@ def _place_hpge_unit(
 
     front_enc_and_insulator_parts_origin = {
         "signal": {
-            "clamp": 2.5
-            + 4.0
-            + 1.5
-            + 5 / 2,  # position from center of detector to center of volume center
+            "clamp": 2.5 + 4.0 + 1.5 + 5 / 2,  # position from center of detector to center of volume center
             "cable": 2.5 + 4.0 + 16 / 2,
             "asic": 2.5 + 4.0 + 11 + 1 / 2.0,
         },
@@ -349,9 +339,6 @@ def _place_hpge_unit(
     _place_front_end_and_insulators(
         det_unit, unit_length, string_info, b, z_pos, thicknesses, front_enc_and_insulator_parts_origin
     )
-
-
-
 
 
 def _place_hpge_string(
@@ -410,9 +397,6 @@ def _place_hpge_string(
         }
 
         _place_hpge_unit(z_unit_bottom, det_unit, unit_length, string_info, thicknesses, b)
-
-
-
 
     # the copper rod is slightly longer after the last detector.
     copper_rod_length_from_z0 = total_rod_length + 3.5
