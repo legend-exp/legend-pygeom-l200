@@ -460,3 +460,48 @@ class OpticalMaterialRegistry:
         legendoptics.pmts.pyg4_pmt_attach_borosilicate_absorption_length(_borosilicate, self.g4_registry)
 
         return _borosilicate
+
+    @cached_property
+    def ultem(self) -> g4.Material:
+        """Ultem for the cable insulator."""
+        _ultem = g4.Material(
+            name="ultem",
+            density=1.27,
+            number_of_components=4,
+            registry=self.g4_registry,
+        )
+        _ultem.add_element_natoms(self.get_element("C"), natoms=37)
+        _ultem.add_element_natoms(self.get_element("H"), natoms=24)
+        _ultem.add_element_natoms(self.get_element("O"), natoms=6)
+        _ultem.add_element_natoms(self.get_element("N"), natoms=2)
+
+        return _ultem
+
+    @cached_property
+    def silica(self) -> g4.Material:
+        """Silica for the fiber core."""
+        _silica = g4.Material(
+            name="silica",
+            density=2.2,
+            number_of_components=2,
+            registry=self.g4_registry,
+        )
+        _silica.add_element_natoms(self.get_element("Si"), natoms=1)
+        _silica.add_element_natoms(self.get_element("O"), natoms=2)
+
+        return _silica
+
+    @cached_property
+    def teflon(self) -> g4.Material:
+        """Teflon for the click and du holder."""
+
+        _teflon = g4.Material(
+            name="teflon",
+            density=2.2,
+            number_of_components=2,
+            registry=self.g4_registry,
+        )
+        _teflon.add_element_natoms(self.get_element("F"), natoms=4)
+        _teflon.add_element_natoms(self.get_element("C"), natoms=2)
+
+        return _teflon
