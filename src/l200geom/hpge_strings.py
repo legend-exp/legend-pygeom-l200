@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import math
+from collections.abc import Container
 from dataclasses import dataclass
 from importlib import resources
 
@@ -159,38 +160,40 @@ def _place_hpge_string(
         ):
             # TODO: what is with "V01389A"?
             baseplate = "medium_ortec"
-        pen_plate = _get_pen_plate(baseplate, b.materials, b.registry)
+        pen_plate = _get_pen_plate(baseplate, b)
 
-        # This rotation is not physical, but gets us closer to the real model of the PEN plates.
-        # In the CAD model, most plates are mirrored, compared to reality (some are also correct in the
-        # first place), i.e. how the plates in PGT were produced. So the STL mesh is also mirrored, so
-        # flip it over.
-        # note/TODO: this rotation should be replaced by a correct mesh, so that the counterbores are
-        # on the correct side. This might be necessary to fit in other parts!
-        pen_rot = Rotation.from_euler("XZ", [-math.pi, string_rot]).as_euler("xyz")
-        pen_pv = geant4.PhysicalVolume(
-            list(pen_rot),
-            [x_pos, y_pos, z_unit_pen],
-            pen_plate,
-            "pen_" + det_unit.name,
-            b.mother_lv,
-            b.registry,
-        )
-        _add_pen_surfaces(pen_pv, b.mother_pv, b.materials, b.registry)
-
-        # (Majorana) PPC detectors have a top PEN ring.
-        if det_unit.name.startswith("P"):
-            assert det_unit.baseplate == "small"
-            pen_plate = _get_pen_plate("ppc_small", b.materials, b.registry)
+        if pen_plate is not None:
+            # This rotation is not physical, but gets us closer to the real model of the PEN plates.
+            # In the CAD model, most plates are mirrored, compared to reality (some are also correct in the
+            # first place), i.e. how the plates in PGT were produced. So the STL mesh is also mirrored, so
+            # flip it over.
+            # note/TODO: this rotation should be replaced by a correct mesh, so that the counterbores are
+            # on the correct side. This might be necessary to fit in other parts!
+            pen_rot = Rotation.from_euler("XZ", [-math.pi, string_rot]).as_euler("xyz")
             pen_pv = geant4.PhysicalVolume(
-                [0, 0, string_rot],
-                [x_pos, y_pos, z_pos_det + det_unit.height + 1.5 / 2],
+                list(pen_rot),
+                [x_pos, y_pos, z_unit_pen],
                 pen_plate,
-                "pen_top_" + det_unit.name,
+                "pen_" + det_unit.name,
                 b.mother_lv,
                 b.registry,
             )
             _add_pen_surfaces(pen_pv, b.mother_pv, b.materials, b.registry)
+
+        # (Majorana) PPC detectors have a top PEN ring.
+        if det_unit.name.startswith("P"):
+            assert det_unit.baseplate == "small"
+            pen_plate = _get_pen_plate("ppc_small", b)
+            if pen_plate is not None:
+                pen_pv = geant4.PhysicalVolume(
+                    [0, 0, string_rot],
+                    [x_pos, y_pos, z_pos_det + det_unit.height + 1.5 / 2],
+                    pen_plate,
+                    "pen_top_" + det_unit.name,
+                    b.mother_lv,
+                    b.registry,
+                )
+                _add_pen_surfaces(pen_pv, b.mother_pv, b.materials, b.registry)
 
     # the copper rod is slightly longer after the last detector.
     copper_rod_length_from_z0 = total_rod_length + 3.5
@@ -229,23 +232,25 @@ def _place_hpge_string(
     )
     _add_nms_surfaces(nms_pv, b.mother_pv, b.materials, b.registry)
 
-    support, tristar = _get_support_structure(string_slots[1].baseplate, b.materials, b.registry)
-    geant4.PhysicalVolume(
-        [0, 0, np.deg2rad(30) + string_rot],
-        [x_pos, y_pos, z0_string + 12],  # this offset of 12 is measured from the CAD file.
-        support,
-        support.name + "_string_" + string_id,
-        b.mother_lv,
-        b.registry,
-    )
-    geant4.PhysicalVolume(
-        [0, 0, string_rot],
-        [x_pos, y_pos, z0_string + 12 - 1e-6],  # this offset of 12 is measured from the CAD file.
-        tristar,
-        tristar.name + "_string_" + string_id,
-        b.mother_lv,
-        b.registry,
-    )
+    support, tristar = _get_support_structure(string_slots[1].baseplate, b)
+    if support is not None:
+        geant4.PhysicalVolume(
+            [0, 0, np.deg2rad(30) + string_rot],
+            [x_pos, y_pos, z0_string + 12],  # this offset of 12 is measured from the CAD file.
+            support,
+            support.name + "_string_" + string_id,
+            b.mother_lv,
+            b.registry,
+        )
+    if tristar is not None:
+        geant4.PhysicalVolume(
+            [0, 0, string_rot],
+            [x_pos, y_pos, z0_string + 12 - 1e-6],  # this offset of 12 is measured from the CAD file.
+            tristar,
+            tristar.name + "_string_" + string_id,
+            b.mother_lv,
+            b.registry,
+        )
 
     copper_rod_r = string_meta.rod_radius_in_mm
     assert copper_rod_r < string_meta.minishroud_radius_in_mm - 0.75
@@ -286,20 +291,22 @@ def _place_empty_string(string_id: str, b: core.InstrumentationData):
             "StringSupportStructure-short.stl",
             "string_support_structure_short",
             b.materials.metal_copper,
-            b.registry,
+            b,
         )
-        support_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
+        if support_lv is not None:
+            support_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     else:
         support_lv = b.registry.logicalVolumeDict["string_support_structure_short"]
 
-    geant4.PhysicalVolume(
-        [0, 0, np.deg2rad(30) + string_rot],
-        [x_pos, y_pos, z0_string],
-        support_lv,
-        support_lv.name + "_string_" + string_id,
-        b.mother_lv,
-        b.registry,
-    )
+    if support_lv is not None:
+        geant4.PhysicalVolume(
+            [0, 0, np.deg2rad(30) + string_rot],
+            [x_pos, y_pos, z0_string],
+            support_lv,
+            support_lv.name + "_string_" + string_id,
+            b.mother_lv,
+            b.registry,
+        )
 
     # add the optional steel counterweight to the empty string.
     string_content = string_meta.get("empty_string_content", [])
@@ -356,8 +363,7 @@ MINISHROUD_LENGTH = (1000, 20)
 
 def _get_pen_plate(
     size: str,
-    materials: materials.OpticalMaterialRegistry,
-    registry: geant4.Registry,
+    b: core.InstrumentationData,
 ) -> geant4.LogicalVolume:
     if size not in ["small", "medium", "medium_ortec", "large", "xlarge", "ppc_small"]:
         msg = f"Invalid PEN-plate size {size}"
@@ -374,36 +380,38 @@ def _get_pen_plate(
     }
 
     pen_lv_name = f"pen_{size}"
-    if pen_lv_name not in registry.logicalVolumeDict:
+    if pen_lv_name not in b.registry.logicalVolumeDict:
         pen_file = f"BasePlate_{size}.stl" if size != "ppc_small" else "TopPlate_ppc.stl"
-        pen_lv = _read_model(pen_file, pen_lv_name, materials.pen, registry)
-        pen_lv.pygeom_color_rgba = colors[size]
+        pen_lv = _read_model(pen_file, pen_lv_name, b.materials.pen, b)
+        if pen_lv is not None:
+            pen_lv.pygeom_color_rgba = colors[size]
 
-    return registry.logicalVolumeDict[pen_lv_name]
+    return b.registry.logicalVolumeDict.get(pen_lv_name)
 
 
 def _get_support_structure(
     size: str,
-    materials: materials.OpticalMaterialRegistry,
-    registry: geant4.Registry,
+    b: core.InstrumentationData,
 ) -> tuple[geant4.LogicalVolume, geant4.LogicalVolume]:
     """Get the (simplified) support structure and the tristar of the requested size.
 
     .. note :: Both models' coordinate origins are a the top face of the tristar structure."""
-    if "string_support_structure" not in registry.logicalVolumeDict:
+    if "string_support_structure" not in b.registry.logicalVolumeDict:
         support_lv = _read_model(
-            "StringSupportStructure.stl", "string_support_structure", materials.metal_copper, registry
+            "StringSupportStructure.stl", "string_support_structure", b.materials.metal_copper, b
         )
-        support_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
+        if support_lv is not None:
+            support_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     else:
-        support_lv = registry.logicalVolumeDict["string_support_structure"]
+        support_lv = b.registry.logicalVolumeDict["string_support_structure"]
 
     tristar_lv_name = f"tristar_{size}"
-    if tristar_lv_name not in registry.logicalVolumeDict:
-        tristar_lv = _read_model(f"TriStar_{size}.stl", f"tristar_{size}", materials.pen, registry)
-        tristar_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
+    if tristar_lv_name not in b.registry.logicalVolumeDict:
+        tristar_lv = _read_model(f"TriStar_{size}.stl", f"tristar_{size}", b.materials.pen, b)
+        if tristar_lv is not None:
+            tristar_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     else:
-        tristar_lv = registry.logicalVolumeDict[tristar_lv_name]
+        tristar_lv = b.registry.logicalVolumeDict[tristar_lv_name]
 
     return support_lv, tristar_lv
 
@@ -466,8 +474,14 @@ def _add_nms_surfaces(
 
 
 def _read_model(
-    file: str, name: str, material: geant4.Material, registry: geant4.Registry
-) -> geant4.LogicalVolume:
+    file: str, name: str, material: geant4.Material, b: core.InstrumentationData
+) -> geant4.LogicalVolume | None:
+    # this is an (undocumented) option to remove meshes; either all or from a list (for performance tests).
+    no_meshes = b.runtime_config.get("no_meshes", False)
+    if (isinstance(no_meshes, Container) and (name in no_meshes)) or no_meshes is True:
+        log.warning("skipping mesh %s", name)
+        return None
+
     file = resources.files("l200geom") / "models" / file
-    solid = pyg4ometry.stl.Reader(file, solidname=name, centre=False, registry=registry).getSolid()
-    return geant4.LogicalVolume(solid, material, name, registry)
+    solid = pyg4ometry.stl.Reader(file, solidname=name, centre=False, registry=b.registry).getSolid()
+    return geant4.LogicalVolume(solid, material, name, b.registry)
