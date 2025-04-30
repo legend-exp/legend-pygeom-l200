@@ -428,8 +428,8 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
         fiber_cl2 = {}
         fiber_cl1 = {}
         fiber_core = {}
-        dim_cl1 = self.FIBER_DIM - self.FIBER_THICKNESS_CL1
-        dim_core = self.FIBER_DIM - self.FIBER_THICKNESS_CL1 - self.FIBER_THICKNESS_CL2
+        dim_cl1 = self.FIBER_DIM - 2 * self.FIBER_THICKNESS_CL2
+        dim_core = self.FIBER_DIM - 2 * (self.FIBER_THICKNESS_CL1 + self.FIBER_THICKNESS_CL2)
         for [fiber_name, fiber_length] in fibers_to_gen:
             fiber_cl2[fiber_length] = g4.solid.Box(
                 f"fiber_cl2{fiber_name}",
@@ -573,7 +573,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
         if v_name in self.registry.solidDict:
             return self.registry.logicalVolumeDict[v_name]
 
-        coating_dim = self.FIBER_DIM + tpb_thickness_nm / 1e6
+        coating_dim = self.FIBER_DIM + 2 * tpb_thickness_nm / 1e6
         if not bend:
             coating = g4.solid.Box(v_name, coating_dim, coating_dim, fiber_length, self.registry, "mm")
             inner_lv = self.fiber_cl2_lv[fiber_length]
@@ -834,7 +834,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
             self.registry,
             "mm",
         )
-        dim_cl1 = self.FIBER_DIM - self.FIBER_THICKNESS_CL1
+        dim_cl1 = self.FIBER_DIM - 2 * self.FIBER_THICKNESS_CL1
         fiber_cl1 = g4.solid.Tubs(
             f"fiber_cl1{v_suffix}",
             self.radius - dim_cl1 / 2,
@@ -845,7 +845,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
             self.registry,
             "mm",
         )
-        dim_core = self.FIBER_DIM - self.FIBER_THICKNESS_CL1 - self.FIBER_THICKNESS_CL2
+        dim_core = self.FIBER_DIM - 2 * (self.FIBER_THICKNESS_CL1 + self.FIBER_THICKNESS_CL2)
         fiber_core = g4.solid.Tubs(
             f"fiber_core{v_suffix}",
             self.radius - dim_core / 2,
@@ -939,7 +939,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
         if v_name in self.registry.solidDict:
             return self.registry.logicalVolumeDict[v_name]
 
-        coating_dim = self.FIBER_DIM + tpb_thickness_nm / 1e6
+        coating_dim = self.FIBER_DIM + 2 * tpb_thickness_nm / 1e6
         if not bend:
             coating = g4.solid.Tubs(
                 v_name,
