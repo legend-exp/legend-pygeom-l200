@@ -111,6 +111,10 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
 source_height = 17.6  # mm
 source_radius_outer = 6.4 / 2  # mm
 # inner dimension steel container (i.e. the actual source size):
+source_th_height_inner = 5  # mm
+source_th_radius_inner = 2.85 / 2  # mm
+source_th_top_inner = 2.3  # mm
+
 source_height_inner = 4  # mm
 source_radius_inner = 4 / 2  # mm
 source_top_inner = 1.2  # mm
@@ -170,12 +174,14 @@ def _place_source(
         )
 
     # inner = contains actual source material.
-    if "source_inner" not in b.registry.solidDict:
-        geant4.solid.Tubs(
-            "source_inner", 0, source_radius_inner, source_height_inner, 0, 2 * math.pi, b.registry
+    if f"source_inner_{source_type}" not in b.registry.solidDict:
+        inner_dims = (source_radius_inner, source_height_inner)
+        if source_type == "Th228":
+            inner_dims = (source_th_radius_inner, source_th_height_inner)
+        source_inner_solid = geant4.solid.Tubs(
+            f"source_inner_{source_type}", 0, *inner_dims, 0, 2 * math.pi, b.registry
         )
 
-    if f"source_inner_{source_type}" not in b.registry.logicalVolumeDict:
         if source_type == "Th228":
             source_material = b.materials.metal_caps_gold  # for Th source
         elif source_type == "Ra":
@@ -185,10 +191,12 @@ def _place_source(
             raise ValueError(msg)
 
         source_inner = geant4.LogicalVolume(
-            b.registry.solidDict["source_inner"], source_material, f"source_inner_{source_type}", b.registry
+            source_inner_solid, source_material, f"source_inner_{source_type}", b.registry
         )
         source_inner.pygeom_color_rgba = (1, 0.843, 0, 1)
-    source_inner_z = source_height / 2 - source_height_inner / 2 - source_top_inner
+        source_inner.pygeom_color_rgba = (1, 1, 0, 1)
+    source_inner_z = source_height / 2 - source_height_inner / 2
+    source_inner_z -= source_th_top_inner if source_type == "Th228" else source_top_inner
     geant4.PhysicalVolume(
         [0, 0, 0],
         [0, 0, source_inner_z] if not bare else [*xy, source_z + source_inner_z],
