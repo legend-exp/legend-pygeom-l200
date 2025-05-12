@@ -174,7 +174,7 @@ class OpticalMaterialRegistry:
 
         .. note:: modified density in order to have the equivalent of the gold foils inside the source.
         """
-        from ..calibration import source_height_inner, source_radius_inner
+        from ..calibration import source_th_height_inner, source_th_radius_inner
 
         # quoting https://doi.org/10.1088/1748-0221/18/02/P02001:
         # After the deposition, the external part of the foil with no 228Th activity was cut off, and the
@@ -187,7 +187,7 @@ class OpticalMaterialRegistry:
         volume_of_foil = (0.5 * 2.54) ** 2 * 50e-4  # cm^3
 
         # volume of the implemented source region
-        volume_of_inner = np.pi * (source_radius_inner * 0.1) ** 2 * source_height_inner * 0.1  # cm^3
+        volume_of_inner = np.pi * (source_th_radius_inner * 0.1) ** 2 * source_th_height_inner * 0.1  # cm^3
 
         # scale down density of the gold block to have the same number of gold atoms.
         density = 19.3 * volume_of_foil / volume_of_inner
