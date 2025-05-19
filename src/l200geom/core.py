@@ -1,23 +1,28 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 from importlib import resources
 from typing import NamedTuple
 
-from legendmeta import AttrsDict, LegendMetadata, TextDB
+from dbetto import AttrsDict, TextDB
+from git import GitCommandError
+from legendmeta import LegendMetadata
 from pyg4ometry import geant4
-from pygeomtools import detectors, geometry, visualization
 from pygeomtools.utils import load_dict_from_config
 
-from . import calibration, cryo, fibers, hpge_strings, materials, top, wlsr
+from . import calibration, cryo, fibers, hpge_strings, materials, top, watertank, wlsr
 from .metadata import PublicMetadataProxy
 
 log = logging.getLogger(__name__)
 
 configs = TextDB(resources.files("l200geom") / "configs" / "extra_meta")
 
-DEFINED_ASSEMBLIES = ["wlsr", "strings", "calibration", "fibers", "top"]
+DEFAULT_ASSEMBLIES = {"wlsr", "strings", "calibration", "fibers", "top"}
+DEFINED_ASSEMBLIES = DEFAULT_ASSEMBLIES | {"watertank"}
+
+PMT_CONFIGURATIONS = {"LEGEND200", "GERDA"}
 
 
 class InstrumentationData(NamedTuple):
@@ -44,7 +49,8 @@ class InstrumentationData(NamedTuple):
 
 
 def construct(
-    assemblies: list[str] = DEFINED_ASSEMBLIES,
+    assemblies: list[str] | set[str] = DEFAULT_ASSEMBLIES,
+    pmt_configuration_mv: str = "LEGEND200",
     use_detailed_fiber_model: bool = False,
     config: dict | None = None,
     public_geometry: bool = False,
@@ -54,14 +60,19 @@ def construct(
         msg = "invalid geometrical assembly specified"
         raise ValueError(msg)
 
-    lmeta = LegendMetadata() if os.getenv("LEGEND_METADATA", "") != "" else None
+    if pmt_configuration_mv not in PMT_CONFIGURATIONS:
+        msg = "invalid pmt configuration specified"
+        raise ValueError(msg)
+
+    lmeta = None
+    if not public_geometry and os.getenv("LEGEND_METADATA", None) != "":
+        with contextlib.suppress(GitCommandError):
+            lmeta = LegendMetadata()
     # require user action to construct a testdata-only geometry (i.e. to avoid accidental creation of "wrong"
     # geometries by LEGEND members).
     if lmeta is None and not public_geometry:
         msg = "cannot construct geometry from public testdata only, if not explicitly instructed"
         raise RuntimeError(msg)
-    if public_geometry:
-        lmeta = None
     if lmeta is None:
         log.warning("CONSTRUCTING GEOMETRY FROM PUBLIC DATA ONLY")
         dummy_geom = PublicMetadataProxy()
@@ -78,14 +89,36 @@ def construct(
     reg.setWorld(world_lv)
 
     # TODO: Shift the global coordinate system that z=0 is a reasonable value for defining hit positions.
-    coordinate_z_displacement = 0
+    cryo_z_displacement = 0
 
     # Create basic structure with argon and cryostat.
     cryostat_lv = cryo.construct_cryostat(mats.metal_steel, reg)
-    cryo.place_cryostat(cryostat_lv, world_lv, coordinate_z_displacement, reg)
 
+    if "watertank" in assemblies:
+        # TODO: Shift the global coordinate system that z=0 is a reasonable value for defining hit positions.
+        tank_z_displacement = 0.0
+        cryo_z_displacement = (
+            watertank.water_height / 2
+            - cryo.cryo_access_height
+            - (cryo.cryo_tub_height / 2 + cryo.cryo_top_height)
+            - cryo.access_overlap / 2
+        )  # -153
+
+        water_lv, _ = watertank.insert_muon_veto(
+            reg,
+            world_lv,
+            tank_z_displacement,
+            cryo_z_displacement,
+            mats,
+            pmt_configuration_mv,
+        )
+
+        cryo.place_cryostat(cryostat_lv, water_lv, cryo_z_displacement, reg)
+    else:
+        cryo.place_cryostat(cryostat_lv, world_lv, cryo_z_displacement, reg)
+    argon_z_displacement = 0  # center argon in cryostat
     lar_lv, lar_neck_height = cryo.construct_argon(mats.liquidargon, reg)
-    lar_pv = cryo.place_argon(lar_lv, cryostat_lv, coordinate_z_displacement, reg)
+    lar_pv = cryo.place_argon(lar_lv, cryostat_lv, argon_z_displacement, reg)
 
     array_total_height = 1488  # 1484 to 1490 mm array height (OB bottom to copper plate top).
     top_plate_z_pos_relative_to_neck = (
@@ -136,10 +169,6 @@ def construct(
         fibers.place_fiber_modules(hw_meta, instr, use_detailed_fiber_model)
 
     _assign_common_copper_surface(instr)
-
-    detectors.write_detector_auxvals(reg)
-    visualization.write_color_auxvals(reg)
-    geometry.check_registry_sanity(reg, reg)
 
     return reg
 

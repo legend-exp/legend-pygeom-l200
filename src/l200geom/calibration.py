@@ -5,7 +5,7 @@ import math
 from typing import Literal
 
 import numpy as np
-from legendmeta import AttrsDict
+from dbetto import AttrsDict
 from pyg4ometry import geant4
 
 from . import core, hpge_strings
@@ -40,7 +40,7 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
         )
 
     # place calibration tubes.
-    if len(b.special_metadata.calibration) == 0:
+    if "calibration" not in b.special_metadata or len(b.special_metadata.calibration) == 0:
         return
 
     calib_tubes = {}

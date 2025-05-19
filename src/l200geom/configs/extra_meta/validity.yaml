@@ -1,0 +1,4 @@
+- valid_from: 20230311T235840Z
+  category: all
+  apply:
+    - l200-p03-r%-T%-all-config.yaml

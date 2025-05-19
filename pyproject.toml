@@ -30,9 +30,10 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 dependencies = [
-    "legend-pygeom-hpges",
-    "legend-pygeom-optics",
-    "legend-pygeom-tools>=0.0.3",
+    "dbetto",
+    "legend-pygeom-hpges>=0.6.2",
+    "legend-pygeom-optics>=0.8",
+    "legend-pygeom-tools>=0.0.8",
     "numpy",
     "pint",
     "pyg4ometry",
@@ -127,6 +128,7 @@ extend-select = [
   "EXE",      # flake8-executable
   "NPY",      # NumPy specific rules
   "PD",       # pandas-vet
+  "N",        # pep8-naming
 ]
 ignore = [
   "PLR09",    # Too many <...>

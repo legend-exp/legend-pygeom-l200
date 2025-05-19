@@ -18,13 +18,13 @@ sis:
   "4": null
 ```
 
-> [!WARNING]
->
-> With all parameters mentioned on this page, it is very easy to produce
-> "overlaps" in the resulting geometry (i.e. the source being in the same spot
-> as another part of the geometry). Overlaps will lead to unpredictable problems
-> while simulating. It is very important that you run a `remage`-based overlap
-> check at least once for any set of parameters.
+```{warning}
+With all parameters mentioned on this page, it is very easy to produce
+"overlaps" in the resulting geometry (i.e. the source being in the same spot
+as another part of the geometry). Overlaps will lead to unpredictable problems
+while simulating. It is very important that you run a `remage`-based overlap
+check at least once for any set of parameters.
+```
 
 ## calibration source configuration
 
@@ -50,14 +50,14 @@ Different types of sources can be included in the slots:
 - `null` — no source in this slot. The tantalum absorber is placed irrespective
   of whether a source is placed inside in the slot.
 
-> [!NOTE]
->
-> The generated geometry does **not contain the requested source material**. The
-> decaying isotope has to be configured in the user's Geant4/remage macro file.
->
-> The volumes named `source_inner_sis{SIS number}_source{slot}` can be used as
-> the confinement volumes in remage (i.e. with a regex `^source_inner_.*`, if
-> all sources share an isotope).
+```{note}
+The generated geometry does **not contain the requested source material**. The
+decaying isotope has to be configured in the user's Geant4/remage macro file.
+
+The volumes named `source_inner_sis{SIS number}_source{slot}` can be used as
+the confinement volumes in remage (i.e. with a regex `^source_inner_.*`, if
+all sources share an isotope).
+```
 
 ## extra source outside SIS
 
@@ -69,7 +69,7 @@ source.
 extra_source:
   # x, y, z coordinates. z extends positively downwards, z = 0 is a source
   # "screwed into the top plate" (i.e. z is the coordinate of the top face of the
-  # volume the source wopuld normally be screwed into.
+  # volume the source would normally be screwed into.
   position_in_mm: [0, 0, 700]
   # to identify in geometry, this produces a volume `source_inner{name}`
   name: "_central"

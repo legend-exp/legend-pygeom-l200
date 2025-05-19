@@ -34,6 +34,7 @@ jobs:
       - name: Install non-python (homebrew) dependencies
         if: ${{ matrix.os == 'macOS-latest' }}
         run: |
+          brew update
           brew install opencascade cgal gmp mpfr boost
       - name: Get dependencies and install l200geom
         run: |
@@ -103,6 +104,8 @@ jobs:
           python -m pytest --cov=l200geom --cov-report=xml
       - name: Upload Coverage to codecov.io
         uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   build-docs:
     name: Build documentation

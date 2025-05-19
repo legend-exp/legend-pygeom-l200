@@ -14,8 +14,8 @@
     "groove": {
       "depth_in_mm": 2.0,
       "radius_in_mm": {
-        "outer": 10.0,
-        "inner": 12.0
+        "outer": 12.0,
+        "inner": 10.0
       }
     },
     "pp_contact": {

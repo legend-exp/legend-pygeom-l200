@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 from importlib import resources
 
-from legendmeta import AttrsDict, TextDB
+from dbetto import AttrsDict, TextDB
 
 
 class PublicMetadataProxy:

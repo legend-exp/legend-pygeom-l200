@@ -38,7 +38,11 @@ html_theme_options = {
 }
 html_title = f"{project} {version}"
 
-autodoc_default_options = {"ignore-module-all": True}
+autodoc_default_options = {
+    "ignore-module-all": True,
+    # ignore some common members from NamedTuples.
+    "exclude-members": "_asdict, _fields, _field_defaults, _make, _replace",
+}
 
 # sphinx-napoleon
 # enforce consistent usage of NumPy-style docstrings
@@ -56,6 +60,7 @@ intersphinx_mapping = {
     "pint": ("https://pint.readthedocs.io/en/stable", None),
     "pyg4ometry": ("https://pyg4ometry.readthedocs.io/en/stable", None),
     "legendmeta": ("https://pylegendmeta.readthedocs.io/en/stable/", None),
+    "dbetto": ("https://dbetto.readthedocs.io/en/stable/", None),
 }  # add new intersphinx mappings here
 
 # sphinx-autodoc

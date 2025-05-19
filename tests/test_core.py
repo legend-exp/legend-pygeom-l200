@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 from pyg4ometry import gdml
-from pygeomtools import detectors
+from pygeomtools import detectors, write_pygeom
 
 public_geom = os.getenv("LEGEND_METADATA", "") == ""
 
@@ -20,8 +20,9 @@ def test_import():
 def conctruct_fiber_variants():
     from l200geom import core
 
-    reg_detailed = core.construct(use_detailed_fiber_model=True, public_geometry=public_geom)
-    reg_segmented = core.construct(use_detailed_fiber_model=False, public_geometry=public_geom)
+    assemblies = core.DEFINED_ASSEMBLIES
+    reg_detailed = core.construct(assemblies, use_detailed_fiber_model=True, public_geometry=public_geom)
+    reg_segmented = core.construct(assemblies, use_detailed_fiber_model=False, public_geometry=public_geom)
 
     return reg_detailed, reg_segmented
 
@@ -65,11 +66,16 @@ def test_read_back(tmp_path, conctruct_fiber_variants):
 
     # write a GDML file.
     gdml_file_detailed = tmp_path / "segmented.gdml"
-    w = gdml.Writer()
-    w.addDetector(reg_segmented)
-    w.write(gdml_file_detailed)
-    # try to read it back.
-    gdml.Reader(gdml_file_detailed)
+    write_pygeom(reg_segmented, gdml_file_detailed)
+
+    # try to read it back and check detector info.
+    reader = gdml.Reader(gdml_file_detailed)
+    reg = reader.getRegistry()
+    ch_count = Counter([d.detector_type for d in detectors.get_all_sensvols(reg).values()])
+    assert (
+        ch_count["germanium"] > 90
+    )  # the number of germanium detectors is not constant (public/private geometry).
+    assert ch_count["optical"] == 2 * (9 + 20)  # 2*(IB+OB)
 
 
 def test_material_store():
@@ -101,3 +107,59 @@ def test_material_store():
     )
     rindex = reg.defineDict["ps_fibers_RINDEX"].eval()
     assert np.all(rindex[:, 1] == [1.6, 1.6])
+
+
+def test_material_store_cli(change_dir, tmp_path):
+    # replacing material properties is _not_ a core functionality of this package, but
+    # we have to make sure that replaced material properties from the optics package are
+    # propagated correctly to the generated GDML files.
+
+    from legendoptics import store
+
+    from l200geom import cli
+
+    output_file = tmp_path / "matstore.gdml"
+
+    assert not output_file.exists()
+    cli.dump_gdml_cli(
+        ["--pygeom-optics-plugin", "test_cfg/matprop_change.py", "--assemblies=wlsr", str(output_file)]
+    )
+    assert output_file.exists()
+
+    # test that replaced material properties are reflected in the GDML.
+    reader = gdml.Reader(output_file)
+    reg = reader.getRegistry()
+    rindex = reg.defineDict["tpb_on_tetratex_RINDEX"].eval()
+    assert np.all(rindex[:, 1] == [1234, 1234])
+
+    # this is not a real CLI invocation, so we need to reset the store for the next tests.
+    store.reset_all_to_original()
+
+
+@pytest.fixture
+def change_dir(request):
+    os.chdir(request.fspath.dirname)
+    yield
+    os.chdir(request.config.invocation_params.dir)
+
+
+def test_special(change_dir, tmp_path):
+    from l200geom import cli
+
+    output_file = tmp_path / "special.gdml"
+
+    assert not output_file.exists()
+    cli.dump_gdml_cli(["--config", "test_cfg/cfg_central.yaml", str(output_file)])
+    assert output_file.exists()
+
+    # try to read it back and check detector info.
+    reader = gdml.Reader(output_file)
+    reg = reader.getRegistry()
+    ch_count = Counter([d.detector_type for d in detectors.get_all_sensvols(reg).values()])
+    assert ch_count["germanium"] == 0  # no germanium in channelmap.
+    assert ch_count["optical"] == 2 * (9 + 20)  # 2*(IB+OB)
+
+    # we should have only short hangers and wrapped counterweights.
+    assert "counterweight_wrapped" in reg.solidDict
+    assert "string_support_structure_short" in reg.logicalVolumeDict
+    assert "string_support_structure" not in reg.logicalVolumeDict
