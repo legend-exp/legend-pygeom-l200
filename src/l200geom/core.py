@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import contextlib
 import logging
-import os
 from importlib import resources
 from typing import NamedTuple
 
@@ -65,7 +64,7 @@ def construct(
         raise ValueError(msg)
 
     lmeta = None
-    if not public_geometry and os.getenv("LEGEND_METADATA", None) != "":
+    if not public_geometry:
         with contextlib.suppress(GitCommandError):
             lmeta = LegendMetadata()
     # require user action to construct a testdata-only geometry (i.e. to avoid accidental creation of "wrong"
