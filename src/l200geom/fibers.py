@@ -76,6 +76,7 @@ def place_fiber_modules(
         z_displacement_mm=z_displacement_fiber_assembly,
         registry=b.registry,
         materials=b.materials,
+        barrel="outer",
     )
 
     ib_fiber_length_mm = 1400
@@ -90,6 +91,7 @@ def place_fiber_modules(
         z_displacement_mm=z_displacement_fiber_assembly - ib_delta_z,
         registry=b.registry,
         materials=b.materials,
+        barrel="inner",
     )
 
     for mod in modules.values():
@@ -146,6 +148,7 @@ class ModuleFactoryBase(ABC):
         number_of_modules: int,
         zero_angle_module: int,
         z_displacement_mm: float,
+        barrel: str,
         materials: materials.OpticalMaterialRegistry,
         registry: g4.Registry,
     ):
@@ -168,6 +171,8 @@ class ModuleFactoryBase(ABC):
             module number of the module with a zero angle in polar coordinates (at the center of the module).
         z_displacement_mm
             displacement of the top of the fiber barrel, relative to the global zero point.
+        barrel
+            barrel name
         """
         self.radius = radius_mm
         self.fiber_length = fiber_length_mm
@@ -176,6 +181,7 @@ class ModuleFactoryBase(ABC):
         self.number_of_modules = number_of_modules
         self.zero_angle_module = zero_angle_module
         self.z_displacement = z_displacement_mm
+        self.barrel = barrel
         self.materials = materials
         self.registry = registry
 
@@ -522,7 +528,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                 [0, 0, 0],
                 [0, 0, 0],
                 fiber_cl1_lv[fiber_length],
-                f"fiber_cl1{fiber_name}",
+                f"fiber_{self.barrel}_cladding1{fiber_name}",
                 self.fiber_cl2_lv[fiber_length],
                 self.registry,
             )
@@ -530,7 +536,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                 [0, 0, 0],
                 [0, 0, 0],
                 fiber_core_lv[fiber_length],
-                f"fiber_core{fiber_name}",
+                f"fiber_{self.barrel}_core{fiber_name}",
                 fiber_cl1_lv[fiber_length],
                 self.registry,
             )
@@ -539,7 +545,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                 [0, 0, 0],
                 [0, 0, 0],
                 fiber_cl1_bend_lv,
-                f"fiber_cl1_bend{v_suffix}",
+                f"fiber_{self.barrel}_cladding1_bend{v_suffix}",
                 self.fiber_cl2_bend_lv,
                 self.registry,
             )
@@ -547,7 +553,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                 [0, 0, 0],
                 [0, 0, 0],
                 fiber_core_bend_lv,
-                f"fiber_core_bend{v_suffix}",
+                f"fiber_{self.barrel}_core_bend{v_suffix}",
                 fiber_cl1_bend_lv,
                 self.registry,
             )
@@ -590,7 +596,14 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
             )
             inner_lv = self.fiber_cl2_bend_lv
         coating_lv = g4.LogicalVolume(coating, self.materials.tpb_on_fibers, v_name, self.registry)
-        g4.PhysicalVolume([0, 0, 0], [0, 0, 0], inner_lv, f"fiber_cl2{v_suffix}", coating_lv, self.registry)
+        g4.PhysicalVolume(
+            [0, 0, 0],
+            [0, 0, 0],
+            inner_lv,
+            f"fiber_{self.barrel}_cladding2{v_suffix}",
+            coating_lv,
+            self.registry,
+        )
 
         coating_lv.pygeom_color_rgba = [0, 1, 0, 0.01]
 
@@ -602,6 +615,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
         mother_lv: g4.LogicalVolume,
         mother_pv: g4.PhysicalVolume,
     ) -> None:
+        assert mod.barrel == self.barrel
         module_num = _module_name_to_num(mod.name)
         if module_num < 0 or module_num >= self.number_of_modules:
             msg = f"invalid module number {module_num} for a maximum of {self.number_of_modules}-1 modules."
@@ -641,7 +655,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                     [0, 0, -th],
                     [x, y, z_displacement_straight - delta_length / 2],
                     coating_lv,
-                    f"fiber_{mod.name}_{n}",
+                    f"fiber_{self.barrel}_tpb_{mod.name}_{n}",
                     mother_lv,
                     self.registry,
                 )
@@ -655,7 +669,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                         [math.pi / 2, th, 0],
                         [x2, y2, z_displacement_straight - self.fiber_length / 2 - delta_length],
                         coating_lv_bend,
-                        f"fiber_bend_{mod.name}_{n}",
+                        f"fiber_{self.barrel}_tpb_{mod.name}_bend_{n}",
                         mother_lv,
                         self.registry,
                     )
@@ -898,7 +912,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
             [0, 0, 0],
             [0, 0, 0],
             fiber_cl1_lv,
-            f"fiber_cl1{v_suffix}",
+            f"fiber_{self.barrel}_cladding1{v_suffix}",
             self.fiber_cl2_lv,
             self.registry,
         )
@@ -906,7 +920,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
             [0, 0, 0],
             [0, 0, 0],
             fiber_core_lv,
-            f"fiber_core{v_suffix}",
+            f"fiber_{self.barrel}_core{v_suffix}",
             fiber_cl1_lv,
             self.registry,
         )
@@ -915,7 +929,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
                 [0, 0, 0],
                 [0, 0, 0],
                 fiber_cl1_bend_lv,
-                f"fiber_cl1_bend{v_suffix}",
+                f"fiber_{self.barrel}_cladding1_bend{v_suffix}",
                 self.fiber_cl2_bend_lv,
                 self.registry,
             )
@@ -923,7 +937,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
                 [0, 0, 0],
                 [0, 0, 0],
                 fiber_core_bend_lv,
-                f"fiber_core_bend{v_suffix}",
+                f"fiber_{self.barrel}_core_bend{v_suffix}",
                 fiber_cl1_bend_lv,
                 self.registry,
             )
@@ -962,7 +976,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
             [0, 0, 0],
             [0, 0, 0],
             inner_lv,
-            f"fiber_cl2{v_suffix}",
+            f"fiber_{self.barrel}_cladding2{v_suffix}",
             coating_lv,
             self.registry,
         )
@@ -977,6 +991,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
         mother_lv: g4.LogicalVolume,
         mother_pv: g4.PhysicalVolume,
     ) -> None:
+        assert mod.barrel == self.barrel
         module_num = _module_name_to_num(mod.name)
         if module_num < 0 or module_num >= self.number_of_modules:
             msg = f"invalid module number {module_num} for a maximum of {self.number_of_modules}-1 modules."
@@ -1000,7 +1015,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
                 [0, 0, -th],
                 [0, 0, z_displacement_straight],
                 coating_lv,
-                f"fiber_{mod.name}_s",
+                f"fiber_{self.barrel}_tpb_{mod.name}_s",
                 mother_lv,
                 self.registry,
             )
@@ -1011,7 +1026,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
                     [0, 0, -th],
                     [0, 0, z_displacement_straight - self.fiber_length / 2 - self.bend_radius_mm],
                     coating_lv_bend,
-                    f"fiber_bend_{mod.name}_s",
+                    f"fiber_{self.barrel}_tpb_{mod.name}_bend_s",
                     mother_lv,
                     self.registry,
                 )
