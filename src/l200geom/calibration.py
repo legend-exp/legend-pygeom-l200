@@ -112,7 +112,7 @@ source_height = 17.6  # mm
 source_radius_outer = 6.4 / 2  # mm
 # inner dimension steel container (i.e. the actual source size):
 source_th_height_inner = 5  # mm
-source_th_radius_inner = 2.85 / 2  # mm
+source_th_radius_inner = 3 / 2  # mm
 source_th_top_inner = 2.3  # mm
 
 source_height_inner = 4  # mm
