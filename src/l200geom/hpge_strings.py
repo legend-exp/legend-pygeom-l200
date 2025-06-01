@@ -20,6 +20,7 @@ log = logging.getLogger(__name__)
 def place_hpge_strings(hpge_metadata: TextDB, b: core.InstrumentationData) -> None:
     """Construct LEGEND-200 HPGe strings."""
     # derive the strings from the channelmap.
+    mass_total = 0
     ch_map = b.channelmap.map("system", unique=False).get("geds", {}).values()
     strings_to_build = {}
 
@@ -32,9 +33,9 @@ def place_hpge_strings(hpge_metadata: TextDB, b: core.InstrumentationData) -> No
         full_meta = ch_meta | hpge_meta
 
         # Temporary fix for gedet with null enrichment value
-        if hpge_meta.production.enrichment is None:
-            log.warning("%s has no enrichment in metadata - setting to dummy value 0.86!", hpge_meta.name)
-            hpge_meta.production.enrichment = 0.86
+        if hpge_meta.production.enrichment.val is None:
+            log.warning("%s has no enrichment in metadata - setting to dummy value 0.9!", hpge_meta.name)
+            hpge_meta.production.enrichment = 0.9
 
         hpge_string_id = str(ch_meta.location.string)
         hpge_unit_id_in_string = ch_meta.location.position
@@ -43,11 +44,15 @@ def place_hpge_strings(hpge_metadata: TextDB, b: core.InstrumentationData) -> No
             strings_to_build[hpge_string_id] = {}
 
         hpge_extra_meta = b.special_metadata.hpges[hpge_meta.name]
+
+        log.debug("Building %s", hpge_meta.name)
+
+        hpge = make_hpge(full_meta, b.registry)
         strings_to_build[hpge_string_id][hpge_unit_id_in_string] = HPGeDetUnit(
             hpge_meta.name,
             hpge_meta.production.manufacturer,
             ch_meta.daq.rawid,
-            make_hpge(full_meta, b.registry),
+            hpge,
             hpge_meta.geometry.height_in_mm,
             hpge_meta.geometry.radius_in_mm,
             hpge_extra_meta["baseplate"],
@@ -56,6 +61,9 @@ def place_hpge_strings(hpge_metadata: TextDB, b: core.InstrumentationData) -> No
             hpge_extra_meta["rodlength_in_mm"] * 0.997,
             full_meta,
         )
+        mass_total += hpge.mass.to("kg").m
+
+    log.info("Total HPGe mass %.2f kg", mass_total)
 
     for string_id, string_meta in b.special_metadata.hpge_string.items():
         if string_meta.get("empty_string_content") is None:
