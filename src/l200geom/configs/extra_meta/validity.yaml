@@ -2,3 +2,7 @@
   category: all
   apply:
     - l200-p03-r%-T%-all-config.yaml
+- valid_from: 20250425T180115Z
+  category: all
+  apply:
+    - l200-p14-r%-T%-all-config.yaml
