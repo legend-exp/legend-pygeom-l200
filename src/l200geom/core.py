@@ -134,7 +134,7 @@ def construct(
     )
 
     timestamp = config.get("metadata_timestamp", "20230311T235840Z")
-    if lmeta is not None and "metadata_timestamp" in config:
+    if lmeta is None and "metadata_timestamp" in config:
         msg = "metadata_timestamp cannot be specified for public dummy geometry"
         raise ValueError(msg)
     special_metadata = load_dict_from_config(config, "special_metadata", lambda: configs.on(timestamp))
