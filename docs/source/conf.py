@@ -20,8 +20,9 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx_copybutton",
     "myst_parser",
+    "sphinx_subfigure",
 ]
-
+myst_enable_extensions = ["colon_fence"]
 source_suffix = {
     ".rst": "restructuredtext",
     ".md": "markdown",
