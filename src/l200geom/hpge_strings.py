@@ -22,6 +22,7 @@ log = logging.getLogger(__name__)
 def place_hpge_strings(hpge_metadata: TextDB, b: core.InstrumentationData) -> None:
     """Construct LEGEND-200 HPGe strings."""
     # derive the strings from the channelmap.
+    mass_total = 0
     ch_map = b.channelmap.map("system", unique=False).get("geds", {}).values()
     strings_to_build = {}
 
@@ -45,6 +46,16 @@ def place_hpge_strings(hpge_metadata: TextDB, b: core.InstrumentationData) -> No
             strings_to_build[hpge_string_id] = {}
 
         hpge_extra_meta = b.special_metadata.hpges[hpge_meta.name]
+
+        msg = f"Building {hpge_meta.name}"
+        log.debug(msg)
+
+        # quick fix for detectors without enrichment values
+        if full_meta.production.enrichment.val is None:
+            msg = f"for {hpge_meta.name} no enrichment value is available. Setting it to 0.9"
+            log.warning(msg)
+            full_meta.production.enrichment.val = 0.9
+
         strings_to_build[hpge_string_id][hpge_unit_id_in_string] = HPGeDetUnit(
             hpge_meta.name,
             hpge_meta.production.manufacturer,
@@ -55,6 +66,11 @@ def place_hpge_strings(hpge_metadata: TextDB, b: core.InstrumentationData) -> No
             hpge_extra_meta["rodlength_in_mm"],
             full_meta,
         )
+        mass = make_hpge(full_meta, None).mass
+        mass_total += mass
+
+    msg = f"Total mass {mass_total:.1f} kg"
+    log.info(msg)
 
     for string_id, string_meta in b.special_metadata.hpge_string.items():
         if string_meta.get("empty_string_content") is None:

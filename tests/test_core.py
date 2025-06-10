@@ -122,7 +122,13 @@ def test_material_store_cli(change_dir, tmp_path):
 
     assert not output_file.exists()
     cli.dump_gdml_cli(
-        ["--pygeom-optics-plugin", "test_cfg/matprop_change.py", "--assemblies=wlsr", str(output_file)]
+        [
+            "--pygeom-optics-plugin",
+            "test_cfg/matprop_change.py",
+            "--assemblies=wlsr",
+            str(output_file),
+            "--public-geom",
+        ]
     )
     assert output_file.exists()
 
@@ -149,7 +155,7 @@ def test_special(change_dir, tmp_path):
     output_file = tmp_path / "special.gdml"
 
     assert not output_file.exists()
-    cli.dump_gdml_cli(["--config", "test_cfg/cfg_central.yaml", str(output_file)])
+    cli.dump_gdml_cli(["--config", "test_cfg/cfg_central.yaml", str(output_file), "--public-geom"])
     assert output_file.exists()
 
     # try to read it back and check detector info.
