@@ -11,8 +11,8 @@ from __future__ import annotations
 
 from math import pi
 
-from pygeomtools import RemageDetectorInfo
 import pyg4ometry.geant4 as g4
+from pygeomtools import RemageDetectorInfo
 
 cryo_radius = 3976 / 2
 cryo_wall = 12
