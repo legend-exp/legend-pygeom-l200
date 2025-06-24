@@ -3,8 +3,12 @@
 This section describes briefly the geometry, with a particular focus on the
 names of the physical volumes of the various sources.
 
-:::{note} The renderings on this page use the public geometry (see
-{doc}`cfg-geometry`). :::
+:::{note}
+
+The renderings on this page use the public geometry (see
+{doc}`cfg-geometry`).
+
+:::
 
 The geometry is divided in various assemblies, as described in {doc}`vis`.
 
@@ -44,8 +48,14 @@ The center shows the detector holder structure. This is divided into several
 parts:
 
 - the pen baseplates for each detector, with physical volume names `pen_{NAME}`
-  where `{NAME}` is the detector name :::{note} These are shown in yellow,
-  green, red and blue in the rendering depending on the size :::
+  where `{NAME}` is the detector name
+  
+  :::{note}
+  
+  These are shown in yellow, green, red and blue in the rendering depending
+  on the size
+  
+  :::
 - for some detectors there are also top pen rings named `pen_top_{NAME}`,
 - the HPGe detectors are supported by a copper support structure, all parts of
   this structure are made of electroformed copper and have physical volumes
@@ -54,8 +64,12 @@ parts:
   `minishroud`, and calibration tubes which have names `calibration_tube_{IDX}`
   where `{IDX}` is the index of the SIS (see {doc}{cfg-`calibration`}).
 
-:::{warning} Some components of the HPGe readout chain, (electronics cables
-etc.) are not yet implemented! :::
+:::{warning}
+
+Some components of the HPGe readout chain, (electronics cables etc.) are not
+yet implemented!
+
+:::
 
 The hpge copper support structure consists of three components:
 
@@ -89,7 +103,9 @@ where `{IDX}` is an index of the rod.
 
 To select all copper parts in _remage_ you can use a wildcard
 `hpge_support_copper.*` and similarly to select all copper rods, tristar or
-string support structures. :::
+string support structures.
+
+:::
 
 ## Top plate
 
@@ -141,8 +157,12 @@ The rest of the names give further information on the fiber, and uses the length
 of the fiber, whether it is part of the lower bend for the outer barrel and the
 fiber index to obtain a unique physical volume name.
 
-:::{tip} For more users it is expected to use wildcards to select groups of
-optical fibers. :::
+:::{tip}
+
+For more users it is expected to use wildcards to select groups of optical
+fibers.
+
+:::
 
 The SiPMs are named after the **detector name** (ie `S001`), and there are also
 physical volumes of a wrapping around the SiPMs with names `{NAME}_wrap` (where
@@ -155,9 +175,13 @@ surrounded by a tetratex and TPB lined copper foil for reflecting scintillation
 light (WLSR).
 
 This is shown as the outer cylinder below, which shows all the main components
-of the experiment. The WLSR is the shown as the outer grey component. :::{image}
-./images/wlsr.png :height: 1000px :alt: Rendering of the full experiment
-including outer WLSR. :::
+of the experiment. The WLSR is the shown as the outer grey component.
+
+```{image}
+./images/wlsr.png
+:height: 1000px
+:alt: Rendering of the full experiment including outer WLSR.
+```
 
 This consists of three physical volumes:
 
