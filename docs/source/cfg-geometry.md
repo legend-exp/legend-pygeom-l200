@@ -30,7 +30,7 @@ pmt_config: LEGEND200 # or "GERDA"
 public_geom: false
 ```
 
-The list of assemblies provided in the `assmblies` config option or the
+The list of assemblies provided in the `assemblies` config option or the
 `--assemblies` CLI option can be either:
 
 - a list of assemblies to build: `strings,calibration` will build the argon

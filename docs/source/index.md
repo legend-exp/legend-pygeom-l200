@@ -34,6 +34,7 @@ the descriptions similarly apply to the CLI options.
 
 runtime-cfg
 vis
+description
 coordinate_systems
 ```
 

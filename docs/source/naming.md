@@ -14,6 +14,10 @@ volumes, materials, surfaces, ...).
     code (i.e. to attach surfaces)
   - python variables names are not generally expected to follow the geometry
     names, but should if possible.
+  - physical volume names should be prefixed with a descriptive name of the
+    overall system, for example `fibers_inner_` for fibers in the inner barrel,
+    or `pen_` for pen-plates. This is to enable simple wildcards/regular
+    expressions to select all volumes of the same type in \_re
 - **surfaces**
   - `surface_{from}_to_{to}` for OpticalSurfaces (property definition)
   - `bsurface_{from}_{to}` for border surfaces `* ssurface_{to}` for skin
