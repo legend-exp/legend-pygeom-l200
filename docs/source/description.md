@@ -5,8 +5,7 @@ names of the physical volumes of the various sources.
 
 :::{note}
 
-The renderings on this page use the public geometry (see
-{doc}`cfg-geometry`).
+The renderings on this page use the public geometry (see {doc}`cfg-geometry`).
 
 :::
 
@@ -49,13 +48,14 @@ parts:
 
 - the pen baseplates for each detector, with physical volume names `pen_{NAME}`
   where `{NAME}` is the detector name
-  
+
   :::{note}
-  
-  These are shown in yellow, green, red and blue in the rendering depending
-  on the size
-  
+
+  These are shown in yellow, green, red and blue in the rendering depending on
+  the size
+
   :::
+
 - for some detectors there are also top pen rings named `pen_top_{NAME}`,
 - the HPGe detectors are supported by a copper support structure, all parts of
   this structure are made of electroformed copper and have physical volumes
@@ -66,8 +66,8 @@ parts:
 
 :::{warning}
 
-Some components of the HPGe readout chain, (electronics cables etc.) are not
-yet implemented!
+Some components of the HPGe readout chain, (electronics cables etc.) are not yet
+implemented!
 
 :::
 
