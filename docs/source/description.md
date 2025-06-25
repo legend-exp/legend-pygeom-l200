@@ -177,8 +177,7 @@ light (WLSR).
 This is shown as the outer cylinder below, which shows all the main components
 of the experiment. The WLSR is the shown as the outer grey component.
 
-```{image}
-./images/wlsr.png
+```{image} ./images/wlsr.png
 :height: 1000px
 :alt: Rendering of the full experiment including outer WLSR.
 ```
