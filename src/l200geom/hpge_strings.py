@@ -278,13 +278,11 @@ def _place_hpge_unit(
     )
 
     baseplate = det_unit.baseplate
+    pen_rot = [0, 0, string_info["string_rot"]]
     # a lot of Ortec detectors have modified medium plates.
     if det_unit.name.startswith("V") and det_unit.baseplate == "medium" and det_unit.manufacturer == "Ortec":
         # TODO: what is with "V01389A"?
         baseplate = "medium_ortec"
-    pen_plate = _get_pen_plate(baseplate, b)
-
-    if pen_plate is not None:
         # This rotation is not physical, but gets us closer to the real model of the PEN plates.
         # In the CAD model, most plates are mirrored, compared to reality (some are also correct in the
         # first place), i.e. how the plates in PGT were produced. So the STL mesh is also mirrored, so
@@ -292,6 +290,9 @@ def _place_hpge_unit(
         # note/TODO: this rotation should be replaced by a correct mesh, so that the counterbores are
         # on the correct side. This might be necessary to fit in other parts!
         pen_rot = Rotation.from_euler("XZ", [-math.pi, string_info["string_rot"]]).as_euler("xyz")
+    pen_plate = _get_pen_plate(baseplate, b)
+
+    if pen_plate is not None:
         pen_pv = geant4.PhysicalVolume(
             list(pen_rot),
             [string_info["x_pos"], string_info["y_pos"], z_pos["pen"]],
@@ -308,7 +309,7 @@ def _place_hpge_unit(
         pen_plate = _get_pen_plate("ppc_small", b)
         if pen_plate is not None:
             pen_pv = geant4.PhysicalVolume(
-                list(pen_rot),
+                [0, 0, string_info["string_rot"]],
                 [string_info["x_pos"], string_info["y_pos"], z_pos["pen_top"]],
                 pen_plate,
                 "pen_top_" + det_unit.name,
@@ -450,7 +451,7 @@ def _place_hpge_string(
     assert copper_rod_r < string_meta.minishroud_radius_in_mm - 0.75
     copper_rod_name = f"hpge_support_copper_string_{string_id}_cu_rod"
     # the rod has a radius of 1.5 mm, but this would overlap with the coarse model of the PPC top PEN ring.
-    copper_rod = geant4.solid.Tubs(copper_rod_name, 0, 1.43, copper_rod_length, 0, 2 * math.pi, b.registry)
+    copper_rod = geant4.solid.Tubs(copper_rod_name, 0, 1.40, copper_rod_length, 0, 2 * math.pi, b.registry)
     copper_rod = geant4.LogicalVolume(copper_rod, b.materials.metal_copper, copper_rod_name, b.registry)
     copper_rod.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     for i in range(3):
