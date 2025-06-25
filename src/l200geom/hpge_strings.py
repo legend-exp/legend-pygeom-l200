@@ -188,14 +188,12 @@ def _place_front_end_and_insulators(
         insulator_top_length,
         b,
     )
-    click.pygeom_color_rgba = (0.6, 0.6, 0.6, 1)
-    insulator.pygeom_color_rgba = (0.6, 0.6, 0.6, 1)
 
     for i in range(3):
         copper_rod_th = np.deg2rad(-30 - i * 120)
         pieces_th = string_info["string_rot"] + np.deg2rad(-(i + 1) * 120)
         delta_click = (
-            (string_info["string_meta"].rod_radius_in_mm - 5.6)
+            (string_info["string_meta"].rod_radius_in_mm - 7)
             * string_info["string_rot_m"]
             @ np.array([np.cos(copper_rod_th), np.sin(copper_rod_th)])
         )
@@ -234,18 +232,12 @@ def _place_hpge_unit(
     thicknesses: dict,
     b: core.InstrumentationData,
 ):
-    safety_margin = 0.001  # 0.001 # 1 micro meter
-
-    pen_offset = -0.15  # mm
+    safety_margin = 0.001  # 1 micro meter
 
     z_pos = {
         "det": z_unit_bottom,
         "insulator": z_unit_bottom - thicknesses["insulator"] / 2.0 - safety_margin,
-        "pen": z_unit_bottom
-        - thicknesses["insulator"]
-        - thicknesses["pen"] / 2.0
-        - pen_offset
-        - safety_margin * 2,
+        "pen": z_unit_bottom - thicknesses["insulator"] - thicknesses["pen"] / 2.0 - safety_margin * 2,
         "click": z_unit_bottom
         - thicknesses["insulator"]
         - thicknesses["pen"]
@@ -262,7 +254,7 @@ def _place_hpge_unit(
         - thicknesses["cable"]
         - thicknesses["clamp"] / 2.0
         - safety_margin * 4,
-        "pen_top": z_unit_bottom + det_unit.height + thicknesses["insulator"] + thicknesses["pen"],
+        "pen_top": z_unit_bottom + det_unit.height + thicknesses["pen"] / 2 + safety_margin * 2,
     }
 
     det_pv = geant4.PhysicalVolume(
@@ -389,15 +381,16 @@ def _place_hpge_string(
         thicknesses = {
             "pen": 1.5,  # mm
             "cable": 0.076,  # mm
-            "clamp": 1.8,  # mm
+            "clamp": 3.7,  # mm, but no constant thickness (HV +0.5 mm)
             "click": 1.5,  # mm flap thickness
             "insulator": 2.4,  # mm flap thickness
         }
 
         _place_hpge_unit(z_unit_bottom, det_unit, unit_length, string_info, thicknesses, b)
 
-    # the copper rod is slightly longer after the last detector.
-    copper_rod_length_from_z0 = total_rod_length + 3.5
+    # the copper rod is slightly longer after the last detector (estimate from CAD model, probably does
+    # not match reality).
+    copper_rod_length_from_z0 = total_rod_length + 13
     copper_rod_length = copper_rod_length_from_z0 + 12
 
     minishroud_length = MINISHROUD_LENGTH[0] + string_meta.get("minishroud_delta_length_in_mm", 0)
@@ -904,7 +897,7 @@ def _get_click_and_insulator(
     safety_margin = 0.1
     click_top_flap = geant4.solid.Box(
         det_unit.name + "_click_top_flap",
-        20.8,
+        19,
         5,
         click_top_flap_thickness,
         b.registry,
@@ -913,9 +906,9 @@ def _get_click_and_insulator(
 
     click_top_clamp = geant4.solid.Box(
         det_unit.name + "_click_top_clamp",
-        7.8,
+        6.7,
         5,
-        2.2,
+        1.5,  # 3 mm total height around the rod
         b.registry,
         "mm",
     )
@@ -925,7 +918,7 @@ def _get_click_and_insulator(
         det_unit.name + "_click_top_without_hole",
         click_top_flap,
         click_top_clamp,
-        [[0, 0, 0], [20.8 / 2.0 - 7.8 / 2.0, 0, -2.2 / 2.0 - click_top_flap_thickness / 2.0]],
+        [[0, 0, 0], [19 / 2.0 - 6.7 / 2.0, 0, -1.5 / 2.0 - click_top_flap_thickness / 2.0]],
         b.registry,
     )
 
@@ -945,7 +938,7 @@ def _get_click_and_insulator(
         det_unit.name + "_click_top",
         click_top_without_hole,
         click_top_carving_hole,
-        [[0, 0, 0], [5.60, 0, 0]],  # Adjust the position of the hole as needed
+        [[0, 0, 0], [7, 0, 0]],  # Adjust the position of the hole as needed
         b.registry,
     )
 
@@ -1007,10 +1000,11 @@ def _get_click_and_insulator(
 
     click_top_lv = geant4.LogicalVolume(
         click_top,
-        b.materials.ultem,
+        b.materials.metal_copper,
         det_unit.name + "_click_top",
         b.registry,
     )
+    click_top_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
 
     insulator_du_holder_lv = geant4.LogicalVolume(
         insulator_du_holder,
@@ -1018,5 +1012,6 @@ def _get_click_and_insulator(
         det_unit.name + "_insulator_du_holder",
         b.registry,
     )
+    insulator_du_holder_lv.pygeom_color_rgba = (0.6, 0.6, 0.6, 1)
 
     return click_top_lv, insulator_du_holder_lv
