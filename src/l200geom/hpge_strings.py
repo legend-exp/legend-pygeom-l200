@@ -138,23 +138,37 @@ def _place_front_end_and_insulators(
         b.registry,
     )
 
+    # shorter HV cable for top contact on PPCs.
+    hv_cable_length = unit_length if not det_unit.name.startswith("P") else 15
     hv_cable, hv_clamp = _get_hv_cable(
         det_unit.name,
         thickness["cable"],
         thickness["clamp"],
-        unit_length,
+        hv_cable_length,
         b,
     )
     hv_cable.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     hv_clamp.pygeom_color_rgba = (0.3, 0.3, 0.3, 0.5)
 
-    angle_hv = math.pi * 1 / 2.0 + string_info["string_rot"]
-    x_clamp, y_clamp = string_pos_v - parts_origin["hv"] * string_rot_v
-    x_cable, y_cable = string_pos_v - (parts_origin["hv"] - 3) * string_rot_v
+    angle_hv = math.pi / 2 + string_info["string_rot"]
+    hv_rot_v = string_rot_v
+    if det_unit.name.startswith("P"):
+        hv_rot_offset = -math.pi * 1 / 3
+        angle_hv += hv_rot_offset
+        hv_rot_v = np.array(
+            [
+                np.sin(string_info["string_rot"] + hv_rot_offset),
+                np.cos(string_info["string_rot"] + hv_rot_offset),
+            ]
+        )
+    hv_z_pos = z_pos["clamp" if not det_unit.name.startswith("P") else "clamp_top"]
+
+    x_clamp, y_clamp = string_pos_v - parts_origin["hv"] * hv_rot_v
+    x_cable, y_cable = string_pos_v - (parts_origin["hv"] - 3) * hv_rot_v
 
     geant4.PhysicalVolume(
         [0, 0, angle_hv],
-        [x_cable, y_cable, z_pos["clamp"]],
+        [x_cable, y_cable, hv_z_pos],
         hv_cable,
         hv_cable.name + "_string_" + string_info["string_id"],
         b.mother_lv,
@@ -162,7 +176,7 @@ def _place_front_end_and_insulators(
     )
     geant4.PhysicalVolume(
         [0, 0, angle_hv],
-        [x_clamp, y_clamp, z_pos["clamp"]],
+        [x_clamp, y_clamp, hv_z_pos],
         hv_clamp,
         hv_clamp.name + "_string_" + string_info["string_id"],
         b.mother_lv,
@@ -238,7 +252,12 @@ def _place_hpge_unit(
         - thicknesses["pen"]
         - thicknesses["clamp"] / 2.0
         - safety_margin * 4,
-        "pen_top": z_unit_bottom + det_unit.height + thicknesses["pen"] / 2 + safety_margin * 2,
+        "pen_top": z_unit_bottom + det_unit.height + thicknesses["pen"] / 2,
+        "clamp_top": z_unit_bottom
+        + det_unit.height
+        + thicknesses["pen"]
+        + thicknesses["clamp"] / 2.0
+        + safety_margin * 3,
     }
 
     det_pv = geant4.PhysicalVolume(
@@ -292,8 +311,12 @@ def _place_hpge_unit(
         assert det_unit.baseplate == "small"
         pen_plate = _get_pen_plate("ppc_small", b)
         if pen_plate is not None:
+            # this is a physical rotation (i.e. the model should be right, it is just rotated in the file).
+            pen_top_rot = Rotation.from_euler(
+                "XZ", [-math.pi, string_info["string_rot"] + math.pi * 2 / 3]
+            ).as_euler("xyz")
             pen_pv = geant4.PhysicalVolume(
-                [0, 0, string_info["string_rot"]],
+                list(pen_top_rot),
                 [string_info["x_pos"], string_info["y_pos"], z_pos["pen_top"]],
                 pen_plate,
                 "pen_top_" + det_unit.name,
