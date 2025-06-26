@@ -96,7 +96,7 @@ def _place_front_end_and_insulators(
     string_pos_v = np.array([string_info["x_pos"], string_info["y_pos"]])
 
     # add cable and clamp
-    signal_cable, signal_clamp, signal_asic = _get_signal_cable_and_asic(
+    signal_cable, signal_clamp, signal_lmfe = _get_signal_cable_and_lmfe(
         det_unit.name,
         thickness["cable"],
         thickness["clamp"],
@@ -104,25 +104,18 @@ def _place_front_end_and_insulators(
         b,
     )
     signal_cable.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
-    signal_clamp.pygeom_color_rgba = (0.3, 0.3, 0.3, 1)
-    signal_asic.pygeom_color_rgba = (0.73, 0.33, 0.4, 1)
+    signal_clamp.pygeom_color_rgba = (0.3, 0.3, 0.3, 0.5)
+    signal_lmfe.pygeom_color_rgba = (0.73, 0.33, 0.4, 0.5)
 
     angle_signal = math.pi * 1 / 2.0 - string_info["string_rot"]
-    x_clamp, y_clamp = np.array([string_info["x_pos"], string_info["y_pos"]]) + parts_origin["signal"][
-        "clamp"
-    ] * np.array([np.sin(string_info["string_rot"]), np.cos(string_info["string_rot"])])
-    x_cable, y_cable = np.array([string_info["x_pos"], string_info["y_pos"]]) + parts_origin["signal"][
-        "cable"
-    ] * np.array([np.sin(string_info["string_rot"]), np.cos(string_info["string_rot"])])
-    asic_origin = parts_origin["signal"]["clamp"] + 3.5
-    x_asic, y_asic = np.array([string_info["x_pos"], string_info["y_pos"]]) + asic_origin * np.array(
-        [np.sin(string_info["string_rot"]), np.cos(string_info["string_rot"])]
-    )
+    x_clamp, y_clamp = string_pos_v + parts_origin["signal"] * string_rot_v
+    x_cable, y_cable = string_pos_v + (parts_origin["signal"] + 7.5 / 2 + 0.1) * string_rot_v
+    lmfe_origin = parts_origin["signal"] + (7.5 + 16 + 0.1) / 2
+    x_lmfe, y_lmfe = string_pos_v + lmfe_origin * string_rot_v
 
-    """
     geant4.PhysicalVolume(
         [math.pi, 0, angle_signal],
-        [x_cable, y_cable, z_pos["cable"]],  # this offset of 12 is measured from the CAD file.
+        [x_cable, y_cable, z_pos["clamp"]],
         signal_cable,
         signal_cable.name + "_string_" + string_info["string_id"],
         b.mother_lv,
@@ -130,7 +123,7 @@ def _place_front_end_and_insulators(
     )
     geant4.PhysicalVolume(
         [math.pi, 0, angle_signal],
-        [x_clamp, y_clamp, z_pos["clamp"]],  # this offset of 12 is measured from the CAD file.
+        [x_clamp, y_clamp, z_pos["clamp"]],
         signal_clamp,
         signal_clamp.name + "_string_" + string_info["string_id"],
         b.mother_lv,
@@ -138,13 +131,9 @@ def _place_front_end_and_insulators(
     )
     geant4.PhysicalVolume(
         [math.pi, 0, angle_signal],
-        [
-            x_asic,
-            y_asic,
-            z_pos["cable"] - thickness["cable"] - 0.5,
-        ],  # this offset of 12 is measured from the CAD file.
-        signal_asic,
-        signal_asic.name + "_string_" + string_info["string_id"],
+        [x_lmfe, y_lmfe, z_pos["clamp"]],
+        signal_lmfe,
+        signal_lmfe.name + "_string_" + string_info["string_id"],
         b.mother_lv,
         b.registry,
     )
@@ -244,15 +233,9 @@ def _place_hpge_unit(
         - thicknesses["pen"]
         - thicknesses["click"] / 2.0
         - safety_margin * 3,
-        "cable": z_unit_bottom
-        - thicknesses["insulator"]
-        - thicknesses["pen"]
-        - thicknesses["cable"] / 2.0
-        - safety_margin * 3,
         "clamp": z_unit_bottom
         - thicknesses["insulator"]
         - thicknesses["pen"]
-        - thicknesses["cable"]
         - thicknesses["clamp"] / 2.0
         - safety_margin * 4,
         "pen_top": z_unit_bottom + det_unit.height + thicknesses["pen"] / 2 + safety_margin * 2,
@@ -321,40 +304,11 @@ def _place_hpge_unit(
 
     # positions from center of detector to center of volume center
     if det_unit.baseplate == "small":
-        fe_ins_origins = {
-            "signal": {
-                "clamp": 2.5 + 4.0 + 1.5 + 5 / 2,
-                "cable": 2.5 + 4.0 + 16 / 2,
-            },
-            "hv": 32,
-        }
-
-    if det_unit.baseplate == "medium":
-        fe_ins_origins = {
-            "signal": {
-                "clamp": 2.5 + 4.0 + 1.5 + 5 / 2,
-                "cable": 2.5 + 4.0 + 16 / 2,
-            },
-            "hv": 38,
-        }
-
-    if det_unit.baseplate == "large":
-        fe_ins_origins = {
-            "signal": {
-                "clamp": 2.5 + 4.0 + 1.5 + 5 / 2,
-                "cable": 2.5 + 4.0 + 16 / 2,
-            },
-            "hv": 38,
-        }
-
-    if det_unit.baseplate == "xlarge":
-        fe_ins_origins = {
-            "signal": {
-                "clamp": 2.5 + 4.0 + 1.5 + 5 / 2,
-                "cable": 2.5 + 4.0 + 16 / 2,
-            },
-            "hv": 40,
-        }
+        fe_ins_origins = {"signal": 9.5, "hv": 32}
+    elif det_unit.baseplate in {"medium", "large"}:
+        fe_ins_origins = {"signal": 14.25, "hv": 38}
+    elif det_unit.baseplate == "xlarge":
+        fe_ins_origins = {"signal": 18, "hv": 40}
 
     _place_front_end_and_insulators(det_unit, unit_length, string_info, b, z_pos, thicknesses, fe_ins_origins)
 
@@ -776,7 +730,7 @@ def _get_hv_cable(
     return hv_cable_lv, hv_clamp_lv
 
 
-def _get_signal_cable_and_asic(
+def _get_signal_cable_and_lmfe(
     name: str,
     cable_thickness: float,
     clamp_thickness: float,
@@ -786,24 +740,24 @@ def _get_signal_cable_and_asic(
     safety_margin = 1  # mm
     cable_length -= safety_margin
 
-    signal_cable_under_clamp = geant4.solid.Box(
-        name + "_signal_cable_under_clamp",
-        16,
-        13,
-        cable_thickness,
-        b.registry,
-        "mm",
-    )
+    signal_cable_radius = 3.08
     signal_cable_clamp_to_curve = geant4.solid.Box(
         name + "_signal_cable_clamp_to_curve",
-        23.25,
+        23.25 / 3,
         2,
         cable_thickness,
         b.registry,
         "mm",
     )
     signal_cable_curve = geant4.solid.Tubs(
-        name + "_signal_cable_curve", 3.08, 3.08 + cable_thickness, 2.0, 0, math.pi / 2.0, b.registry, "mm"
+        name + "_signal_cable_curve",
+        signal_cable_radius,
+        signal_cable_radius + cable_thickness,
+        2.0,
+        0,
+        math.pi / 2.0,
+        b.registry,
+        "mm",
     )
     signal_cable_along_unit = geant4.solid.Box(
         name + "_signal_along_unit",
@@ -813,63 +767,69 @@ def _get_signal_cable_and_asic(
         b.registry,
         "mm",
     )
-    signal_cable_part1 = geant4.solid.Union(
-        name + "_signal_cable_part1",
-        signal_cable_under_clamp,
-        signal_cable_clamp_to_curve,
-        [[0, 0, 0], [16 / 2.0 + 23.25 / 2.0, 0, 0]],
-        b.registry,
-    )
-    signal_cable_part2 = geant4.solid.Union(
-        name + "_signal_cable_part2",
-        signal_cable_part1,
-        signal_cable_curve,
-        [[np.pi / 2, 0, 0], [16 / 2.0 + 23.25, 0, -3.08 - cable_thickness / 2.0]],
-        b.registry,
-    )
-    signal_cable = geant4.solid.Union(
+    signal_cable = geant4.solid.MultiUnion(
         name + "_signal_cable",
-        signal_cable_part2,
-        signal_cable_along_unit,
-        [[0, 0, 0], [16 / 2.0 + 23.25 + 3.08 + cable_thickness / 2.0, 0, -3.08 - cable_length / 2.0]],
+        [signal_cable_clamp_to_curve, signal_cable_curve, signal_cable_along_unit],
+        [
+            [[0, 0, 0], [16 + 23.25 / 3 / 2.0, 0, 0]],
+            [[+np.pi / 2, 0, 0], [16 + 23.25 / 3, 0, -signal_cable_radius - cable_thickness / 2.0]],
+            [
+                [0, 0, 0],
+                [
+                    16 + 23.25 / 3 + signal_cable_radius + cable_thickness / 2.0,
+                    0,
+                    -signal_cable_radius - cable_length / 2.0,
+                ],
+            ],
+        ],
         b.registry,
     )
 
-    signal_clamp_part1 = geant4.solid.Box(
-        name + "_signal_clamp_part1",
-        5,
-        13,
+    signal_clamp_mid = geant4.solid.Box(
+        name + "_signal_clamp_mid",
+        7.5,
+        9.5,
         clamp_thickness,
         b.registry,
         "mm",
     )
-    signal_clamp_part2 = geant4.solid.Box(
-        name + "_signal_clamp_part2",
-        9,
-        2.5,
+    signal_clamp_side = geant4.solid.Box(
+        name + "_signal_clamp_side",
+        27,
+        3,
         clamp_thickness,
         b.registry,
         "mm",
     )
-    signal_clamp_part3 = geant4.solid.Union(
-        name + "_signal_clamp_part3",
-        signal_clamp_part1,
-        signal_clamp_part2,
-        [[0, 0, 0], [5 / 2.0 + 9 / 2.0, 13 / 2.0 - 2.5 / 2.0, 0]],
-        b.registry,
-    )
-    signal_clamp = geant4.solid.Union(
+    signal_clamp = geant4.solid.MultiUnion(
         name + "_signal_clamp",
-        signal_clamp_part3,
-        signal_clamp_part2,
-        [[0, 0, 0], [5 / 2.0 + 9 / 2.0, -13 / 2.0 + 2.5 / 2.0, 0]],
+        [signal_clamp_mid, signal_clamp_side, signal_clamp_side],
+        [
+            [[0, 0, 0], [0, 0, 0]],
+            [
+                [0, 0, 0],
+                [
+                    (signal_clamp_side.pX - signal_clamp_mid.pX) / 2,
+                    +(signal_clamp_mid.pY + signal_clamp_side.pY) / 2,
+                    0,
+                ],
+            ],
+            [
+                [0, 0, 0],
+                [
+                    (signal_clamp_side.pX - signal_clamp_mid.pX) / 2,
+                    -(signal_clamp_mid.pY + signal_clamp_side.pY) / 2,
+                    0,
+                ],
+            ],
+        ],
         b.registry,
     )
 
-    signal_asic = geant4.solid.Box(
-        name + "_signal_asic",
-        1,
-        1,
+    signal_lmfe = geant4.solid.Box(
+        name + "_signal_lmfe",
+        16,
+        8,
         0.5,
         b.registry,
         "mm",
@@ -889,14 +849,14 @@ def _get_signal_cable_and_asic(
         b.registry,
     )
 
-    signal_asic_lv = geant4.LogicalVolume(
-        signal_asic,
-        b.materials.silica,
-        name + "_signal_asic",
+    signal_lmfe_lv = geant4.LogicalVolume(
+        signal_lmfe,
+        b.materials.silica,  # TODO: suprasil
+        name + "_signal_lmfe",
         b.registry,
     )
 
-    return signal_cable_lv, signal_clamp_lv, signal_asic_lv
+    return signal_cable_lv, signal_clamp_lv, signal_lmfe_lv
 
 
 def _get_click_and_insulator(
