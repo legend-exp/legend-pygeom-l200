@@ -104,8 +104,8 @@ def _place_front_end_and_insulators(
         b,
     )
     signal_cable.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
-    signal_clamp.pygeom_color_rgba = (0.3, 0.3, 0.3, 0.5)
-    signal_lmfe.pygeom_color_rgba = (0.73, 0.33, 0.4, 0.5)
+    signal_clamp.pygeom_color_rgba = (0.6, 0.6, 0.6, 0.5)
+    signal_lmfe.pygeom_color_rgba = (0.6, 0.6, 0.6, 0.3)
 
     angle_signal = math.pi * 1 / 2.0 - string_info["string_rot"]
     x_clamp, y_clamp = string_pos_v + parts_origin["signal"] * string_rot_v
@@ -148,7 +148,7 @@ def _place_front_end_and_insulators(
         b,
     )
     hv_cable.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
-    hv_clamp.pygeom_color_rgba = (0.3, 0.3, 0.3, 0.5)
+    hv_clamp.pygeom_color_rgba = (0.6, 0.6, 0.6, 0.5)
 
     angle_hv = math.pi / 2 + string_info["string_rot"]
     hv_rot_v = string_rot_v
@@ -326,12 +326,14 @@ def _place_hpge_unit(
             _add_pen_surfaces(pen_pv, b.mother_pv, b.materials, b.registry)
 
     # positions from center of detector to center of volume center
+    # note for finding these values: the holes of the HV receptacle have 3 mm distance to the side,
+    # 4 mm for signal receptacle.
     if det_unit.baseplate == "small":
-        fe_ins_origins = {"signal": 9.5, "hv": 32}
+        fe_ins_origins = {"signal": 8.8, "hv": 32.35}
     elif det_unit.baseplate in {"medium", "large"}:
-        fe_ins_origins = {"signal": 14.25, "hv": 38}
+        fe_ins_origins = {"signal": 14.25, "hv": 37.5}
     elif det_unit.baseplate == "xlarge":
-        fe_ins_origins = {"signal": 18, "hv": 40}
+        fe_ins_origins = {"signal": 17.3, "hv": 40.25}
 
     _place_front_end_and_insulators(det_unit, unit_length, string_info, b, z_pos, thicknesses, fe_ins_origins)
 
@@ -874,7 +876,7 @@ def _get_signal_cable_and_lmfe(
 
     signal_lmfe_lv = geant4.LogicalVolume(
         signal_lmfe,
-        b.materials.silica,  # TODO: suprasil
+        b.materials.silica,  # suprasil is quartz glass.
         name + "_signal_lmfe",
         b.registry,
     )
@@ -1007,6 +1009,6 @@ def _get_click_and_insulator(
         det_unit.name + "_insulator_du_holder",
         b.registry,
     )
-    insulator_du_holder_lv.pygeom_color_rgba = (0.6, 0.6, 0.6, 1)
+    insulator_du_holder_lv.pygeom_color_rgba = (0.6, 0.6, 0.6, 0.5)
 
     return click_top_lv, insulator_du_holder_lv
