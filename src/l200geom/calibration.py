@@ -82,9 +82,9 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
         # SIS reading to our coordinates. This marks the top of the torlon initialization pin in our
         # (pygeom) coordinates.
 
-        _sis_z = sis_cfg[i].sis_z if "offset" not in sis_cfg[i] else (sis_cfg[i].sis_z)-sis_cfg[i].offset
+        _sis_z = sis_cfg[i].sis_z if "offset" not in sis_cfg[i] else (sis_cfg[i].sis_z) - sis_cfg[i].offset
         pin_top = _sis_to_pygeoml200(_sis_z)
-    
+
         if len(sis_cfg[i].sources) != 4:
             msg = f"Invalid number of sources in config of SIS{i}"
             raise ValueError(msg)
