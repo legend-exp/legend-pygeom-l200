@@ -8,7 +8,7 @@ from pathlib import Path
 sys.path.insert(0, Path(__file__).parents[2].resolve().as_posix())
 
 project = "l200geom"
-copyright = "Copyright Holder"
+copyright = "The LEGEND Collaboration"
 version = importlib.metadata.version("legend-pygeom-l200")
 
 extensions = [
