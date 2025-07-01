@@ -374,7 +374,7 @@ def _get_pen_plate(
         pen_file = f"BasePlate_{size}.stl" if size != "ppc_small" else "TopPlate_ppc.stl"
         pen_lv = _read_model(pen_file, pen_lv_name, b.materials.pen, b)
         if pen_lv is not None:
-            pen_lv.pygeom_color_rgba = [1, 1, 1, 0.3]
+            pen_lv.pygeom_color_rgba = (1, 1, 1, 0.3)
 
     return b.registry.logicalVolumeDict.get(pen_lv_name)
 
