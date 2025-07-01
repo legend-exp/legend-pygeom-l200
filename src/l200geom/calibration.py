@@ -187,7 +187,7 @@ def _place_source(
         source_inner = geant4.LogicalVolume(
             b.registry.solidDict["source_inner"], source_material, f"source_inner_{source_type}", b.registry
         )
-        source_inner.pygeom_color_rgba = (1, 1, 0, 1)
+        source_inner.pygeom_color_rgba = (1, 0.843, 0, 1)
     source_inner_z = source_height / 2 - source_height_inner / 2 - source_top_inner
     geant4.PhysicalVolume(
         [0, 0, 0],
@@ -296,6 +296,7 @@ def _place_ta_absorber(
     z0 = b.top_plate_z_pos - delta_z - ABSORBER_HEIGHT / 2
 
     ta_absorber_lv = _get_ta_absorber(b)
+    ta_absorber_lv.pygeom_color_rgba = (0.5, 0.5, 0.5, 0.9)
     geant4.PhysicalVolume(
         [0, 0, 0], [*xy, z0], ta_absorber_lv, f"ta_absorber{suffix}", b.mother_lv, b.registry
     )
@@ -307,7 +308,7 @@ def _place_ta_absorber(
             "peek_holder", peek_outside, peek_inside, [[0, 0, 0], [0, 0, -10 / 2]], b.registry
         )
         peek_holder = geant4.LogicalVolume(peek_holder, b.materials.peek, "peek_holder", b.registry)
-        peek_holder.pygeom_color_rgba = (0.8, 1, 0, 1)
+        peek_holder.pygeom_color_rgba = (0.5, 0.32, 0, 1)
 
     peek_holder_z = z0 + ABSORBER_HEIGHT / 2 + 25 / 2
     geant4.PhysicalVolume(

@@ -140,7 +140,7 @@ def _place_hpge_string(
             b.registry,
         )
         det_pv.set_pygeom_active_detector(RemageDetectorInfo("germanium", det_unit.rawid, det_unit.meta))
-        det_unit.lv.pygeom_color_rgba = (0, 1, 1, 1)
+        det_unit.lv.pygeom_color_rgba = (0.5, 0.5, 0.5, 1)
 
         # add germanium reflective surface.
         geant4.BorderSurface(
@@ -369,22 +369,12 @@ def _get_pen_plate(
         msg = f"Invalid PEN-plate size {size}"
         raise ValueError(msg)
 
-    # just for vis purposes...
-    colors = {
-        "small": (1, 0, 0, 1),
-        "medium": (0, 1, 0, 1),
-        "medium_ortec": (1, 0, 1, 1),
-        "large": (0, 0, 1, 1),
-        "xlarge": (1, 1, 0, 1),
-        "ppc_small": (1, 0, 0, 1),
-    }
-
     pen_lv_name = f"pen_{size}"
     if pen_lv_name not in b.registry.logicalVolumeDict:
         pen_file = f"BasePlate_{size}.stl" if size != "ppc_small" else "TopPlate_ppc.stl"
         pen_lv = _read_model(pen_file, pen_lv_name, b.materials.pen, b)
         if pen_lv is not None:
-            pen_lv.pygeom_color_rgba = colors[size]
+            pen_lv.pygeom_color_rgba = [1, 1, 1, 0.3]
 
     return b.registry.logicalVolumeDict.get(pen_lv_name)
 
@@ -449,7 +439,7 @@ def _get_nylon_mini_shroud(
         inner_z = (1 if top_open else 0) * MINISHROUD_END_THICKNESS
         shroud = geant4.solid.Subtraction(shroud_name, outer, inner, [[0, 0, 0], [0, 0, inner_z]], registry)
         nms_lv = geant4.LogicalVolume(shroud, materials.tpb_on_nylon, shroud_name, registry)
-        nms_lv.pygeom_color_rgba = (1, 0.86, 0.86, 0.2)
+        nms_lv.pygeom_color_rgba = (0.55, 0.79, 0.97, 0.1)
 
     return registry.logicalVolumeDict[shroud_name]
 
