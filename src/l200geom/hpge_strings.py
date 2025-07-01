@@ -54,6 +54,8 @@ def place_hpge_strings(hpge_metadata: TextDB, b: core.InstrumentationData) -> No
             hpge_meta.geometry.radius_in_mm,
             hpge_extra_meta["baseplate"],
             hpge_extra_meta["rodlength_in_mm"],
+            # convert the "warm" length of the rod to the (shorter) length in the cooled down state.
+            hpge_extra_meta["rodlength_in_mm"] * 0.997,
             full_meta,
         )
 
@@ -80,34 +82,34 @@ class HPGeDetUnit:
     radius: float
     baseplate: str
     rodlength: float
+    rodlength_cold: float
     meta: AttrsDict
 
 
 def _place_front_end_and_insulators(
     det_unit: HPGeDetUnit,
-    unit_length: float,
     string_info: dict,
     b: core.InstrumentationData,
     z_pos: dict,
     thickness: dict,
     parts_origin: dict,
 ):
-    string_rot_v = np.array([np.sin(string_info["string_rot"]), np.cos(string_info["string_rot"])])
-    string_pos_v = np.array([string_info["x_pos"], string_info["y_pos"]])
+    string_rot_v = np.array([np.sin(string_info.rot), np.cos(string_info.rot)])
+    string_pos_v = np.array([string_info.x, string_info.y])
 
     # add cable and clamp
     signal_cable, signal_clamp, signal_lmfe = _get_signal_cable_and_lmfe(
         det_unit.name,
         thickness["cable"],
         thickness["clamp"],
-        unit_length,
+        det_unit.rodlength_cold,
         b,
     )
     signal_cable.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     signal_clamp.pygeom_color_rgba = (0.64, 0.54, 0.31, 0.5)
     signal_lmfe.pygeom_color_rgba = (0.64, 0.54, 0.31, 0.5)
 
-    angle_signal = math.pi * 1 / 2.0 - string_info["string_rot"]
+    angle_signal = math.pi * 1 / 2.0 - string_info.rot
     x_clamp, y_clamp = string_pos_v + parts_origin["signal"] * string_rot_v
     x_cable, y_cable = string_pos_v + (parts_origin["signal"] + 7.5 / 2 + 0.1) * string_rot_v
     lmfe_origin = parts_origin["signal"] + (7.5 + 16 + 0.1) / 2
@@ -139,7 +141,7 @@ def _place_front_end_and_insulators(
     )
 
     # shorter HV cable for top contact on PPCs.
-    hv_cable_length = unit_length if not det_unit.name.startswith("P") else 15
+    hv_cable_length = det_unit.rodlength_cold if not det_unit.name.startswith("P") else 15
     hv_cable, hv_clamp = _get_hv_cable(
         det_unit.name,
         thickness["cable"],
@@ -150,15 +152,15 @@ def _place_front_end_and_insulators(
     hv_cable.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     hv_clamp.pygeom_color_rgba = (0.64, 0.54, 0.31, 0.5)
 
-    angle_hv = math.pi / 2 + string_info["string_rot"]
+    angle_hv = math.pi / 2 + string_info.rot
     hv_rot_v = string_rot_v
     if det_unit.name.startswith("P"):
         hv_rot_offset = -math.pi * 1 / 3
         angle_hv += hv_rot_offset
         hv_rot_v = np.array(
             [
-                np.sin(string_info["string_rot"] + hv_rot_offset),
-                np.cos(string_info["string_rot"] + hv_rot_offset),
+                np.sin(string_info.rot + hv_rot_offset),
+                np.cos(string_info.rot + hv_rot_offset),
             ]
         )
     hv_z_pos = z_pos["clamp" if not det_unit.name.startswith("P") else "clamp_top"]
@@ -183,7 +185,8 @@ def _place_front_end_and_insulators(
         b.registry,
     )
 
-    insulator_top_length = string_info["string_meta"].rod_radius_in_mm - det_unit.radius + 1.5
+    # this is a heuristic to get the value of "dimension A"; in reality this is a step function.
+    insulator_top_length = string_info.meta.rod_radius_in_mm - det_unit.radius + 1.5
 
     weldment, insulator = _get_weldment_and_insulator(
         det_unit,
@@ -195,22 +198,22 @@ def _place_front_end_and_insulators(
 
     for i in range(3):
         copper_rod_th = np.deg2rad(-30 - i * 120)
-        pieces_th = string_info["string_rot"] + np.deg2rad(-(i + 1) * 120)
+        pieces_th = string_info.rot + np.deg2rad(-(i + 1) * 120)
         delta_weldment = (
-            (string_info["string_meta"].rod_radius_in_mm - 7)
-            * string_info["string_rot_m"]
+            (string_info.meta.rod_radius_in_mm - 7)
+            * string_info.rot_m
             @ np.array([np.cos(copper_rod_th), np.sin(copper_rod_th)])
         )
         delta_insulator = (
-            (string_info["string_meta"].rod_radius_in_mm - (16.5 / 2.0 - 1.5))
-            * string_info["string_rot_m"]
+            (string_info.meta.rod_radius_in_mm - (16.5 / 2.0 - 1.5))
+            * string_info.rot_m
             @ np.array([np.cos(copper_rod_th), np.sin(copper_rod_th)])
         )
         geant4.PhysicalVolume(
             [0, 0, pieces_th],
             [
-                string_info["x_pos"] + delta_weldment[0],
-                string_info["y_pos"] + delta_weldment[1],
+                string_info.x + delta_weldment[0],
+                string_info.y + delta_weldment[1],
                 z_pos["weldment"],
             ],
             weldment,
@@ -221,8 +224,8 @@ def _place_front_end_and_insulators(
         geant4.PhysicalVolume(
             [0, 0, pieces_th],
             [
-                string_info["x_pos"] + delta_insulator[0],
-                string_info["y_pos"] + delta_insulator[1],
+                string_info.x + delta_insulator[0],
+                string_info.y + delta_insulator[1],
                 z_pos["insulator"],
             ],
             insulator,
@@ -232,41 +235,39 @@ def _place_front_end_and_insulators(
         )
 
 
+def _hpge_unit_get_z(bottom: float, det_unit: HPGeDetUnit) -> tuple[dict, dict]:
+    t = {
+        "pen": 1.5,  # mm
+        "cable": 0.076,  # mm
+        "clamp": 3.7,  # mm, but no constant thickness (HV +0.5 mm)
+        "weldment": 1.5,  # mm flap thickness
+        "insulator": 2.4,  # mm flap thickness
+    }
+
+    safety = 0.001  # 1 micro meter
+    z = {
+        "det": bottom,
+        "insulator": bottom - t["insulator"] / 2.0 - safety,
+        "pen": bottom - t["insulator"] - t["pen"] / 2.0 - safety * 2,
+        "weldment": bottom - t["insulator"] - t["pen"] - t["weldment"] / 2.0 - safety * 3,
+        "clamp": bottom - t["insulator"] - t["pen"] - t["clamp"] / 2.0 - safety * 4,
+        "pen_top": bottom + det_unit.height + t["pen"] / 2,
+        "clamp_top": bottom + det_unit.height + t["pen"] + t["clamp"] / 2.0 + safety * 3,
+    }
+    return t, z
+
+
 def _place_hpge_unit(
     z_unit_bottom: float,
     det_unit: HPGeDetUnit,
-    unit_length: float,
-    string_info: dict,
-    thicknesses: dict,
+    string_info: AttrsDict,
     b: core.InstrumentationData,
 ):
-    safety_margin = 0.001  # 1 micro meter
-
-    z_pos = {
-        "det": z_unit_bottom,
-        "insulator": z_unit_bottom - thicknesses["insulator"] / 2.0 - safety_margin,
-        "pen": z_unit_bottom - thicknesses["insulator"] - thicknesses["pen"] / 2.0 - safety_margin * 2,
-        "weldment": z_unit_bottom
-        - thicknesses["insulator"]
-        - thicknesses["pen"]
-        - thicknesses["weldment"] / 2.0
-        - safety_margin * 3,
-        "clamp": z_unit_bottom
-        - thicknesses["insulator"]
-        - thicknesses["pen"]
-        - thicknesses["clamp"] / 2.0
-        - safety_margin * 4,
-        "pen_top": z_unit_bottom + det_unit.height + thicknesses["pen"] / 2,
-        "clamp_top": z_unit_bottom
-        + det_unit.height
-        + thicknesses["pen"]
-        + thicknesses["clamp"] / 2.0
-        + safety_margin * 3,
-    }
+    thicknesses, z_pos = _hpge_unit_get_z(z_unit_bottom, det_unit)
 
     det_pv = geant4.PhysicalVolume(
         [0, 0, 0],
-        [string_info["x_pos"], string_info["y_pos"], z_pos["det"]],
+        [string_info.x, string_info.y, z_pos["det"]],
         det_unit.lv,
         det_unit.name,
         b.mother_lv,
@@ -285,7 +286,7 @@ def _place_hpge_unit(
     )
 
     baseplate = det_unit.baseplate
-    pen_rot = [0, 0, string_info["string_rot"]]
+    pen_rot = [0, 0, string_info.rot]
     # a lot of Ortec detectors have modified medium plates.
     if det_unit.name.startswith("V") and det_unit.baseplate == "medium" and det_unit.manufacturer == "Ortec":
         # TODO: what is with "V01389A"?
@@ -296,13 +297,13 @@ def _place_hpge_unit(
         # flip it over.
         # note/TODO: this rotation should be replaced by a correct mesh, so that the counterbores are
         # on the correct side. This might be necessary to fit in other parts!
-        pen_rot = Rotation.from_euler("XZ", [-math.pi, string_info["string_rot"]]).as_euler("xyz")
+        pen_rot = Rotation.from_euler("XZ", [-np.pi, string_info.rot]).as_euler("xyz")
     pen_plate = _get_pen_plate(baseplate, b)
 
     if pen_plate is not None:
         pen_pv = geant4.PhysicalVolume(
             list(pen_rot),
-            [string_info["x_pos"], string_info["y_pos"], z_pos["pen"]],
+            [string_info.x, string_info.y, z_pos["pen"]],
             pen_plate,
             "pen_" + det_unit.name,
             b.mother_lv,
@@ -316,12 +317,10 @@ def _place_hpge_unit(
         pen_plate = _get_pen_plate("ppc_small", b)
         if pen_plate is not None:
             # this is a physical rotation (i.e. the model should be right, it is just rotated in the file).
-            pen_top_rot = Rotation.from_euler(
-                "XZ", [-math.pi, string_info["string_rot"] + math.pi * 2 / 3]
-            ).as_euler("xyz")
+            pen_top_rot = Rotation.from_euler("XZ", [-np.pi, string_info.rot + np.pi * 2 / 3]).as_euler("xyz")
             pen_pv = geant4.PhysicalVolume(
                 list(pen_top_rot),
-                [string_info["x_pos"], string_info["y_pos"], z_pos["pen_top"]],
+                [string_info.x, string_info.y, z_pos["pen_top"]],
                 pen_plate,
                 "pen_top_" + det_unit.name,
                 b.mother_lv,
@@ -339,7 +338,7 @@ def _place_hpge_unit(
     elif det_unit.baseplate == "xlarge":
         fe_ins_origins = {"signal": 17.3, "hv": 40.25}
 
-    _place_front_end_and_insulators(det_unit, unit_length, string_info, b, z_pos, thicknesses, fe_ins_origins)
+    _place_front_end_and_insulators(det_unit, string_info, b, z_pos, thicknesses, fe_ins_origins)
 
 
 def _place_hpge_string(
@@ -360,6 +359,9 @@ def _place_hpge_string(
     string_rot_m = np.array(
         [[np.sin(string_rot), np.cos(string_rot)], [np.cos(string_rot), -np.sin(string_rot)]]
     )
+    string_info = AttrsDict(
+        {"rot": string_rot, "rot_m": string_rot_m, "meta": string_meta, "x": x_pos, "y": y_pos}
+    )
 
     # offset the height of the string by the length of the string support rod.
     # z0_string is the upper z coordinate of the topmost detector unit.
@@ -374,30 +376,10 @@ def _place_hpge_string(
     for hpge_unit_id_in_string in range(1, max_unit_id + 1):
         det_unit = string_slots[hpge_unit_id_in_string]
 
-        # convert the "warm" length of the rod to the (shorter) length in the cooled down state.
-        total_rod_length += det_unit.rodlength * 0.997
-
+        total_rod_length += det_unit.rodlength_cold
         z_unit_bottom = z0_string - total_rod_length
 
-        unit_length = det_unit.rodlength * 0.997
-        string_info = {
-            "string_id": string_id,
-            "string_rot": string_rot,
-            "string_rot_m": string_rot_m,
-            "string_meta": string_meta,
-            "x_pos": x_pos,
-            "y_pos": y_pos,
-        }
-
-        thicknesses = {
-            "pen": 1.5,  # mm
-            "cable": 0.076,  # mm
-            "clamp": 3.7,  # mm, but no constant thickness (HV +0.5 mm)
-            "weldment": 1.5,  # mm flap thickness
-            "insulator": 2.4,  # mm flap thickness
-        }
-
-        _place_hpge_unit(z_unit_bottom, det_unit, unit_length, string_info, thicknesses, b)
+        _place_hpge_unit(z_unit_bottom, det_unit, string_info, b)
 
     # the copper rod is slightly longer after the last detector (estimate from CAD model, probably does
     # not match reality).
