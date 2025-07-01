@@ -117,7 +117,7 @@ def _place_front_end_and_insulators(
         [math.pi, 0, angle_signal],
         [x_cable, y_cable, z_pos["clamp"]],
         signal_cable,
-        signal_cable.name + "_string_" + string_info["string_id"],
+        signal_cable.name,
         b.mother_lv,
         b.registry,
     )
@@ -125,7 +125,7 @@ def _place_front_end_and_insulators(
         [math.pi, 0, angle_signal],
         [x_clamp, y_clamp, z_pos["clamp"]],
         signal_clamp,
-        signal_clamp.name + "_string_" + string_info["string_id"],
+        signal_clamp.name,
         b.mother_lv,
         b.registry,
     )
@@ -133,7 +133,7 @@ def _place_front_end_and_insulators(
         [math.pi, 0, angle_signal],
         [x_lmfe, y_lmfe, z_pos["clamp"]],
         signal_lmfe,
-        signal_lmfe.name + "_string_" + string_info["string_id"],
+        signal_lmfe.name,
         b.mother_lv,
         b.registry,
     )
@@ -170,7 +170,7 @@ def _place_front_end_and_insulators(
         [0, 0, angle_hv],
         [x_cable, y_cable, hv_z_pos],
         hv_cable,
-        hv_cable.name + "_string_" + string_info["string_id"],
+        hv_cable.name,
         b.mother_lv,
         b.registry,
     )
@@ -178,16 +178,16 @@ def _place_front_end_and_insulators(
         [0, 0, angle_hv],
         [x_clamp, y_clamp, hv_z_pos],
         hv_clamp,
-        hv_clamp.name + "_string_" + string_info["string_id"],
+        hv_clamp.name,
         b.mother_lv,
         b.registry,
     )
 
     insulator_top_length = string_info["string_meta"].rod_radius_in_mm - det_unit.radius + 1.5
 
-    click, insulator = _get_click_and_insulator(
+    weldment, insulator = _get_weldment_and_insulator(
         det_unit,
-        thickness["click"],
+        thickness["weldment"],
         thickness["insulator"],
         insulator_top_length,
         b,
@@ -196,7 +196,7 @@ def _place_front_end_and_insulators(
     for i in range(3):
         copper_rod_th = np.deg2rad(-30 - i * 120)
         pieces_th = string_info["string_rot"] + np.deg2rad(-(i + 1) * 120)
-        delta_click = (
+        delta_weldment = (
             (string_info["string_meta"].rod_radius_in_mm - 7)
             * string_info["string_rot_m"]
             @ np.array([np.cos(copper_rod_th), np.sin(copper_rod_th)])
@@ -208,9 +208,13 @@ def _place_front_end_and_insulators(
         )
         geant4.PhysicalVolume(
             [0, 0, pieces_th],
-            [string_info["x_pos"] + delta_click[0], string_info["y_pos"] + delta_click[1], z_pos["click"]],
-            click,
-            f"{click.name}_{i}",
+            [
+                string_info["x_pos"] + delta_weldment[0],
+                string_info["y_pos"] + delta_weldment[1],
+                z_pos["weldment"],
+            ],
+            weldment,
+            f"{weldment.name}_{i}",
             b.mother_lv,
             b.registry,
         )
@@ -242,10 +246,10 @@ def _place_hpge_unit(
         "det": z_unit_bottom,
         "insulator": z_unit_bottom - thicknesses["insulator"] / 2.0 - safety_margin,
         "pen": z_unit_bottom - thicknesses["insulator"] - thicknesses["pen"] / 2.0 - safety_margin * 2,
-        "click": z_unit_bottom
+        "weldment": z_unit_bottom
         - thicknesses["insulator"]
         - thicknesses["pen"]
-        - thicknesses["click"] / 2.0
+        - thicknesses["weldment"] / 2.0
         - safety_margin * 3,
         "clamp": z_unit_bottom
         - thicknesses["insulator"]
@@ -389,7 +393,7 @@ def _place_hpge_string(
             "pen": 1.5,  # mm
             "cable": 0.076,  # mm
             "clamp": 3.7,  # mm, but no constant thickness (HV +0.5 mm)
-            "click": 1.5,  # mm flap thickness
+            "weldment": 1.5,  # mm flap thickness
             "insulator": 2.4,  # mm flap thickness
         }
 
@@ -693,7 +697,7 @@ def _get_hv_cable(
 
     hv_cable_radius = 3.08
     hv_cable_curve = geant4.solid.Tubs(
-        name + "_hv_cable_curve",
+        f"cable_hv_{name}_curve",
         hv_cable_radius,
         hv_cable_radius + cable_thickness,
         2.0,
@@ -704,7 +708,7 @@ def _get_hv_cable(
     )
 
     hv_cable_along_unit = geant4.solid.Box(
-        name + "_hv_along_unit",
+        f"cable_hv_{name}_along_unit",
         cable_thickness,
         2.0,
         cable_length,
@@ -713,7 +717,7 @@ def _get_hv_cable(
     )
 
     hv_cable = geant4.solid.MultiUnion(
-        name + "_hv_cable",
+        f"cable_hv_{name}",
         [hv_cable_curve, hv_cable_along_unit],
         [
             [[-np.pi / 2, 0, 0], [8 / 2.0 + 5.5, 0, hv_cable_radius + cable_thickness / 2.0]],
@@ -730,7 +734,7 @@ def _get_hv_cable(
     )
 
     hv_clamp = geant4.solid.Box(
-        name + "_hv_clamp",
+        f"ultem_clamp_hv_{name}",
         13,
         13,
         clamp_thickness,
@@ -741,14 +745,14 @@ def _get_hv_cable(
     hv_cable_lv = geant4.LogicalVolume(
         hv_cable,
         b.materials.metal_copper,
-        name + "_hv_cable",
+        f"cable_hv_{name}",
         b.registry,
     )
 
     hv_clamp_lv = geant4.LogicalVolume(
         hv_clamp,
         b.materials.ultem,
-        name + "_hv_clamp",
+        f"ultem_clamp_hv_{name}",
         b.registry,
     )
 
@@ -767,7 +771,7 @@ def _get_signal_cable_and_lmfe(
 
     signal_cable_radius = 3.08
     signal_cable_clamp_to_curve = geant4.solid.Box(
-        name + "_signal_cable_clamp_to_curve",
+        f"cable_signal_{name}_clamp_to_curve",
         23.25 / 3,
         2,
         cable_thickness,
@@ -775,7 +779,7 @@ def _get_signal_cable_and_lmfe(
         "mm",
     )
     signal_cable_curve = geant4.solid.Tubs(
-        name + "_signal_cable_curve",
+        f"cable_signal_{name}_curve",
         signal_cable_radius,
         signal_cable_radius + cable_thickness,
         2.0,
@@ -785,7 +789,7 @@ def _get_signal_cable_and_lmfe(
         "mm",
     )
     signal_cable_along_unit = geant4.solid.Box(
-        name + "_signal_along_unit",
+        f"cable_signal_{name}_along_unit",
         cable_thickness,
         2.0,
         cable_length,
@@ -793,7 +797,7 @@ def _get_signal_cable_and_lmfe(
         "mm",
     )
     signal_cable = geant4.solid.MultiUnion(
-        name + "_signal_cable",
+        f"cable_signal_{name}",
         [signal_cable_clamp_to_curve, signal_cable_curve, signal_cable_along_unit],
         [
             [[0, 0, 0], [16 + 23.25 / 3 / 2.0, 0, 0]],
@@ -811,7 +815,7 @@ def _get_signal_cable_and_lmfe(
     )
 
     signal_clamp_mid = geant4.solid.Box(
-        name + "_signal_clamp_mid",
+        f"ultem_clamp_signal_mid_{name}",
         7.5,
         9.5,
         clamp_thickness,
@@ -819,7 +823,7 @@ def _get_signal_cable_and_lmfe(
         "mm",
     )
     signal_clamp_side = geant4.solid.Box(
-        name + "_signal_clamp_side",
+        f"ultem_clamp_signal_side_{name}",
         27,
         3,
         clamp_thickness,
@@ -827,7 +831,7 @@ def _get_signal_cable_and_lmfe(
         "mm",
     )
     signal_clamp = geant4.solid.MultiUnion(
-        name + "_signal_clamp",
+        f"ultem_clamp_signal_{name}",
         [signal_clamp_mid, signal_clamp_side, signal_clamp_side],
         [
             [[0, 0, 0], [0, 0, 0]],
@@ -852,7 +856,7 @@ def _get_signal_cable_and_lmfe(
     )
 
     signal_lmfe = geant4.solid.Box(
-        name + "_signal_lmfe",
+        f"lmfe_{name}",
         16,
         8,
         0.5,
@@ -863,46 +867,46 @@ def _get_signal_cable_and_lmfe(
     signal_cable_lv = geant4.LogicalVolume(
         signal_cable,
         b.materials.metal_copper,
-        name + "_signal_cable",
+        f"cable_signal_{name}",
         b.registry,
     )
 
     signal_clamp_lv = geant4.LogicalVolume(
         signal_clamp,
         b.materials.ultem,
-        name + "_signal_clamp",
+        f"ultem_clamp_signal_{name}",
         b.registry,
     )
 
     signal_lmfe_lv = geant4.LogicalVolume(
         signal_lmfe,
         b.materials.silica,  # suprasil is quartz glass.
-        name + "_signal_lmfe",
+        f"lmfe_{name}",
         b.registry,
     )
 
     return signal_cable_lv, signal_clamp_lv, signal_lmfe_lv
 
 
-def _get_click_and_insulator(
+def _get_weldment_and_insulator(
     det_unit: HPGeDetUnit,
-    click_top_flap_thickness: float,
+    weldment_flap_thickness: float,
     insulator_du_holder_flap_thickness: float,
     insulator_top_length: float,
     b: core.InstrumentationData,
 ):
     safety_margin = 0.1
-    click_top_flap = geant4.solid.Box(
-        det_unit.name + "_click_top_flap",
+    weldment_flap = geant4.solid.Box(
+        f"hpge_support_copper_weldment_{det_unit.name}_weldment_flap",
         19,
         5,
-        click_top_flap_thickness,
+        weldment_flap_thickness,
         b.registry,
         "mm",
     )
 
-    click_top_clamp = geant4.solid.Box(
-        det_unit.name + "_click_top_clamp",
+    weldment_clamp = geant4.solid.Box(
+        f"hpge_support_copper_weldment_{det_unit.name}_weldment_clamp",
         6.7,
         5,
         1.5,  # 3 mm total height around the rod
@@ -911,19 +915,19 @@ def _get_click_and_insulator(
     )
 
     # Union the flap and clamp
-    click_top_without_hole = geant4.solid.Union(
-        det_unit.name + "_click_top_without_hole",
-        click_top_flap,
-        click_top_clamp,
-        [[0, 0, 0], [19 / 2.0 - 6.7 / 2.0, 0, -1.5 / 2.0 - click_top_flap_thickness / 2.0]],
+    weldment_without_hole = geant4.solid.Union(
+        f"hpge_support_copper_weldment_{det_unit.name}_without_hole",
+        weldment_flap,
+        weldment_clamp,
+        [[0, 0, 0], [19 / 2.0 - 6.7 / 2.0, 0, -1.5 / 2.0 - weldment_flap_thickness / 2.0]],
         b.registry,
     )
 
-    click_top_carving_hole = geant4.solid.Tubs(
-        det_unit.name + "_click_top_carving_hole",
+    weldment_carving_hole = geant4.solid.Tubs(
+        f"hpge_support_copper_weldment_{det_unit.name}_carving_hole",
         0,
         1.5 + safety_margin,
-        2 * (click_top_flap_thickness + 2.2),
+        2 * (weldment_flap_thickness + 2.2),
         0,
         math.pi * 2,
         b.registry,
@@ -931,16 +935,16 @@ def _get_click_and_insulator(
     )
 
     # Perform subtraction only once
-    click_top = geant4.solid.Subtraction(
-        det_unit.name + "_click_top",
-        click_top_without_hole,
-        click_top_carving_hole,
+    weldment_top = geant4.solid.Subtraction(
+        f"hpge_support_copper_weldment_{det_unit.name}",
+        weldment_without_hole,
+        weldment_carving_hole,
         [[0, 0, 0], [7, 0, 0]],  # Adjust the position of the hole as needed
         b.registry,
     )
 
     insulator_du_holder_flap = geant4.solid.Box(
-        det_unit.name + "_insulator_du_holder_flap",
+        f"ultem_insulator_{det_unit.name}_flap",
         16.5,
         7,
         insulator_du_holder_flap_thickness,
@@ -951,7 +955,7 @@ def _get_click_and_insulator(
     safety_margin_touching_detector = 0.25
 
     insulator_du_holder_clamp = geant4.solid.Box(
-        det_unit.name + "_insulator_du_holder_clamp",
+        f"ultem_insulator_{det_unit.name}_clamp",
         insulator_top_length - safety_margin_touching_detector,
         7,
         5.5 - insulator_du_holder_flap_thickness,
@@ -961,7 +965,7 @@ def _get_click_and_insulator(
 
     # Union the flap and clamp
     insulator_du_holder_without_hole = geant4.solid.Union(
-        det_unit.name + "_insulator_du_holder_without_hole",
+        f"ultem_insulator_{det_unit.name}_without_hole",
         insulator_du_holder_flap,
         insulator_du_holder_clamp,
         [
@@ -976,7 +980,7 @@ def _get_click_and_insulator(
     )
 
     insulator_du_holder_carving_hole = geant4.solid.Tubs(
-        det_unit.name + "_insulator_du_holder_carving_hole",
+        f"ultem_insulator_{det_unit.name}_carving_hole",
         0,
         1.5 + safety_margin,
         3 * 5.5,
@@ -988,27 +992,27 @@ def _get_click_and_insulator(
 
     # Perform subtraction only once
     insulator_du_holder = geant4.solid.Subtraction(
-        det_unit.name + "_insulator_du_holder",
+        f"ultem_insulator_{det_unit.name}",
         insulator_du_holder_without_hole,
         insulator_du_holder_carving_hole,
         [[0, 0, 0], [16.5 / 2.0 - 1.5, 0, 0]],  # Adjust the position of the hole as needed
         b.registry,
     )
 
-    click_top_lv = geant4.LogicalVolume(
-        click_top,
+    weldment_top_lv = geant4.LogicalVolume(
+        weldment_top,
         b.materials.metal_copper,
-        det_unit.name + "_click_top",
+        f"hpge_support_copper_weldment_{det_unit.name}",
         b.registry,
     )
-    click_top_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
+    weldment_top_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
 
     insulator_du_holder_lv = geant4.LogicalVolume(
         insulator_du_holder,
         b.materials.ultem,
-        det_unit.name + "_insulator_du_holder",
+        f"ultem_insulator_{det_unit.name}",
         b.registry,
     )
     insulator_du_holder_lv.pygeom_color_rgba = (0.64, 0.54, 0.31, 0.5)
 
-    return click_top_lv, insulator_du_holder_lv
+    return weldment_top_lv, insulator_du_holder_lv

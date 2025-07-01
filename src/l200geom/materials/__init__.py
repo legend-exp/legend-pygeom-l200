@@ -465,7 +465,7 @@ class OpticalMaterialRegistry:
 
     @cached_property
     def ultem(self) -> g4.Material:
-        """Ultem for the cable insulator."""
+        """Ultem for the receptacles and insulators."""
         _ultem = g4.Material(
             name="ultem",
             density=1.27,
@@ -484,7 +484,7 @@ class OpticalMaterialRegistry:
 
     @cached_property
     def silica(self) -> g4.Material:
-        """Silica for the fiber core."""
+        """Silica for the LMFE."""
         _silica = g4.Material(
             name="silica",
             density=2.2,
