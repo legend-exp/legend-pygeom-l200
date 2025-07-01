@@ -10,7 +10,9 @@ import legendoptics.lar
 import legendoptics.nylon
 import legendoptics.pen
 import legendoptics.pmts
+import legendoptics.silica
 import legendoptics.tpb
+import legendoptics.ultem
 import legendoptics.vm2000
 import legendoptics.water
 import numpy as np
@@ -475,6 +477,9 @@ class OpticalMaterialRegistry:
         _ultem.add_element_natoms(self.get_element("O"), natoms=6)
         _ultem.add_element_natoms(self.get_element("N"), natoms=2)
 
+        legendoptics.ultem.pyg4_ultem_attach_rindex(_ultem, self.g4_registry)
+        legendoptics.ultem.pyg4_ultem_attach_absorption(_ultem, self.g4_registry)
+
         return _ultem
 
     @cached_property
@@ -488,6 +493,8 @@ class OpticalMaterialRegistry:
         )
         _silica.add_element_natoms(self.get_element("Si"), natoms=1)
         _silica.add_element_natoms(self.get_element("O"), natoms=2)
+
+        legendoptics.silica.pyg4_silica_attach_rindex(_silica, self.g4_registry)
 
         return _silica
 

@@ -104,8 +104,8 @@ def _place_front_end_and_insulators(
         b,
     )
     signal_cable.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
-    signal_clamp.pygeom_color_rgba = (0.6, 0.6, 0.6, 0.5)
-    signal_lmfe.pygeom_color_rgba = (0.6, 0.6, 0.6, 0.3)
+    signal_clamp.pygeom_color_rgba = (0.64, 0.54, 0.31, 0.5)
+    signal_lmfe.pygeom_color_rgba = (0.64, 0.54, 0.31, 0.5)
 
     angle_signal = math.pi * 1 / 2.0 - string_info["string_rot"]
     x_clamp, y_clamp = string_pos_v + parts_origin["signal"] * string_rot_v
@@ -148,7 +148,7 @@ def _place_front_end_and_insulators(
         b,
     )
     hv_cable.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
-    hv_clamp.pygeom_color_rgba = (0.6, 0.6, 0.6, 0.5)
+    hv_clamp.pygeom_color_rgba = (0.64, 0.54, 0.31, 0.5)
 
     angle_hv = math.pi / 2 + string_info["string_rot"]
     hv_rot_v = string_rot_v
@@ -1009,6 +1009,6 @@ def _get_click_and_insulator(
         det_unit.name + "_insulator_du_holder",
         b.registry,
     )
-    insulator_du_holder_lv.pygeom_color_rgba = (0.6, 0.6, 0.6, 0.5)
+    insulator_du_holder_lv.pygeom_color_rgba = (0.64, 0.54, 0.31, 0.5)
 
     return click_top_lv, insulator_du_holder_lv
