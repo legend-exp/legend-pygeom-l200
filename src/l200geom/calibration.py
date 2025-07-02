@@ -174,12 +174,13 @@ def _place_source(
         )
 
     # inner = contains actual source material.
+    inner_dims = (source_radius_inner, source_height_inner, source_top_inner)
+    if source_type == "Th228":
+        inner_dims = (source_th_radius_inner, source_th_height_inner, source_th_top_inner)
+
     if f"source_inner_{source_type}" not in b.registry.solidDict:
-        inner_dims = (source_radius_inner, source_height_inner)
-        if source_type == "Th228":
-            inner_dims = (source_th_radius_inner, source_th_height_inner)
         source_inner_solid = geant4.solid.Tubs(
-            f"source_inner_{source_type}", 0, *inner_dims, 0, 2 * math.pi, b.registry
+            f"source_inner_{source_type}", 0, *inner_dims[0:2], 0, 2 * math.pi, b.registry
         )
 
         if source_type == "Th228":
@@ -195,8 +196,8 @@ def _place_source(
         )
         source_inner.pygeom_color_rgba = (1, 0.843, 0, 1)
         source_inner.pygeom_color_rgba = (1, 1, 0, 1)
-    source_inner_z = source_height / 2 - source_height_inner / 2
-    source_inner_z -= source_th_top_inner if source_type == "Th228" else source_top_inner
+
+    source_inner_z = source_height / 2 - inner_dims[1] / 2 - inner_dims[2]
     geant4.PhysicalVolume(
         [0, 0, 0],
         [0, 0, source_inner_z] if not bare else [*xy, source_z + source_inner_z],
