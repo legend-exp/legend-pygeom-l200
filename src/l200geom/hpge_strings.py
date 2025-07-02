@@ -98,13 +98,8 @@ def _place_front_end_and_insulators(
     string_pos_v = np.array([string_info.x, string_info.y])
 
     # add cable and clamp
-    signal_cable, signal_clamp, signal_lmfe = _get_signal_cable_and_lmfe(
-        det_unit.name,
-        thickness["cable"],
-        thickness["clamp"],
-        det_unit.rodlength_cold,
-        b,
-    )
+    signal_cable = _get_signal_cable(thickness["cable"], det_unit.rodlength_cold, b)
+    signal_clamp, signal_lmfe = _get_signal_clamp_and_lmfe(thickness["clamp"], b)
     signal_cable.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     signal_clamp.pygeom_color_rgba = (0.64, 0.54, 0.31, 0.5)
     signal_lmfe.pygeom_color_rgba = (0.64, 0.54, 0.31, 0.5)
@@ -119,7 +114,7 @@ def _place_front_end_and_insulators(
         [math.pi, 0, angle_signal],
         [x_cable, y_cable, z_pos["clamp"]],
         signal_cable,
-        signal_cable.name,
+        f"{signal_cable.name}_{det_unit.name}",
         b.mother_lv,
         b.registry,
     )
@@ -127,7 +122,7 @@ def _place_front_end_and_insulators(
         [math.pi, 0, angle_signal],
         [x_clamp, y_clamp, z_pos["clamp"]],
         signal_clamp,
-        signal_clamp.name,
+        f"{signal_clamp.name}_{det_unit.name}",
         b.mother_lv,
         b.registry,
     )
@@ -135,20 +130,15 @@ def _place_front_end_and_insulators(
         [math.pi, 0, angle_signal],
         [x_lmfe, y_lmfe, z_pos["clamp"]],
         signal_lmfe,
-        signal_lmfe.name,
+        f"{signal_lmfe.name}_{det_unit.name}",
         b.mother_lv,
         b.registry,
     )
 
     # shorter HV cable for top contact on PPCs.
     hv_cable_length = det_unit.rodlength_cold if not det_unit.name.startswith("P") else 15
-    hv_cable, hv_clamp = _get_hv_cable(
-        det_unit.name,
-        thickness["cable"],
-        thickness["clamp"],
-        hv_cable_length,
-        b,
-    )
+    hv_cable = _get_hv_cable(thickness["cable"], hv_cable_length, b)
+    hv_clamp = _get_hv_clamp(thickness["clamp"], b)
     hv_cable.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     hv_clamp.pygeom_color_rgba = (0.64, 0.54, 0.31, 0.5)
 
@@ -172,7 +162,7 @@ def _place_front_end_and_insulators(
         [0, 0, angle_hv],
         [x_cable, y_cable, hv_z_pos],
         hv_cable,
-        hv_cable.name,
+        f"{hv_cable.name}_{det_unit.name}",
         b.mother_lv,
         b.registry,
     )
@@ -180,7 +170,7 @@ def _place_front_end_and_insulators(
         [0, 0, angle_hv],
         [x_clamp, y_clamp, hv_z_pos],
         hv_clamp,
-        hv_clamp.name,
+        f"{hv_clamp.name}_{det_unit.name}",
         b.mother_lv,
         b.registry,
     )
@@ -188,13 +178,8 @@ def _place_front_end_and_insulators(
     # this is a heuristic to get the value of "dimension A"; in reality this is a step function.
     insulator_top_length = string_info.meta.rod_radius_in_mm - det_unit.radius + 1.5
 
-    weldment, insulator = _get_weldment_and_insulator(
-        det_unit,
-        thickness["weldment"],
-        thickness["insulator"],
-        insulator_top_length,
-        b,
-    )
+    weldment = _get_weldment(thickness["weldment"], b)
+    insulator = _get_insulator(thickness["insulator"], insulator_top_length, b)
 
     for i in range(3):
         copper_rod_th = np.deg2rad(-30 - i * 120)
@@ -217,7 +202,7 @@ def _place_front_end_and_insulators(
                 z_pos["weldment"],
             ],
             weldment,
-            f"{weldment.name}_{i}",
+            f"{weldment.name}_{det_unit.name}_{i}",
             b.mother_lv,
             b.registry,
         )
@@ -229,7 +214,7 @@ def _place_front_end_and_insulators(
                 z_pos["insulator"],
             ],
             insulator,
-            f"{insulator.name}_{i}",
+            f"{insulator.name}_{det_unit.name}_{i}",
             b.mother_lv,
             b.registry,
         )
@@ -668,18 +653,20 @@ def _read_model(
 
 
 def _get_hv_cable(
-    name: str,
     cable_thickness: float,
-    clamp_thickness: float,
     cable_length: float,
     b: core.InstrumentationData,
 ):
+    cable_name = f"cable_hv_{cable_length}"
+    if cable_name in b.registry.logicalVolumeDict:
+        return b.registry.logicalVolumeDict[cable_name]
+
     safety_margin = 1  # mm
     cable_length -= safety_margin
 
     hv_cable_radius = 3.08
     hv_cable_curve = geant4.solid.Tubs(
-        f"cable_hv_{name}_curve",
+        f"{cable_name}_curve",
         hv_cable_radius,
         hv_cable_radius + cable_thickness,
         2.0,
@@ -690,7 +677,7 @@ def _get_hv_cable(
     )
 
     hv_cable_along_unit = geant4.solid.Box(
-        f"cable_hv_{name}_along_unit",
+        f"{cable_name}_along_unit",
         cable_thickness,
         2.0,
         cable_length,
@@ -699,7 +686,7 @@ def _get_hv_cable(
     )
 
     hv_cable = geant4.solid.MultiUnion(
-        f"cable_hv_{name}",
+        cable_name,
         [hv_cable_curve, hv_cable_along_unit],
         [
             [[-np.pi / 2, 0, 0], [8 / 2.0 + 5.5, 0, hv_cable_radius + cable_thickness / 2.0]],
@@ -715,8 +702,20 @@ def _get_hv_cable(
         b.registry,
     )
 
+    return geant4.LogicalVolume(
+        hv_cable,
+        b.materials.metal_copper,
+        cable_name,
+        b.registry,
+    )
+
+
+def _get_hv_clamp(clamp_thickness: float, b: core.InstrumentationData):
+    if "ultem_clamp_hv" in b.registry.logicalVolumeDict:
+        return b.registry.logicalVolumeDict["ultem_clamp_hv"]
+
     hv_clamp = geant4.solid.Box(
-        f"ultem_clamp_hv_{name}",
+        "ultem_clamp_hv",
         13,
         13,
         clamp_thickness,
@@ -724,36 +723,29 @@ def _get_hv_cable(
         "mm",
     )
 
-    hv_cable_lv = geant4.LogicalVolume(
-        hv_cable,
-        b.materials.metal_copper,
-        f"cable_hv_{name}",
-        b.registry,
-    )
-
-    hv_clamp_lv = geant4.LogicalVolume(
+    return geant4.LogicalVolume(
         hv_clamp,
         b.materials.ultem,
-        f"ultem_clamp_hv_{name}",
+        "ultem_clamp_hv",
         b.registry,
     )
 
-    return hv_cable_lv, hv_clamp_lv
 
-
-def _get_signal_cable_and_lmfe(
-    name: str,
+def _get_signal_cable(
     cable_thickness: float,
-    clamp_thickness: float,
     cable_length: float,
     b: core.InstrumentationData,
 ):
+    cable_name = f"cable_signal_{cable_length}"
+    if cable_name in b.registry.logicalVolumeDict:
+        return b.registry.logicalVolumeDict[cable_name]
+
     safety_margin = 1  # mm
     cable_length -= safety_margin
 
     signal_cable_radius = 3.08
     signal_cable_clamp_to_curve = geant4.solid.Box(
-        f"cable_signal_{name}_clamp_to_curve",
+        f"{cable_name}_clamp_to_curve",
         23.25 / 3,
         2,
         cable_thickness,
@@ -761,7 +753,7 @@ def _get_signal_cable_and_lmfe(
         "mm",
     )
     signal_cable_curve = geant4.solid.Tubs(
-        f"cable_signal_{name}_curve",
+        f"c{cable_name}_curve",
         signal_cable_radius,
         signal_cable_radius + cable_thickness,
         2.0,
@@ -771,7 +763,7 @@ def _get_signal_cable_and_lmfe(
         "mm",
     )
     signal_cable_along_unit = geant4.solid.Box(
-        f"cable_signal_{name}_along_unit",
+        f"{cable_name}_along_unit",
         cable_thickness,
         2.0,
         cable_length,
@@ -779,7 +771,7 @@ def _get_signal_cable_and_lmfe(
         "mm",
     )
     signal_cable = geant4.solid.MultiUnion(
-        f"cable_signal_{name}",
+        cable_name,
         [signal_cable_clamp_to_curve, signal_cable_curve, signal_cable_along_unit],
         [
             [[0, 0, 0], [16 + 23.25 / 3 / 2.0, 0, 0]],
@@ -796,8 +788,23 @@ def _get_signal_cable_and_lmfe(
         b.registry,
     )
 
+    return geant4.LogicalVolume(
+        signal_cable,
+        b.materials.metal_copper,
+        cable_name,
+        b.registry,
+    )
+
+
+def _get_signal_clamp_and_lmfe(
+    clamp_thickness: float,
+    b: core.InstrumentationData,
+):
+    if "lmfe" in b.registry.logicalVolumeDict:
+        return b.registry.logicalVolumeDict["ultem_clamp_signal"], b.registry.logicalVolumeDict["lmfe"]
+
     signal_clamp_mid = geant4.solid.Box(
-        f"ultem_clamp_signal_mid_{name}",
+        "ultem_clamp_signal_mid",
         7.5,
         9.5,
         clamp_thickness,
@@ -805,7 +812,7 @@ def _get_signal_cable_and_lmfe(
         "mm",
     )
     signal_clamp_side = geant4.solid.Box(
-        f"ultem_clamp_signal_side_{name}",
+        "ultem_clamp_signal_side",
         27,
         3,
         clamp_thickness,
@@ -813,7 +820,7 @@ def _get_signal_cable_and_lmfe(
         "mm",
     )
     signal_clamp = geant4.solid.MultiUnion(
-        f"ultem_clamp_signal_{name}",
+        "ultem_clamp_signal",
         [signal_clamp_mid, signal_clamp_side, signal_clamp_side],
         [
             [[0, 0, 0], [0, 0, 0]],
@@ -838,7 +845,7 @@ def _get_signal_cable_and_lmfe(
     )
 
     signal_lmfe = geant4.solid.Box(
-        f"lmfe_{name}",
+        "lmfe",
         16,
         8,
         0.5,
@@ -846,40 +853,33 @@ def _get_signal_cable_and_lmfe(
         "mm",
     )
 
-    signal_cable_lv = geant4.LogicalVolume(
-        signal_cable,
-        b.materials.metal_copper,
-        f"cable_signal_{name}",
-        b.registry,
-    )
-
     signal_clamp_lv = geant4.LogicalVolume(
         signal_clamp,
         b.materials.ultem,
-        f"ultem_clamp_signal_{name}",
+        "ultem_clamp_signal",
         b.registry,
     )
 
     signal_lmfe_lv = geant4.LogicalVolume(
         signal_lmfe,
         b.materials.silica,  # suprasil is quartz glass.
-        f"lmfe_{name}",
+        "lmfe",
         b.registry,
     )
 
-    return signal_cable_lv, signal_clamp_lv, signal_lmfe_lv
+    return signal_clamp_lv, signal_lmfe_lv
 
 
-def _get_weldment_and_insulator(
-    det_unit: HPGeDetUnit,
+def _get_weldment(
     weldment_flap_thickness: float,
-    insulator_du_holder_flap_thickness: float,
-    insulator_top_length: float,
     b: core.InstrumentationData,
 ):
+    if "hpge_support_copper_weldment" in b.registry.logicalVolumeDict:
+        return b.registry.logicalVolumeDict["hpge_support_copper_weldment"]
+
     safety_margin = 0.1
     weldment_flap = geant4.solid.Box(
-        f"hpge_support_copper_weldment_{det_unit.name}_weldment_flap",
+        "hpge_support_copper_weldment_flap",
         19,
         5,
         weldment_flap_thickness,
@@ -888,7 +888,7 @@ def _get_weldment_and_insulator(
     )
 
     weldment_clamp = geant4.solid.Box(
-        f"hpge_support_copper_weldment_{det_unit.name}_weldment_clamp",
+        "hpge_support_copper_weldment_clamp",
         6.7,
         5,
         1.5,  # 3 mm total height around the rod
@@ -898,7 +898,7 @@ def _get_weldment_and_insulator(
 
     # Union the flap and clamp
     weldment_without_hole = geant4.solid.Union(
-        f"hpge_support_copper_weldment_{det_unit.name}_without_hole",
+        "hpge_support_copper_weldment_without_hole",
         weldment_flap,
         weldment_clamp,
         [[0, 0, 0], [19 / 2.0 - 6.7 / 2.0, 0, -1.5 / 2.0 - weldment_flap_thickness / 2.0]],
@@ -906,7 +906,7 @@ def _get_weldment_and_insulator(
     )
 
     weldment_carving_hole = geant4.solid.Tubs(
-        f"hpge_support_copper_weldment_{det_unit.name}_carving_hole",
+        "hpge_support_copper_weldment_carving_hole",
         0,
         1.5 + safety_margin,
         2 * (weldment_flap_thickness + 2.2),
@@ -918,15 +918,35 @@ def _get_weldment_and_insulator(
 
     # Perform subtraction only once
     weldment_top = geant4.solid.Subtraction(
-        f"hpge_support_copper_weldment_{det_unit.name}",
+        "hpge_support_copper_weldment",
         weldment_without_hole,
         weldment_carving_hole,
         [[0, 0, 0], [7, 0, 0]],  # Adjust the position of the hole as needed
         b.registry,
     )
 
+    weldment_top_lv = geant4.LogicalVolume(
+        weldment_top,
+        b.materials.metal_copper,
+        "hpge_support_copper_weldment",
+        b.registry,
+    )
+    weldment_top_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
+
+    return weldment_top_lv
+
+
+def _get_insulator(
+    insulator_du_holder_flap_thickness: float,
+    insulator_top_length: float,
+    b: core.InstrumentationData,
+):
+    name_prefix = f"ultem_insulator_{insulator_top_length}"
+    if name_prefix in b.registry.logicalVolumeDict:
+        return b.registry.logicalVolumeDict[name_prefix]
+
     insulator_du_holder_flap = geant4.solid.Box(
-        f"ultem_insulator_{det_unit.name}_flap",
+        f"{name_prefix}_flap",
         16.5,
         7,
         insulator_du_holder_flap_thickness,
@@ -934,11 +954,13 @@ def _get_weldment_and_insulator(
         "mm",
     )
 
+    safety_margin = 0.1
     safety_margin_touching_detector = 0.25
+    top_length = insulator_top_length - safety_margin_touching_detector
 
     insulator_du_holder_clamp = geant4.solid.Box(
-        f"ultem_insulator_{det_unit.name}_clamp",
-        insulator_top_length - safety_margin_touching_detector,
+        f"{name_prefix}_clamp",
+        top_length,
         7,
         5.5 - insulator_du_holder_flap_thickness,
         b.registry,
@@ -947,13 +969,13 @@ def _get_weldment_and_insulator(
 
     # Union the flap and clamp
     insulator_du_holder_without_hole = geant4.solid.Union(
-        f"ultem_insulator_{det_unit.name}_without_hole",
+        f"{name_prefix}_without_hole",
         insulator_du_holder_flap,
         insulator_du_holder_clamp,
         [
             [0, 0, 0],
             [
-                16.5 / 2.0 - (insulator_top_length - safety_margin_touching_detector) / 2.0,
+                16.5 / 2.0 - top_length / 2.0,
                 0,
                 (5.5 - insulator_du_holder_flap_thickness) / 2.0 + insulator_du_holder_flap_thickness / 2.0,
             ],
@@ -962,7 +984,7 @@ def _get_weldment_and_insulator(
     )
 
     insulator_du_holder_carving_hole = geant4.solid.Tubs(
-        f"ultem_insulator_{det_unit.name}_carving_hole",
+        f"{name_prefix}_carving_hole",
         0,
         1.5 + safety_margin,
         3 * 5.5,
@@ -974,27 +996,19 @@ def _get_weldment_and_insulator(
 
     # Perform subtraction only once
     insulator_du_holder = geant4.solid.Subtraction(
-        f"ultem_insulator_{det_unit.name}",
+        name_prefix,
         insulator_du_holder_without_hole,
         insulator_du_holder_carving_hole,
         [[0, 0, 0], [16.5 / 2.0 - 1.5, 0, 0]],  # Adjust the position of the hole as needed
         b.registry,
     )
 
-    weldment_top_lv = geant4.LogicalVolume(
-        weldment_top,
-        b.materials.metal_copper,
-        f"hpge_support_copper_weldment_{det_unit.name}",
-        b.registry,
-    )
-    weldment_top_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
-
     insulator_du_holder_lv = geant4.LogicalVolume(
         insulator_du_holder,
         b.materials.ultem,
-        f"ultem_insulator_{det_unit.name}",
+        name_prefix,
         b.registry,
     )
     insulator_du_holder_lv.pygeom_color_rgba = (0.64, 0.54, 0.31, 0.5)
 
-    return weldment_top_lv, insulator_du_holder_lv
+    return insulator_du_holder_lv
