@@ -229,15 +229,30 @@ def _hpge_unit_get_z(bottom: float, det_unit: HPGeDetUnit) -> tuple[dict, dict]:
         "insulator": 2.4,  # mm flap thickness
     }
 
+    # TODO: the large PEN plate model has an unexpected rib at one of the spots for the insulator,
+    # so the real spacing cannot be used yet in the model.
+    # the mirrored medium_ortec plate would also require a special treatment.
+    insulator_spacer = t["insulator"]  # - 0.3
+
+    # - notes for those comparing this to MaGe (those offsets are not from there, but from the
+    #   CAD model): the detector unit (DU)-local z coordinates are inverted in comparison to
+    #   the coordinates here, as well as to the string coordinates in MaGe.
+    # - In MaGe, the end of the three support rods is at +11.1 mm, the PEN plate at +4 mm, the
+    #   diode at -diodeHeight/2-0.025 mm, so that the crystal contact is at DU-z 0 mm.
+    z_det = bottom + 3.7 + 1.3 + t["pen"] + insulator_spacer
+
     safety = 0.001  # 1 micro meter
+    # - note from CAD model: the distance between PEN plate top and detector bottom face varies
+    #   a lot between different diodes (i.e. BEGe's/IC's all(?) use a single standard insulator
+    #   type, and have a distance of 2.1 mm; for PPCs this varies between ca. 2.5 and 4 mm.)
     z = {
-        "det": bottom,
-        "insulator": bottom - t["insulator"] / 2.0 - safety,
-        "pen": bottom - t["insulator"] - t["pen"] / 2.0 - safety * 2,
-        "weldment": bottom - t["insulator"] - t["pen"] - t["weldment"] / 2.0 - safety * 3,
-        "clamp": bottom - t["insulator"] - t["pen"] - t["clamp"] / 2.0 - safety * 4,
-        "pen_top": bottom + det_unit.height + t["pen"] / 2,
-        "clamp_top": bottom + det_unit.height + t["pen"] + t["clamp"] / 2.0 + safety * 3,
+        "det": z_det,
+        "insulator": z_det - t["insulator"] / 2.0 - safety,
+        "pen": z_det - insulator_spacer - t["pen"] / 2.0 - safety * 2,
+        "weldment": z_det - insulator_spacer - t["pen"] - t["weldment"] / 2.0 - safety * 3,
+        "clamp": z_det - insulator_spacer - t["pen"] - t["clamp"] / 2.0 - safety * 4,
+        "pen_top": z_det + det_unit.height + t["pen"] / 2,
+        "clamp_top": z_det + det_unit.height + t["pen"] + t["clamp"] / 2.0 + safety * 3,
     }
     return t, z
 
@@ -368,7 +383,7 @@ def _place_hpge_string(
 
     # the copper rod is slightly longer after the last detector (estimate from CAD model, probably does
     # not match reality).
-    copper_rod_length_from_z0 = total_rod_length + 13
+    copper_rod_length_from_z0 = total_rod_length + 3.5
     copper_rod_length = copper_rod_length_from_z0 + 12
 
     minishroud_length = MINISHROUD_LENGTH[0] + string_meta.get("minishroud_delta_length_in_mm", 0)

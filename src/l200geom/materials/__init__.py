@@ -497,18 +497,3 @@ class OpticalMaterialRegistry:
         legendoptics.silica.pyg4_silica_attach_rindex(_silica, self.g4_registry)
 
         return _silica
-
-    @cached_property
-    def teflon(self) -> g4.Material:
-        """Teflon for the click and du holder."""
-
-        _teflon = g4.Material(
-            name="teflon",
-            density=2.2,
-            number_of_components=2,
-            registry=self.g4_registry,
-        )
-        _teflon.add_element_natoms(self.get_element("F"), natoms=4)
-        _teflon.add_element_natoms(self.get_element("C"), natoms=2)
-
-        return _teflon
