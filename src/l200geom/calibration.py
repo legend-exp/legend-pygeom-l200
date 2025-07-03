@@ -195,7 +195,6 @@ def _place_source(
             source_inner_solid, source_material, f"source_inner_{source_type}", b.registry
         )
         source_inner.pygeom_color_rgba = (1, 0.843, 0, 1)
-        source_inner.pygeom_color_rgba = (1, 1, 0, 1)
 
     source_inner_z = source_height / 2 - inner_dims[1] / 2 - inner_dims[2]
     geant4.PhysicalVolume(
