@@ -7,7 +7,6 @@ from typing import Literal
 import numpy as np
 from dbetto import AttrsDict
 from pyg4ometry import geant4
-from scipy.spatial.transform import Rotation
 
 from . import core, hpge_strings
 
@@ -47,6 +46,9 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
     calib_tubes = {}
     calib_tube_length = []
     calib_tube_xy = np.empty((2, len(b.special_metadata.calibration)))
+
+    sis_cfg = b.runtime_config.sis if hasattr(b.runtime_config, "sis") else None
+
     for i, tube in b.special_metadata.calibration.items():
         idx = int(i) - 1
         if tube.length_in_mm not in calib_tubes:
@@ -55,11 +57,24 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
             )
             calib_tube_length.append(tube.length_in_mm)
 
-        phi = np.deg2rad(tube.angle_in_deg)
+        # allow for an offset to place properly the sis
+        phi = (
+            np.deg2rad(tube.angle_in_deg)
+            if (sis_cfg is None)
+            or (i not in sis_cfg)
+            or (sis_cfg[i] is None)
+            or ("phi_offset" not in sis_cfg[i])
+            else np.deg2rad(tube.angle_in_deg + sis_cfg[i].phi_offset)
+        )
+
+        # add a very small offset to prevent overlaps if we moved a cal tube
+        _off = 2 if (phi != np.deg2rad(tube.angle_in_deg)) else 0
+
         calib_tube_xy[:, idx] = np.array([tube.radius_in_mm * np.cos(phi), -tube.radius_in_mm * np.sin(phi)])
+
         nms_pv = geant4.PhysicalVolume(
             [0, 0, 0],
-            [*calib_tube_xy[:, idx], b.top_plate_z_pos - tube.length_in_mm / 2],
+            [*calib_tube_xy[:, idx], b.top_plate_z_pos - tube.length_in_mm / 2 - _off],
             calib_tubes[tube.length_in_mm],
             f"calibration_tube_{i}",
             b.mother_lv,
@@ -75,27 +90,16 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
     # place the actual calibration sources inside.
     if not hasattr(b.runtime_config, "sis"):
         return
-    sis_cfg = b.runtime_config.sis
-    
+
     for i, _ in b.special_metadata.calibration.items():
         if i not in sis_cfg or sis_cfg[i] is None:
             continue
         idx = int(i) - 1
+
         # SIS reading to our coordinates. This marks the top of the torlon initialization pin in our
         # (pygeom) coordinates.
 
         _sis_z = sis_cfg[i].sis_z if "offset" not in sis_cfg[i] else (sis_cfg[i].sis_z) - sis_cfg[i].offset
-        _sis_xy = calib_tube_xy[:,idx]
-        
-        print(_sis_xy)
-        
-        # add a phi offset
-        if ("phi_offset" in sis_cfg[i]):
-            rot = Rotation.from_euler('z', sis_cfg[i].phi_offset, degrees=True)
-            _sis_xy = rot.apply(_sis_xy.append([0]))[:-1]
-
-            print(_sis_xy)
-                                
         pin_top = _sis_to_pygeoml200(_sis_z)
 
         if len(sis_cfg[i].sources) != 4:
@@ -104,8 +108,9 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
 
         # z offsets from top of pin to bottom of source.
         delta_z = (-271, -171, -71, 42 + source_inside_holder)
+
         # always place the Ta absorber, irrespective if it holds a source.
-        _place_ta_absorber(b, f"_sis{i}", _sis_xy, pin_top + delta_z[3] - source_inside_holder)
+        _place_ta_absorber(b, f"_sis{i}", calib_tube_xy[:, idx], pin_top + delta_z[3] - source_inside_holder)
 
         for si in range(4):
             if sis_cfg[i].sources[si] is None:
@@ -114,7 +119,7 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
             _place_source(
                 b,
                 f"_sis{i}_source{si}",
-                _sis_xy,
+                calib_tube_xy[:, idx],
                 pin_top + delta_z[si] - source_inside_holder,
                 source_type=source_spec["type"],
                 cu_absorber=(cu_absorber_config if source_spec["has_cu"] else None),
