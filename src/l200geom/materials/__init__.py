@@ -10,7 +10,9 @@ import legendoptics.lar
 import legendoptics.nylon
 import legendoptics.pen
 import legendoptics.pmts
+import legendoptics.silica
 import legendoptics.tpb
+import legendoptics.ultem
 import legendoptics.vm2000
 import legendoptics.water
 import numpy as np
@@ -460,3 +462,38 @@ class OpticalMaterialRegistry:
         legendoptics.pmts.pyg4_pmt_attach_borosilicate_absorption_length(_borosilicate, self.g4_registry)
 
         return _borosilicate
+
+    @cached_property
+    def ultem(self) -> g4.Material:
+        """Ultem for the receptacles and insulators."""
+        _ultem = g4.Material(
+            name="ultem",
+            density=1.27,
+            number_of_components=4,
+            registry=self.g4_registry,
+        )
+        _ultem.add_element_natoms(self.get_element("C"), natoms=37)
+        _ultem.add_element_natoms(self.get_element("H"), natoms=24)
+        _ultem.add_element_natoms(self.get_element("O"), natoms=6)
+        _ultem.add_element_natoms(self.get_element("N"), natoms=2)
+
+        legendoptics.ultem.pyg4_ultem_attach_rindex(_ultem, self.g4_registry)
+        legendoptics.ultem.pyg4_ultem_attach_absorption(_ultem, self.g4_registry)
+
+        return _ultem
+
+    @cached_property
+    def silica(self) -> g4.Material:
+        """Silica for the LMFE."""
+        _silica = g4.Material(
+            name="silica",
+            density=2.2,
+            number_of_components=2,
+            registry=self.g4_registry,
+        )
+        _silica.add_element_natoms(self.get_element("Si"), natoms=1)
+        _silica.add_element_natoms(self.get_element("O"), natoms=2)
+
+        legendoptics.silica.pyg4_silica_attach_rindex(_silica, self.g4_registry)
+
+        return _silica
