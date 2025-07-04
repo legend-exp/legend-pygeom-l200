@@ -7,6 +7,7 @@ from typing import Literal
 import numpy as np
 from dbetto import AttrsDict
 from pyg4ometry import geant4
+from scipy.spatial.transform import Rotation
 
 from . import core, hpge_strings
 
@@ -75,6 +76,7 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
     if not hasattr(b.runtime_config, "sis"):
         return
     sis_cfg = b.runtime_config.sis
+    
     for i, _ in b.special_metadata.calibration.items():
         if i not in sis_cfg or sis_cfg[i] is None:
             continue
@@ -83,6 +85,17 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
         # (pygeom) coordinates.
 
         _sis_z = sis_cfg[i].sis_z if "offset" not in sis_cfg[i] else (sis_cfg[i].sis_z) - sis_cfg[i].offset
+        _sis_xy = calib_tube_xy[:,idx]
+        
+        print(_sis_xy)
+        
+        # add a phi offset
+        if ("phi_offset" in sis_cfg[i]):
+            rot = Rotation.from_euler('z', sis_cfg[i].phi_offset, degrees=True)
+            _sis_xy = rot.apply(_sis_xy.append([0]))[:-1]
+
+            print(_sis_xy)
+                                
         pin_top = _sis_to_pygeoml200(_sis_z)
 
         if len(sis_cfg[i].sources) != 4:
@@ -92,7 +105,7 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
         # z offsets from top of pin to bottom of source.
         delta_z = (-271, -171, -71, 42 + source_inside_holder)
         # always place the Ta absorber, irrespective if it holds a source.
-        _place_ta_absorber(b, f"_sis{i}", calib_tube_xy[:, idx], pin_top + delta_z[3] - source_inside_holder)
+        _place_ta_absorber(b, f"_sis{i}", _sis_xy, pin_top + delta_z[3] - source_inside_holder)
 
         for si in range(4):
             if sis_cfg[i].sources[si] is None:
@@ -101,7 +114,7 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
             _place_source(
                 b,
                 f"_sis{i}_source{si}",
-                calib_tube_xy[:, idx],
+                _sis_xy,
                 pin_top + delta_z[si] - source_inside_holder,
                 source_type=source_spec["type"],
                 cu_absorber=(cu_absorber_config if source_spec["has_cu"] else None),
