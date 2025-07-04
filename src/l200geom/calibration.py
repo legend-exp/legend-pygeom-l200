@@ -76,7 +76,7 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
     if not hasattr(b.runtime_config, "sis"):
         return
     sis_cfg = b.runtime_config.sis
-    
+
     for i, _ in b.special_metadata.calibration.items():
         if i not in sis_cfg or sis_cfg[i] is None:
             continue
@@ -85,17 +85,17 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
         # (pygeom) coordinates.
 
         _sis_z = sis_cfg[i].sis_z if "offset" not in sis_cfg[i] else (sis_cfg[i].sis_z) - sis_cfg[i].offset
-        _sis_xy = calib_tube_xy[:,idx]
-        
+        _sis_xy = calib_tube_xy[:, idx]
+
         print(_sis_xy)
-        
+
         # add a phi offset
-        if ("phi_offset" in sis_cfg[i]):
-            rot = Rotation.from_euler('z', sis_cfg[i].phi_offset, degrees=True)
+        if "phi_offset" in sis_cfg[i]:
+            rot = Rotation.from_euler("z", sis_cfg[i].phi_offset, degrees=True)
             _sis_xy = rot.apply(_sis_xy.append([0]))[:-1]
 
             print(_sis_xy)
-                                
+
         pin_top = _sis_to_pygeoml200(_sis_z)
 
         if len(sis_cfg[i].sources) != 4:
