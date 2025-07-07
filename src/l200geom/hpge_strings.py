@@ -101,7 +101,7 @@ def _place_front_end_and_insulators(
     signal_cable = _get_signal_cable(thickness["cable"], det_unit.rodlength_cold, b)
     signal_clamp, signal_lmfe = _get_signal_clamp_and_lmfe(thickness["clamp"], b)
     signal_cable.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
-    signal_clamp.pygeom_color_rgba = (0.64, 0.54, 0.31, 0.5)
+    signal_clamp.pygeom_color_rgba = (0.64, 0.54, 0.31, 1)
     signal_lmfe.pygeom_color_rgba = (0.64, 0.54, 0.31, 0.5)
 
     angle_signal = math.pi * 1 / 2.0 - string_info.rot
@@ -140,7 +140,7 @@ def _place_front_end_and_insulators(
     hv_cable = _get_hv_cable(thickness["cable"], hv_cable_length, b)
     hv_clamp = _get_hv_clamp(thickness["clamp"], b)
     hv_cable.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
-    hv_clamp.pygeom_color_rgba = (0.64, 0.54, 0.31, 0.5)
+    hv_clamp.pygeom_color_rgba = (0.64, 0.54, 0.31, 1)
 
     angle_hv = math.pi / 2 + string_info.rot
     hv_rot_v = string_rot_v
