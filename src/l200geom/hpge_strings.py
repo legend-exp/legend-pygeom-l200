@@ -721,8 +721,8 @@ def _get_hv_clamp(clamp_thickness: float, b: core.InstrumentationData):
     if "ultem_clamp_hv" in b.registry.logicalVolumeDict:
         return b.registry.logicalVolumeDict["ultem_clamp_hv"]
 
-    hv_clamp = geant4.solid.Box(
-        "ultem_clamp_hv",
+    hv_clamp_bulk = geant4.solid.Box(
+        "ultem_clamp_hv_bulk",
         13,
         13,
         clamp_thickness,
@@ -730,6 +730,21 @@ def _get_hv_clamp(clamp_thickness: float, b: core.InstrumentationData):
         "mm",
     )
 
+    clamp_hole = geant4.solid.Tubs(
+        "ultem_clamp_hv_hole", 0, 1.5, clamp_thickness, 0, 2 * math.pi, b.registry, "mm"
+    )
+    clamp_holes = geant4.solid.MultiUnion(
+        "ultem_clamp_hv_holes",
+        [clamp_hole, clamp_hole],
+        [
+            [[0, 0, 0], [-3.45, 4, 0]],
+            [[0, 0, 0], [-3.45, -4, 0]],
+        ],
+        b.registry,
+    )
+    hv_clamp = geant4.solid.Subtraction(
+        "ultem_clamp_hv", hv_clamp_bulk, clamp_holes, [[0, 0, 0], [0, 0, 0]], b.registry
+    )
     return geant4.LogicalVolume(
         hv_clamp,
         b.materials.ultem,
@@ -826,8 +841,8 @@ def _get_signal_clamp_and_lmfe(
         b.registry,
         "mm",
     )
-    signal_clamp = geant4.solid.MultiUnion(
-        "ultem_clamp_signal",
+    signal_clamp_bulk = geant4.solid.MultiUnion(
+        "ultem_clamp_signal_bulk",
         [signal_clamp_mid, signal_clamp_side, signal_clamp_side],
         [
             [[0, 0, 0], [0, 0, 0]],
@@ -849,6 +864,22 @@ def _get_signal_clamp_and_lmfe(
             ],
         ],
         b.registry,
+    )
+
+    clamp_hole = geant4.solid.Tubs(
+        "signal_clamp_hole", 0, 1.5, clamp_thickness, 0, 2 * math.pi, b.registry, "mm"
+    )
+    clamp_holes = geant4.solid.MultiUnion(
+        "signal_clamp_holes",
+        [clamp_hole, clamp_hole],
+        [
+            [[0, 0, 0], [0.25, 5.05, 0]],
+            [[0, 0, 0], [0.25, -5.05, 0]],
+        ],
+        b.registry,
+    )
+    signal_clamp = geant4.solid.Subtraction(
+        "ultem_clamp_signal", signal_clamp_bulk, clamp_holes, [[0, 0, 0], [0, 0, 0]], b.registry
     )
 
     signal_lmfe = geant4.solid.Box(
