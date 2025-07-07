@@ -1024,6 +1024,6 @@ def _get_insulator(
         name_prefix,
         b.registry,
     )
-    insulator_du_holder_lv.pygeom_color_rgba = (0.64, 0.54, 0.31, 0.5)
+    insulator_du_holder_lv.pygeom_color_rgba = (0.64, 0.54, 0.31, 1)
 
     return insulator_du_holder_lv
