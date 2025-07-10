@@ -100,6 +100,25 @@ def place_fiber_modules(
         if mod.barrel == "inner":
             ib_factory.create_module(mod, b.mother_lv, b.mother_pv)
 
+    fiber_support_outer = get_fiber_support_outer(b)
+    g4.PhysicalVolume(
+        [0, 0, 0],
+        [0, 0, b.top_plate_z_pos - 730],
+        fiber_support_outer,
+        "fiber_support_outer",
+        b.mother_lv,
+        b.registry,
+    )
+    fiber_support_inner = get_fiber_support_inner(b)
+    g4.PhysicalVolume(
+        [0, 0, 0],
+        [0, 0, b.top_plate_z_pos - 730 - ib_delta_z],
+        fiber_support_inner,
+        "fiber_support_inner",
+        b.mother_lv,
+        b.registry,
+    )
+
 
 def _module_name_to_num(mod_name: str) -> int:
     m0, m1 = int(mod_name[2:5]), int(mod_name[5:8]) - 1
@@ -1084,3 +1103,106 @@ class ModuleFactorySegment(ModuleFactoryBase):
                 mother_lv,
                 self.registry,
             )
+
+
+def get_fiber_support_inner(b: core.InstrumentationData) -> g4.LogicalVolume:
+    inner_radius = 132  # mm
+    outer_radius = 137  # mm
+    ring_thickness = 2  # mm
+    rod_length = 1400  # mm
+    rod_radius = 2.5  # mm
+
+    vols = []
+    tras = []
+
+    # Create the rings
+    ring = g4.solid.Tubs(
+        "fiber_support_inner_ring", inner_radius, outer_radius, ring_thickness, 0, 2 * np.pi, b.registry
+    )
+    z_ring = (-700, -600, -300, 0, 300, 600, 700)  # mm
+    for z in z_ring:
+        vols.append(ring)
+        tras.append([[0, 0, 0], [0, 0, z]])
+
+    # Create the rods
+    rod = g4.solid.Tubs("fiber_support_inner_rod", 0, rod_radius, rod_length, 0, 2 * np.pi, b.registry)
+    for i in range(3):
+        vols.append(rod)
+        tras.append([[0, 0, 0], [137 * np.cos(i * 2 * np.pi / 3), 137 * np.sin(i * 2 * np.pi / 3), 0]])
+
+    # Combine rings and rods
+    fiber_support = g4.solid.MultiUnion("fiber_support_inner", vols, tras, b.registry)
+    fiber_support = g4.LogicalVolume(
+        fiber_support,
+        b.materials.metal_copper,
+        "fiber_support_inner",
+        b.registry,
+    )
+    fiber_support.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
+    return fiber_support
+
+
+def get_fiber_support_outer(b: core.InstrumentationData) -> g4.LogicalVolume:
+    vols = []
+    tras = []
+
+    radius = 583 / 2  # in MaGe 575 mm, enlarged to avoid overlaps.
+    radius_out = radius + 2.5
+    radius_fins = radius_out + 1.5
+    thinring = g4.solid.Tubs("ring1", radius, radius_out, 2, 0, 2 * np.pi, b.registry)
+    topring = g4.solid.Tubs("ring7", radius, radius_out, 4, 0, 2 * np.pi, b.registry)
+    bottomring = g4.solid.Tubs("bottomring", 187 / 2, 192 / 2, 4, 0, 2 * np.pi, b.registry)
+
+    fin_radius = 155 + 10 + 20
+    fin_x = 1
+    fin_y = 4
+    rod = g4.solid.Box("fiber_support_outer_rod", fin_x, fin_y, 1320, b.registry)
+    curvedrod = g4.solid.Tubs(
+        "fiber_support_outer_curved",
+        fin_radius - fin_y / 2,
+        fin_radius + fin_y / 2,
+        fin_x,
+        0,
+        np.pi / 2,
+        b.registry,
+    )
+
+    fin = g4.solid.Union(
+        "fiber_support_outer_fin",
+        rod,
+        curvedrod,
+        [[0, np.pi / 2, 0], [0, -fin_radius, -450 - 200 - 10]],
+        b.registry,
+    )
+
+    for i in range(20):
+        # Each fin needs to be rotated by 18 degrees to make the curved portion radial.
+        vols.append(fin)
+        tras.append(
+            [
+                [0, 0, i * 2 * np.pi / 20 - np.pi / 2],
+                [radius_fins * np.cos(i * 2 * np.pi / 20), radius_fins * np.sin(i * 2 * np.pi / 20), 55 - 10],
+            ]
+        )
+
+    # place the 7 rings at a spacing of 100?,300,300,300,150,150,160
+    for z in [0, -300, -450, -600, 300, 600]:
+        vols.append(thinring)
+        tras.append([[0, 0, 0], [0, 0, z]])
+
+    vols.append(topring)
+    tras.append([[0, 0, 0], [0, 0, 700]])
+
+    vols.append(bottomring)
+    tras.append([[0, 0, 0], [0, 0, -600 - fin_radius - 10]])
+
+    # Combine rings and rods
+    fiber_support = g4.solid.MultiUnion("fiber_support_outer", vols, tras, b.registry)
+    fiber_support = g4.LogicalVolume(
+        fiber_support,
+        b.materials.metal_copper,
+        "fiber_support_outer",
+        b.registry,
+    )
+    fiber_support.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
+    return fiber_support
