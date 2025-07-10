@@ -23,7 +23,6 @@ hpge_string:
     radius_in_mm: 218
     angle_in_deg: 180
     minishroud_radius_in_mm: 54.0
-    minishroud_delta_length_in_mm: -200
     rod_radius_in_mm: 49.5
   "6":
     radius_in_mm: 218
@@ -39,7 +38,7 @@ hpge_string:
     radius_in_mm: 222
     angle_in_deg: 274.29
     minishroud_radius_in_mm: 48.0
-    minishroud_delta_length_in_mm: -300
+    minishroud_delta_length_in_mm: -400
     rod_radius_in_mm: 43.5
   "9":
     radius_in_mm: 222
@@ -55,12 +54,14 @@ hpge_string:
     radius_in_mm: 218
     angle_in_deg: 0
     minishroud_radius_in_mm: 54.0
+    minishroud_delta_length_in_mm: -150
     rod_radius_in_mm: 49.5
   "12":
     radius_in_mm: 218
     angle_in_deg: 30
     minishroud_radius_in_mm: 51.0
     rod_radius_in_mm: 46.5
+
 hpges:
   B00032C:
     rodlength_in_mm: 53.5
@@ -200,6 +201,10 @@ hpges:
   V06659A:
     rodlength_in_mm: 122.0
     baseplate: large
+  V05266A:
+    rodlength_in_mm: 103.5
+    baseplate: large
+
 #  the length is just a rough guess from MaGe, the radius is from slides of A.
 #  Lubashevskiy. all positions from CAD model.
 calibration:
