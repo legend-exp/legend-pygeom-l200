@@ -1,11 +1,11 @@
+# NMS lengths see https://elog.legend-exp.org/Cleanroom+Operations/67
 hpge_string:
   "1":
     radius_in_mm: 218
     angle_in_deg: 60
     minishroud_radius_in_mm: 54.0
     rod_radius_in_mm: 49.5
-    minishroud_delta_length_in_mm: -400 # guess
-
+    minishroud_delta_length_in_mm: -508
   "2":
     radius_in_mm: 222
     angle_in_deg: 94.29
@@ -36,8 +36,7 @@ hpge_string:
     angle_in_deg: 240
     minishroud_radius_in_mm: 54.0
     rod_radius_in_mm: 49.5
-    minishroud_delta_length_in_mm: -400 # guess
-
+    minishroud_delta_length_in_mm: -520
   "8":
     radius_in_mm: 222
     angle_in_deg: 274.29
@@ -65,6 +64,7 @@ hpge_string:
     angle_in_deg: 30
     minishroud_radius_in_mm: 51.0
     rod_radius_in_mm: 46.5
+
 hpges:
   V14654A:
     rodlength_in_mm: 131.0 # guess
@@ -246,6 +246,7 @@ hpges:
   V06659A:
     rodlength_in_mm: 122.0
     baseplate: large
+
 #  the length is just a rough guess from MaGe, the radius is from slides of A.
 #  Lubashevskiy. all positions from CAD model.
 calibration:
