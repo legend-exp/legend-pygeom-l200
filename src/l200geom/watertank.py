@@ -115,17 +115,20 @@ bottom_foil_offset = -0.5 * water_height + 0.5 * reflective_foil_thickness
 
 
 # PMTs
+
+angle_segment = 69.449  # PMT cap adaption
+
 pmt_starting_angle = 0.0  # in degrees
 pmt_ending_angle = 2 * pi  # in degrees
 
-photocathode_inner_radius = 100.0
-photocathode_outer_radius = 100.16
+photocathode_inner_radius = 109.84
+photocathode_outer_radius = 110.00
 photocathode_theta_start = 0.0  # in degrees
-photocathode_theta_end = (80.0 / 180.0) * pi  # in degrees
+photocathode_theta_end = (angle_segment / 180.0) * pi  # in degrees
 photocatode_height = photocathode_outer_radius * (1 - math.cos(photocathode_theta_end))
 photocathode_height_difference = photocathode_outer_radius - photocatode_height
 
-pmt_outer_radius = 101.0
+pmt_outer_radius = 103.0
 borosilikat_glass_thickness = 1.0
 
 pmt_steel_cone_thickness = 4.0
@@ -137,12 +140,12 @@ pmt_steel_cone_lower_rmax = pmt_steel_cone_lower_rmin + pmt_steel_cone_thickness
 
 pmt_borosilikat_glass_outer_radius = photocathode_outer_radius + borosilikat_glass_thickness
 
-pmt_air_outer_radius = pmt_steel_cone_upper_rmax
+pmt_air_outer_radius = 114.08
 
 acryl_inner_radius = photocathode_inner_radius
-acryl_outer_radius = pmt_steel_cone_upper_rmax + 3
+acryl_outer_radius = pmt_air_outer_radius + 6.0
 acryl_theta_start = 0.0  # in degrees
-acryl_theta_end = (80.0 / 180.0) * pi  # in degrees
+acryl_theta_end = (angle_segment / 180.0) * pi  # in degrees
 
 
 pmt_steel_bottom_height = 30.0
