@@ -67,7 +67,7 @@ def place_fiber_modules(
     # this OB fiber length is derived from measurements in the CAD model, und might not be totally correct.
     ob_fiber_length_mm = 1630
     ob_factory = factory(
-        radius_mm=580 / 2,
+        radius_mm=290 - 6,
         fiber_length_mm=ob_fiber_length_mm - math.pi * ob_radius_mm / 2 - ob_inner_straight,
         bend_radius_mm=ob_radius_mm,
         fiber_count_per_module=81,
@@ -82,7 +82,7 @@ def place_fiber_modules(
     ib_fiber_length_mm = 1400
     ib_delta_z = 35
     ib_factory = factory(
-        radius_mm=260 / 2,
+        radius_mm=126,
         fiber_length_mm=ib_fiber_length_mm,
         bend_radius_mm=None,
         fiber_count_per_module=81,
@@ -376,7 +376,7 @@ class ModuleFactoryBase(ABC):
 class ModuleFactorySingleFibers(ModuleFactoryBase):
     # for bent detailed fibers, the fibers would overlap a lot near the bottom SiPMs. To avoid
     # this, use a staggered design of the fibers.
-    ALLOWED_DELTA_LENGTHS = (-6.96, -5.22, -3.48, -1.74, 0, 1.74, 3.48, 5.22, 6.96)
+    ALLOWED_DELTA_LENGTHS = np.arange(-4, 5) * 1.9
 
     def _cached_sipm_volumes_bend(self) -> None:
         """Creates (dummy) SiPM volumes for use at the bottom of bent fiber sections."""
@@ -1106,7 +1106,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
 
 
 def get_fiber_support_inner(b: core.InstrumentationData) -> g4.LogicalVolume:
-    inner_radius = 132  # mm, in CAD model 127.5 mm
+    inner_radius = 127.5  # mm, from CAD model.
     outer_radius = inner_radius + 6.5  # mm
     ring_thickness = 3  # mm
     rod_length = 1400  # mm
@@ -1148,7 +1148,7 @@ def get_fiber_support_outer(b: core.InstrumentationData) -> g4.LogicalVolume:
     vols = []
     tras = []
 
-    radius = 291.5  # in CAD model 283 mm
+    radius = 283 + 2  # mm. in CAD model 283 mm, enlarged to avoid fiber overlaps.
     radius_out = radius + 7
     thinring = g4.solid.Tubs("fiber_support_outer_ring", radius, radius_out, 2, 0, 2 * np.pi, b.registry)
     topring = g4.solid.Tubs("fiber_support_outer_topring", radius, radius_out, 3, 0, 2 * np.pi, b.registry)
