@@ -1106,9 +1106,9 @@ class ModuleFactorySegment(ModuleFactoryBase):
 
 
 def get_fiber_support_inner(b: core.InstrumentationData) -> g4.LogicalVolume:
-    inner_radius = 132  # mm
-    outer_radius = 137  # mm
-    ring_thickness = 2  # mm
+    inner_radius = 132  # mm, in CAD model 127.5 mm
+    outer_radius = inner_radius + 6.5  # mm
+    ring_thickness = 3  # mm
     rod_length = 1400  # mm
     rod_radius = 2.5  # mm
 
@@ -1125,10 +1125,12 @@ def get_fiber_support_inner(b: core.InstrumentationData) -> g4.LogicalVolume:
         tras.append([[0, 0, 0], [0, 0, z]])
 
     # Create the rods
+    radius_rod = (inner_radius + outer_radius) / 2
     rod = g4.solid.Tubs("fiber_support_inner_rod", 0, rod_radius, rod_length, 0, 2 * np.pi, b.registry)
     for i in range(3):
         vols.append(rod)
-        tras.append([[0, 0, 0], [137 * np.cos(i * 2 * np.pi / 3), 137 * np.sin(i * 2 * np.pi / 3), 0]])
+        phi = i * 2 * np.pi / 3
+        tras.append([[0, 0, 0], [radius_rod * np.cos(phi), radius_rod * np.sin(phi), 0]])
 
     # Combine rings and rods
     fiber_support = g4.solid.MultiUnion("fiber_support_inner", vols, tras, b.registry)
@@ -1146,19 +1148,19 @@ def get_fiber_support_outer(b: core.InstrumentationData) -> g4.LogicalVolume:
     vols = []
     tras = []
 
-    radius = 583 / 2  # in MaGe 575 mm, enlarged to avoid overlaps.
-    radius_out = radius + 2.5
-    radius_fins = radius_out + 1.5
-    thinring = g4.solid.Tubs("ring1", radius, radius_out, 2, 0, 2 * np.pi, b.registry)
-    topring = g4.solid.Tubs("ring7", radius, radius_out, 4, 0, 2 * np.pi, b.registry)
-    bottomring = g4.solid.Tubs("bottomring", 187 / 2, 192 / 2, 4, 0, 2 * np.pi, b.registry)
+    radius = 291.5  # in CAD model 283 mm
+    radius_out = radius + 7
+    thinring = g4.solid.Tubs("fiber_support_outer_ring", radius, radius_out, 2, 0, 2 * np.pi, b.registry)
+    topring = g4.solid.Tubs("fiber_support_outer_topring", radius, radius_out, 3, 0, 2 * np.pi, b.registry)
+    bottomring = g4.solid.Tubs("fiber_support_outer_bottomring", 73, 80, 2, 0, 2 * np.pi, b.registry)
 
+    # add the 20 guiding fins.
     fin_radius = 155 + 10 + 20
-    fin_x = 1
-    fin_y = 4
-    rod = g4.solid.Box("fiber_support_outer_rod", fin_x, fin_y, 1320, b.registry)
-    curvedrod = g4.solid.Tubs(
-        "fiber_support_outer_curved",
+    fin_x = 2
+    fin_y = 8
+    fin = g4.solid.Box("fiber_support_outer_fin_box", fin_x, fin_y, 1320, b.registry)
+    curvedfin = g4.solid.Tubs(
+        "fiber_support_outer_fin_curved",
         fin_radius - fin_y / 2,
         fin_radius + fin_y / 2,
         fin_x,
@@ -1169,12 +1171,13 @@ def get_fiber_support_outer(b: core.InstrumentationData) -> g4.LogicalVolume:
 
     fin = g4.solid.Union(
         "fiber_support_outer_fin",
-        rod,
-        curvedrod,
+        fin,
+        curvedfin,
         [[0, np.pi / 2, 0], [0, -fin_radius, -450 - 200 - 10]],
         b.registry,
     )
 
+    radius_fins = radius_out + fin_y / 2 + 0.01  # offset, but does not render in pyg4ometry without.
     for i in range(20):
         # Each fin needs to be rotated by 18 degrees to make the curved portion radial.
         vols.append(fin)
@@ -1184,6 +1187,14 @@ def get_fiber_support_outer(b: core.InstrumentationData) -> g4.LogicalVolume:
                 [radius_fins * np.cos(i * 2 * np.pi / 20), radius_fins * np.sin(i * 2 * np.pi / 20), 55 - 10],
             ]
         )
+
+    # add the three support rods.
+    rod = g4.solid.Tubs("fiber_support_outer_rod", 0, 2.5, 1300, 0, 2 * np.pi, b.registry)
+    radius_rod = (radius + radius_out) / 2
+    for i in range(4):
+        vols.append(rod)
+        phi = i * 2 * np.pi / 4
+        tras.append([[0, 0, 0], [radius_rod * np.cos(phi), radius_rod * np.sin(phi), 50]])
 
     # place the 7 rings at a spacing of 100?,300,300,300,150,150,160
     for z in [0, -300, -450, -600, 300, 600]:
