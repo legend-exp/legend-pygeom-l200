@@ -67,7 +67,7 @@ def place_fiber_modules(
     # this OB fiber length is derived from measurements in the CAD model, und might not be totally correct.
     ob_fiber_length_mm = 1630
     ob_factory = factory(
-        radius_mm=580 / 2,
+        radius_mm=290 - 6,
         fiber_length_mm=ob_fiber_length_mm - math.pi * ob_radius_mm / 2 - ob_inner_straight,
         bend_radius_mm=ob_radius_mm,
         fiber_count_per_module=81,
@@ -82,7 +82,7 @@ def place_fiber_modules(
     ib_fiber_length_mm = 1400
     ib_delta_z = 35
     ib_factory = factory(
-        radius_mm=260 / 2,
+        radius_mm=126,
         fiber_length_mm=ib_fiber_length_mm,
         bend_radius_mm=None,
         fiber_count_per_module=81,
@@ -99,6 +99,25 @@ def place_fiber_modules(
             ob_factory.create_module(mod, b.mother_lv, b.mother_pv)
         if mod.barrel == "inner":
             ib_factory.create_module(mod, b.mother_lv, b.mother_pv)
+
+    fiber_support_outer = get_fiber_support_outer(b)
+    g4.PhysicalVolume(
+        [0, 0, 0],
+        [0, 0, b.top_plate_z_pos - 730],
+        fiber_support_outer,
+        "fiber_support_outer",
+        b.mother_lv,
+        b.registry,
+    )
+    fiber_support_inner = get_fiber_support_inner(b)
+    g4.PhysicalVolume(
+        [0, 0, 0],
+        [0, 0, b.top_plate_z_pos - 730 - ib_delta_z],
+        fiber_support_inner,
+        "fiber_support_inner",
+        b.mother_lv,
+        b.registry,
+    )
 
 
 def _module_name_to_num(mod_name: str) -> int:
@@ -357,7 +376,7 @@ class ModuleFactoryBase(ABC):
 class ModuleFactorySingleFibers(ModuleFactoryBase):
     # for bent detailed fibers, the fibers would overlap a lot near the bottom SiPMs. To avoid
     # this, use a staggered design of the fibers.
-    ALLOWED_DELTA_LENGTHS = (-6.96, -5.22, -3.48, -1.74, 0, 1.74, 3.48, 5.22, 6.96)
+    ALLOWED_DELTA_LENGTHS = np.arange(-4, 5) * 1.9
 
     def _cached_sipm_volumes_bend(self) -> None:
         """Creates (dummy) SiPM volumes for use at the bottom of bent fiber sections."""
@@ -1084,3 +1103,117 @@ class ModuleFactorySegment(ModuleFactoryBase):
                 mother_lv,
                 self.registry,
             )
+
+
+def get_fiber_support_inner(b: core.InstrumentationData) -> g4.LogicalVolume:
+    inner_radius = 127.5  # mm, from CAD model.
+    outer_radius = inner_radius + 6.5  # mm
+    ring_thickness = 3  # mm
+    rod_length = 1400  # mm
+    rod_radius = 2.5  # mm
+
+    vols = []
+    tras = []
+
+    # Create the rings
+    ring = g4.solid.Tubs(
+        "fiber_support_inner_ring", inner_radius, outer_radius, ring_thickness, 0, 2 * np.pi, b.registry
+    )
+    z_ring = (-700, -600, -300, 0, 300, 600, 700)  # mm
+    for z in z_ring:
+        vols.append(ring)
+        tras.append([[0, 0, 0], [0, 0, z]])
+
+    # Create the rods
+    radius_rod = (inner_radius + outer_radius) / 2
+    rod = g4.solid.Tubs("fiber_support_inner_rod", 0, rod_radius, rod_length, 0, 2 * np.pi, b.registry)
+    for i in range(3):
+        vols.append(rod)
+        phi = i * 2 * np.pi / 3
+        tras.append([[0, 0, 0], [radius_rod * np.cos(phi), radius_rod * np.sin(phi), 0]])
+
+    # Combine rings and rods
+    fiber_support = g4.solid.MultiUnion("fiber_support_inner", vols, tras, b.registry)
+    fiber_support = g4.LogicalVolume(
+        fiber_support,
+        b.materials.metal_copper,
+        "fiber_support_inner",
+        b.registry,
+    )
+    fiber_support.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
+    return fiber_support
+
+
+def get_fiber_support_outer(b: core.InstrumentationData) -> g4.LogicalVolume:
+    vols = []
+    tras = []
+
+    radius = 283 + 2  # mm. in CAD model 283 mm, enlarged to avoid fiber overlaps.
+    radius_out = radius + 7
+    thinring = g4.solid.Tubs("fiber_support_outer_ring", radius, radius_out, 2, 0, 2 * np.pi, b.registry)
+    topring = g4.solid.Tubs("fiber_support_outer_topring", radius, radius_out, 3, 0, 2 * np.pi, b.registry)
+    bottomring = g4.solid.Tubs("fiber_support_outer_bottomring", 73, 80, 2, 0, 2 * np.pi, b.registry)
+
+    # add the 20 guiding fins.
+    fin_radius = 155 + 10 + 20
+    fin_x = 2
+    fin_y = 8
+    fin = g4.solid.Box("fiber_support_outer_fin_box", fin_x, fin_y, 1320, b.registry)
+    curvedfin = g4.solid.Tubs(
+        "fiber_support_outer_fin_curved",
+        fin_radius - fin_y / 2,
+        fin_radius + fin_y / 2,
+        fin_x,
+        0,
+        np.pi / 2,
+        b.registry,
+    )
+
+    fin = g4.solid.Union(
+        "fiber_support_outer_fin",
+        fin,
+        curvedfin,
+        [[0, np.pi / 2, 0], [0, -fin_radius, -450 - 200 - 10]],
+        b.registry,
+    )
+
+    radius_fins = radius_out + fin_y / 2 + 0.01  # offset, but does not render in pyg4ometry without.
+    for i in range(20):
+        # Each fin needs to be rotated by 18 degrees to make the curved portion radial.
+        vols.append(fin)
+        tras.append(
+            [
+                [0, 0, i * 2 * np.pi / 20 - np.pi / 2],
+                [radius_fins * np.cos(i * 2 * np.pi / 20), radius_fins * np.sin(i * 2 * np.pi / 20), 55 - 10],
+            ]
+        )
+
+    # add the three support rods.
+    rod = g4.solid.Tubs("fiber_support_outer_rod", 0, 2.5, 1300, 0, 2 * np.pi, b.registry)
+    radius_rod = (radius + radius_out) / 2
+    for i in range(4):
+        vols.append(rod)
+        phi = i * 2 * np.pi / 4
+        tras.append([[0, 0, 0], [radius_rod * np.cos(phi), radius_rod * np.sin(phi), 50]])
+
+    # place the 7 rings at a spacing of 100?,300,300,300,150,150,160
+    for z in [0, -300, -450, -600, 300, 600]:
+        vols.append(thinring)
+        tras.append([[0, 0, 0], [0, 0, z]])
+
+    vols.append(topring)
+    tras.append([[0, 0, 0], [0, 0, 700]])
+
+    vols.append(bottomring)
+    tras.append([[0, 0, 0], [0, 0, -600 - fin_radius - 10]])
+
+    # Combine rings and rods
+    fiber_support = g4.solid.MultiUnion("fiber_support_outer", vols, tras, b.registry)
+    fiber_support = g4.LogicalVolume(
+        fiber_support,
+        b.materials.metal_copper,
+        "fiber_support_outer",
+        b.registry,
+    )
+    fiber_support.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
+    return fiber_support
