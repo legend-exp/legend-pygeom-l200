@@ -2,8 +2,7 @@
 
 ## Registering detectors for use with [`remage`](https://github.com/legend-exp/remage)
 
-See the
-[legend-pygeom-tools docs](https://legend-pygeom-tools.readthedocs.io/en/latest/).
+See the {ref}`legend-pygeom-tools docs <pygeomtools:detector-registration>`.
 
 This information can be exported by using `--det-macro-file=l200-dets.mac` as an
 additional CLI option. This macro then should be `/control/execute`d in your

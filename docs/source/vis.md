@@ -2,23 +2,26 @@
 
 ## Visualization with `legend-pygeom-l200`
 
-Simply use `legend-pygeom-l200 -V [...]` to visualize the full geometry.
+Simply use `legend-pygeom-l200 -V [...]` to visualize the full geometry. See
+{ref}`pygeomtools:gdml-viewer` for details on how to use the interactive viewer.
 
-If you want to exclude components from the 3D rendering, append
-`--assemblies=...`. Possible values are:
+If you want to exclude/include components from the 3D rendering, append
+`--assemblies=...`. See the section on {doc}`cfg-geometry`.
 
-- `strings` (the whole HPGe array)
-- `fibers`. It is highly recommended to also append the argument
-  `--fiber-modules=segmented` to avoid rendering all single fibers, if you only
-  need to see the overall shape.
-- `calibration` (calibration tubes and sources, if any)
-- `top` (copper top plate)
-- `wlsr`
+The cryostat and LAr volumes are always part of the output, but can be hidden in
+a scene file, if necessary.
 
-Multiple values can be combined with commas. Example:
-`--assemblies=strings,calibration`.
+The visualization with the VTK-based viewer can be customized with a scene file,
+including options for
 
-The cryostat and LAr volumes are always part of the output.
+- changing volume colors, transparency & hiding volumes
+- better looking renderings (lighting, camera positions, file export)
+- adding a clipper of the geometry (e.g., hiding one half of all volumes)
+- and more tools, also for basic event visualization.
+
+See the {ref}`pygeomtools:scene-file` for a reference of the scene file. The
+scene file can be passed as an argument after `-V`:
+`legend-pygeom-l200 -V scene.yaml [...]`.
 
 ## Visualizing with Geant4/[`remage`](https://github.com/legend-exp/remage) (_advanced_)
 
@@ -55,8 +58,3 @@ It is also possible to use `--assemblies=` as described above. This will remove
 any non-specified assembly from the output GDML file. Make sure that you do not
 overwrite any "production" geometry with this command. Using a file with
 stripped-down assemblies for a simulation will probably give wrong results.
-
-## Adjusting the visualization from python
-
-See the
-[legend-pygeom-tools docs](https://legend-pygeom-tools.readthedocs.io/en/latest/).

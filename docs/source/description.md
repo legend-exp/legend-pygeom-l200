@@ -48,26 +48,21 @@ parts:
 
 - the pen baseplates for each detector, with physical volume names `pen_{NAME}`
   where `{NAME}` is the detector name
-
-  :::{note}
-
-  These are shown in yellow, green, red and blue in the rendering depending on
-  the size
-
-  :::
-
 - for some detectors there are also top pen rings named `pen_top_{NAME}`,
 - the HPGe detectors are supported by a copper support structure, all parts of
   this structure are made of electroformed copper and have physical volumes
-  prefixed with `hpge_support_structure`.
+  prefixed with `hpge_support_structure_`.
+- parts of the holder (insulators) and clamps for the frontend electronics are
+  made from Ultem. Their volume names are prefixed with `ultem_`.
+- cables are implemented in a very simplified manner; their volume names are
+  prefixed with `cable_`.
 - nylon minishrouds surrounding each string, these have a name starting in
-  `minishroud`, and calibration tubes which have names `calibration_tube_{IDX}`
-  where `{IDX}` is the index of the SIS (see {doc}{cfg-`calibration`}).
+  `minishroud_`, and calibration tubes which have names `calibration_tube_{IDX}`
+  where `{IDX}` is the index of the SIS (see {doc}`cfg-calibration`).
 
 :::{warning}
 
-Some components of the HPGe readout chain, (electronics cables etc.) are not yet
-implemented!
+The frontend electronics are not yet implemented in full detail.
 
 :::
 
@@ -135,7 +130,7 @@ This is shown on the left figure of the rendering below.
 
 The fiber shrouds for the LAr readout are shown in the right figure above.
 
-As mentioned in {doc}`runtime-cfg` there are two modes for the optical fibers,
+As mentioned in {doc}`cfg-geometry` there are two modes for the optical fibers,
 either individual fibers or a segmented option.
 
 In both cases the fiber volumes are divided into 4 parts:

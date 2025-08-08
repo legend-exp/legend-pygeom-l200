@@ -3,8 +3,13 @@
 This document describes our naming convention for geometry parts (solids,
 volumes, materials, surfaces, ...).
 
-- **volume names**: snake_case, e.g. `lar` or `
-  - exception: **detector names** are used as-is, e.g. `V01234A` or `S035`
+- **volume names**:
+  - snake_case, e.g. `lar` or `fiber_support_outer`
+    - exception: **detector names** are used as-is, e.g. `V01234A` or `S035`
+  - volumes that are named after other components should always prefix their own
+    name, to simplify selection of such volumes by regex (e.g., for vertex
+    sampling). Example: The PEN plate for detector `V01234A` should be named
+    `pen_V01234A`.
 - the names of **corresponding solids, logical and physical volumes** in GDML
   should usually be the same
   - exception: multiple placements of one LV need unique multiple physical
@@ -18,10 +23,10 @@ volumes, materials, surfaces, ...).
     overall system, for example `fibers_inner_` for fibers in the inner barrel,
     or `pen_` for pen-plates. This is to enable simple wildcards/regular
     expressions to select all volumes of the same type in \_re
-- **surfaces**
+- **surfaces**:
   - `surface_{from}_to_{to}` for OpticalSurfaces (property definition)
   - `bsurface_{from}_{to}` for border surfaces `* ssurface_{to}` for skin
     surfaces
-- **materials**
+- **materials**:
   - snake_case similar to volumes, e.g. `metal_copper`.
   - Elements use capitalized names, e.g. `Hydrogen`
