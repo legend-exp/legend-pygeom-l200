@@ -26,8 +26,9 @@ def dump_gdml_cli(argv: list[str] | None = None) -> None:
     vis_scene = {}
     if isinstance(args.visualize, str):
         vis_scene = utils.load_dict(args.visualize)
-        if vis_scene.get("fine_mesh", False):
-            meshconfig.setGlobalMeshSliceAndStack(100)
+
+    if vis_scene.get("fine_mesh", False) or args.check_overlaps:
+        meshconfig.setGlobalMeshSliceAndStack(100)
 
     # load custom module to change material properties.
     # note: this is potentially dangerous (i.e. against security best practices), as it loads "untrusted"
