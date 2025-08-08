@@ -11,7 +11,7 @@ default implementation with their own.
 As an example, consider this simple file `lar-ly.py` that can be specified on
 the command line: `legend-pygeom-l200 --pygeom-optics-plugin lar-ly.py`:
 
-```python3
+```python
 from __future__ import annotations
 
 import pint

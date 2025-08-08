@@ -12,6 +12,7 @@ Detailed information about the configurable subsystems is available:
 :maxdepth: 1
 
 cfg-geometry
+cfg-deployments
 cfg-calibration
 cfg-materials
 ```

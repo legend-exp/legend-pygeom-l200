@@ -61,6 +61,9 @@ intersphinx_mapping = {
     "pyg4ometry": ("https://pyg4ometry.readthedocs.io/en/stable", None),
     "legendmeta": ("https://pylegendmeta.readthedocs.io/en/stable/", None),
     "dbetto": ("https://dbetto.readthedocs.io/en/stable/", None),
+    "pygeomtools": ("https://legend-pygeom-tools.readthedocs.io/en/stable/", None),
+    "legendoptics": ("https://legend-pygeom-optics.readthedocs.io/en/stable/", None),
+    "legendhpges": ("https://legend-pygeom-hpges.readthedocs.io/en/latest/", None),
 }  # add new intersphinx mappings here
 
 # sphinx-autodoc
