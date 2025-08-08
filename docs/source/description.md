@@ -131,9 +131,9 @@ This is shown on the left figure of the rendering below.
 
 &nbsp;
 
-## Fiber's and SiPMs
+## Fibers and SiPMs
 
-The fiber shroud's for the LAr readout are shown in the right figure above.
+The fiber shrouds for the LAr readout are shown in the right figure above.
 
 As mentioned in {doc}`runtime-cfg` there are two modes for the optical fibers,
 either individual fibers or a segmented option.
@@ -166,7 +166,12 @@ fibers.
 
 The SiPMs are named after the **detector name** (ie `S001`), and there are also
 physical volumes of a wrapping around the SiPMs with names `{NAME}_wrap` (where
-`{NAME}` is the SiPM name).
+`{NAME}` is the SiPM name). This wrapping does not fully correspond to the
+wrapping used in the real experiment, however.
+
+The copper support structures holding the fiber shrouds is named
+`fiber_support_outer` and `fiber_support_inner` for the outer and inner fiber
+barrels. These volumes are implemented as one large solid containing all parts.
 
 ## Wavelength shifting reflector
 
