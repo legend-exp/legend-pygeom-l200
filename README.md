@@ -10,6 +10,7 @@
 ![GitHub pull requests](https://img.shields.io/github/issues-pr/legend-exp/legend-pygeom-l200?logo=github)
 ![License](https://img.shields.io/github/license/legend-exp/legend-pygeom-l200)
 [![Read the Docs](https://img.shields.io/readthedocs/legend-pygeom-l200?logo=readthedocs)](https://legend-pygeom-l200.readthedocs.io)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.16778749.svg)](https://doi.org/10.5281/zenodo.16778749)
 
 This package implements the `legend-pygeom-l200` CLI utility to interact with
 the LEGEND-200 geometry.
