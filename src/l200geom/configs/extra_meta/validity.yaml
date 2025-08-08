@@ -1,4 +1,20 @@
 - valid_from: 20230311T235840Z
   category: all
+  mode: reset
   apply:
     - l200-p03-r%-T%-all-config.yaml
+- valid_from: 20241210T225016Z
+  category: all
+  mode: reset
+  apply:
+    - l200-p13-r%-T%-all-config.yaml
+- valid_from: 20250425T180115Z
+  category: all
+  mode: reset
+  apply:
+    - l200-p14-r%-T%-all-config.yaml
+- valid_from: 20250716T161517Z
+  category: all
+  mode: reset
+  apply:
+    - l200-p15-r%-T%-all-config.yaml
