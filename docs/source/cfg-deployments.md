@@ -1,8 +1,37 @@
 # LEGEND-200 deployments
 
-:::{important}
+_legend-pygeom-l200_ supports the geometry of multiple LEGEND-200 deployments.
 
-At the moment, _legend-pygeom-l200_ only supports the geometry of the first
-LEGEND-200 deployment (p03 to p09). Further support will be added.
+If you manage your own _legend-metadata_ checkout, it is strictly necessary to
+have a _legend-metadata_ checkout that already contains the channelmap for this
+deployment. For still untagged or pre-relase versions of _legend-metadata_, you
+have to manually perform the checkout.
+
+|             | timestamp after    | legend-metadata |
+| ----------- | ------------------ | --------------- |
+| **p03–p09** | `20230311T235840Z` | >= v1.0.0       |
+| **p13**     | `20241210T225016Z` | >= v1.0.1       |
+| **p14**     | `20250425T180115Z` | >= v1.0.2       |
+| **p15**     | `20250716T161517Z` | >= v1.0.2       |
+
+the timestamp can be selected in the config file:
+
+```yaml
+metadata_timestamp: 20250425T180115Z # example: p14
+```
+
+:::{tip}
+
+adding the geometries for new deployments to _legend-pygeom-l200_ require only a
+few number of changes:
+
+1. a channelmap in _legend-metadata_ (not managed by the simulation team)
+2. a new `extra_meta` file in _legend-pygeom-l200_ that contains
+   - string positions & parameters such as for minishrouds
+   - copper rod lengths for each detector unit
+   - pen plate sizes
+   - calibration tube parameters
+3. an implementation of any geometry change that cannot be configured in the
+   extra metadata.
 
 :::
