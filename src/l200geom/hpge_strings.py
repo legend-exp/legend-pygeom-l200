@@ -2,12 +2,9 @@ from __future__ import annotations
 
 import logging
 import math
-from collections.abc import Container
 from dataclasses import dataclass
-from importlib import resources
 
 import numpy as np
-import pyg4ometry
 from dbetto import AttrsDict, TextDB
 from legendhpges import make_hpge
 from pyg4ometry import geant4
@@ -15,6 +12,7 @@ from pygeomtools import RemageDetectorInfo
 from scipy.spatial.transform import Rotation
 
 from . import core, materials
+from .utils import _read_model
 
 log = logging.getLogger(__name__)
 
@@ -651,20 +649,6 @@ def _add_nms_surfaces(
     # between LAr and the NMS we need a surface in both directions.
     geant4.BorderSurface("bsurface_lar_nms_" + nms_pv.name, mother_pv, nms_pv, mats.surfaces.lar_to_tpb, reg)
     geant4.BorderSurface("bsurface_nms_lar_" + nms_pv.name, nms_pv, mother_pv, mats.surfaces.lar_to_tpb, reg)
-
-
-def _read_model(
-    file: str, name: str, material: geant4.Material, b: core.InstrumentationData
-) -> geant4.LogicalVolume | None:
-    # this is an (undocumented) option to remove meshes; either all or from a list (for performance tests).
-    no_meshes = b.runtime_config.get("no_meshes", False)
-    if (isinstance(no_meshes, Container) and (name in no_meshes)) or no_meshes is True:
-        log.warning("skipping mesh %s", name)
-        return None
-
-    file = resources.files("l200geom") / "models" / file
-    solid = pyg4ometry.stl.Reader(file, solidname=name, centre=False, registry=b.registry).getSolid()
-    return geant4.LogicalVolume(solid, material, name, b.registry)
 
 
 def _get_hv_cable(
