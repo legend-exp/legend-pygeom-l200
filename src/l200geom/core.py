@@ -66,7 +66,7 @@ def construct(
     lmeta = None
     if not public_geometry:
         with contextlib.suppress(GitCommandError):
-            lmeta = LegendMetadata()
+            lmeta = LegendMetadata(lazy=True)
     # require user action to construct a testdata-only geometry (i.e. to avoid accidental creation of "wrong"
     # geometries by LEGEND members).
     if lmeta is None and not public_geometry:
