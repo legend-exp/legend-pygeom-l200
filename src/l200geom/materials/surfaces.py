@@ -11,8 +11,8 @@ import legendoptics.vm2000
 import numpy as np
 import pint
 import pyg4ometry.geant4 as g4
+from pygeomtools.materials import cached_property
 
-from . import cached_property
 from .ketek_sipm import ketek_sipm_efficiency
 
 u = pint.get_application_registry()
