@@ -17,7 +17,7 @@ def place_fiber_modules(
     b: core.InstrumentationData,
     use_detailed_fiber_model: bool = False,
 ) -> None:
-    """Construct LEGEND-200 HPGe strings.
+    """Construct LEGEND-200 liquid argon instrumentation.
 
     Parameters
     ----------
