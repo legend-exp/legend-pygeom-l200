@@ -3,9 +3,9 @@ from __future__ import annotations
 import argparse
 import logging
 from collections.abc import Iterable
-from pathlib import Path
 
 from dbetto import utils
+from legendoptics.store import load_user_material_code
 from pyg4ometry import config as meshconfig
 from pygeomtools import detectors, visualization, write_pygeom
 
@@ -31,12 +31,8 @@ def dump_gdml_cli(argv: list[str] | None = None) -> None:
         meshconfig.setGlobalMeshSliceAndStack(100)
 
     # load custom module to change material properties.
-    # note: this is potentially dangerous (i.e. against security best practices), as it loads "untrusted"
-    # code form the user - but this should be fine in the context of a CLI tool.
     if args.pygeom_optics_plugin:
-        # always log as a warning, as this is a potentially dangerous operation.
-        log.warning("loading python module from file %s", args.pygeom_optics_plugin)
-        _load_user_material_code(args.pygeom_optics_plugin)
+        load_user_material_code(args.pygeom_optics_plugin)
 
     registry = core.construct(
         assemblies=args.assemblies,
@@ -67,18 +63,6 @@ def dump_gdml_cli(argv: list[str] | None = None) -> None:
         from pygeomtools import viewer
 
         viewer.visualize(registry, vis_scene)
-
-
-def _load_user_material_code(file: str) -> None:
-    import importlib.util
-
-    if not Path(file).exists():
-        msg = f"python file {file} does not exist"
-        raise RuntimeError(msg)
-
-    spec = importlib.util.spec_from_file_location("l200geom.user_materials", file)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
 
 
 def _parse_cli_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, dict]:
