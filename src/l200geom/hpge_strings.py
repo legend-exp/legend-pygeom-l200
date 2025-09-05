@@ -103,9 +103,13 @@ def _place_front_end_and_insulators(
     string_rot_v = np.array([np.sin(string_info.rot), np.cos(string_info.rot)])
     string_pos_v = np.array([string_info.x, string_info.y])
 
+    cu_pin = _get_cu_pin(thickness["cu_pin"], b)
+    phbr_washer = _get_phbr_washer(thickness["washer"], b)
+    phbr_spring = _get_phbr_spring(b)
+
     # add cable and clamp
     signal_cable = _get_signal_cable(thickness["cable"], det_unit.rodlength_cold, b)
-    signal_clamp, signal_lmfe = _get_signal_clamp_and_lmfe(thickness["clamp"], b)
+    signal_clamp, signal_lmfe, signal_holes = _get_signal_clamp_and_lmfe(thickness["clamp"], b)
     signal_cable.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     signal_clamp.pygeom_color_rgba = (0.64, 0.54, 0.31, 1)
     signal_lmfe.pygeom_color_rgba = (0.64, 0.54, 0.31, 0.5)
@@ -113,6 +117,7 @@ def _place_front_end_and_insulators(
     angle_signal = math.pi * 1 / 2.0 - string_info.rot
     x_clamp, y_clamp = string_pos_v + parts_origin["signal"] * string_rot_v
     x_cable, y_cable = string_pos_v + (parts_origin["signal"] + 7.5 / 2 + 0.1) * string_rot_v
+    x_spring, y_spring = string_pos_v + (parts_origin["signal"] - (13 - 7.5) / 2) * string_rot_v
     lmfe_origin = parts_origin["signal"] + (7.5 + 16 + 0.1) / 2
     x_lmfe, y_lmfe = string_pos_v + lmfe_origin * string_rot_v
 
@@ -140,16 +145,49 @@ def _place_front_end_and_insulators(
         b.mother_lv,
         b.registry,
     )
+    geant4.PhysicalVolume(
+        [math.pi, 0, angle_signal],
+        [x_spring, y_spring, z_pos["clamp"]],
+        phbr_spring,
+        f"{phbr_spring.name}_signal_{det_unit.name}",
+        b.mother_lv,
+        b.registry,
+    )
+
+    def place_clamp_details(r0, name, holes, z_clamp, *, sign=1, z_sign=1, rot_v=string_rot_v):
+        rot_v_perp = np.cross([*rot_v, 0], [0, 0, 1])[0:2]
+        for hole_idx, hole in enumerate(holes):
+            x_hole, y_hole = string_pos_v + sign * (r0 + hole[0]) * rot_v + hole[1] * rot_v_perp
+            pin_outside = thickness["cu_pin"] - thickness["pen"] - thickness["clamp"]
+            geant4.PhysicalVolume(
+                [0, 0, 0],
+                [x_hole, y_hole, z_clamp + z_sign * thickness["pen"] / 2 - z_sign * pin_outside / 2],
+                cu_pin,
+                f"{cu_pin.name}_{name}_{det_unit.name}_{hole_idx}",
+                b.mother_lv,
+                b.registry,
+            )
+            geant4.PhysicalVolume(
+                [0, 0, 0],
+                [x_hole, y_hole, z_clamp - z_sign * (thickness["clamp"] + thickness["washer"]) / 2],
+                phbr_washer,
+                f"{phbr_washer.name}_{name}_{det_unit.name}_{hole_idx}",
+                b.mother_lv,
+                b.registry,
+            )
+
+    place_clamp_details(parts_origin["signal"], "signal", signal_holes, z_pos["clamp"])
 
     # shorter HV cable for top contact on PPCs.
     hv_cable_length = det_unit.rodlength_cold if not det_unit.name.startswith("P") else 15
     hv_cable = _get_hv_cable(thickness["cable"], hv_cable_length, b)
-    hv_clamp = _get_hv_clamp(thickness["clamp"], b)
+    hv_clamp, hv_holes = _get_hv_clamp(thickness["clamp"], b)
     hv_cable.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     hv_clamp.pygeom_color_rgba = (0.64, 0.54, 0.31, 1)
 
     angle_hv = math.pi / 2 + string_info.rot
     hv_rot_v = string_rot_v
+    hv_washer_z_sign = 1
     if det_unit.name.startswith("P"):
         hv_rot_offset = -math.pi * 1 / 3
         angle_hv += hv_rot_offset
@@ -159,6 +197,7 @@ def _place_front_end_and_insulators(
                 np.cos(string_info.rot + hv_rot_offset),
             ]
         )
+        hv_washer_z_sign = -1
     hv_z_pos = z_pos["clamp" if not det_unit.name.startswith("P") else "clamp_top"]
 
     x_clamp, y_clamp = string_pos_v - parts_origin["hv"] * hv_rot_v
@@ -179,6 +218,18 @@ def _place_front_end_and_insulators(
         f"{hv_clamp.name}_{det_unit.name}",
         b.mother_lv,
         b.registry,
+    )
+    geant4.PhysicalVolume(
+        [0, 0, angle_hv],
+        [x_clamp, y_clamp, hv_z_pos],
+        phbr_spring,
+        f"{phbr_spring.name}_hv_{det_unit.name}",
+        b.mother_lv,
+        b.registry,
+    )
+
+    place_clamp_details(
+        parts_origin["hv"], "hv", hv_holes, hv_z_pos, sign=-1, z_sign=hv_washer_z_sign, rot_v=hv_rot_v
     )
 
     # this is a heuristic to get the value of "dimension A"; in reality this is a step function.
@@ -233,6 +284,8 @@ def _hpge_unit_get_z(bottom: float, det_unit: HPGeDetUnit) -> tuple[dict, dict]:
         "clamp": 3.7,  # mm, but no constant thickness (HV +0.5 mm)
         "weldment": 1.5,  # mm flap thickness
         "insulator": 2.4,  # mm flap thickness
+        "washer": 0.3,  # PhBr washers
+        "cu_pin": 7.8,
     }
 
     # TODO: the large PEN plate model has an unexpected rib at one of the spots for the insulator,
@@ -342,7 +395,7 @@ def _place_hpge_unit(
     elif det_unit.baseplate in {"medium", "large"}:
         fe_ins_origins = {"signal": 14.25, "hv": 37.5}
     elif det_unit.baseplate == "xlarge":
-        fe_ins_origins = {"signal": 17.3, "hv": 40.25}
+        fe_ins_origins = {"signal": 17.3, "hv": 40.35}
 
     _place_front_end_and_insulators(det_unit, string_info, b, z_pos, thicknesses, fe_ins_origins)
 
@@ -718,24 +771,27 @@ def _get_hv_cable(
 
 
 def _get_hv_clamp(clamp_thickness: float, b: core.InstrumentationData):
+    holes = [[-3.45, 4, 0], [-3.45, -4, 0]]
     if "ultem_clamp_hv" in b.registry.logicalVolumeDict:
-        return b.registry.logicalVolumeDict["ultem_clamp_hv"]
+        return b.registry.logicalVolumeDict["ultem_clamp_hv"], holes
 
-    hv_clamp = geant4.solid.Box(
-        "ultem_clamp_hv",
-        13,
-        13,
-        clamp_thickness,
-        b.registry,
-        "mm",
+    hv_clamp_bulk = geant4.solid.Box("ultem_clamp_hv_bulk", 13, 13, clamp_thickness, b.registry, "mm")
+
+    clamp_hole = geant4.solid.Tubs(
+        "ultem_clamp_hv_hole", 0, 1.5, clamp_thickness, 0, 2 * math.pi, b.registry, "mm"
     )
-
-    return geant4.LogicalVolume(
-        hv_clamp,
-        b.materials.ultem,
-        "ultem_clamp_hv",
+    clamp_springhole = geant4.solid.Box("ultem_clamp_signal_hole", 13.1, 0.901, 0.251, b.registry, "mm")
+    clamp_holes = geant4.solid.MultiUnion(
+        "ultem_clamp_hv_holes",
+        [clamp_hole, clamp_hole, clamp_springhole],
+        [[[0, 0, 0], holes[0]], [[0, 0, 0], holes[1]], [[0, 0, 0], [0, 0, 0]]],
         b.registry,
     )
+    hv_clamp = geant4.solid.Subtraction(
+        "ultem_clamp_hv", hv_clamp_bulk, clamp_holes, [[0, 0, 0], [0, 0, 0]], b.registry
+    )
+    hv_clamp = geant4.LogicalVolume(hv_clamp, b.materials.ultem, "ultem_clamp_hv", b.registry)
+    return hv_clamp, holes
 
 
 def _get_signal_cable(
@@ -807,8 +863,9 @@ def _get_signal_clamp_and_lmfe(
     clamp_thickness: float,
     b: core.InstrumentationData,
 ):
+    holes = [[0.25, 5.05, 0], [0.25, -5.05, 0]]
     if "lmfe" in b.registry.logicalVolumeDict:
-        return b.registry.logicalVolumeDict["ultem_clamp_signal"], b.registry.logicalVolumeDict["lmfe"]
+        return b.registry.logicalVolumeDict["ultem_clamp_signal"], b.registry.logicalVolumeDict["lmfe"], holes
 
     signal_clamp_mid = geant4.solid.Box(
         "ultem_clamp_signal_mid",
@@ -826,8 +883,8 @@ def _get_signal_clamp_and_lmfe(
         b.registry,
         "mm",
     )
-    signal_clamp = geant4.solid.MultiUnion(
-        "ultem_clamp_signal",
+    signal_clamp_bulk = geant4.solid.MultiUnion(
+        "ultem_clamp_signal_bulk",
         [signal_clamp_mid, signal_clamp_side, signal_clamp_side],
         [
             [[0, 0, 0], [0, 0, 0]],
@@ -851,30 +908,29 @@ def _get_signal_clamp_and_lmfe(
         b.registry,
     )
 
-    signal_lmfe = geant4.solid.Box(
-        "lmfe",
-        16,
-        8,
-        0.5,
+    clamp_hole = geant4.solid.Tubs(
+        "signal_clamp_hole", 0, 1.5, clamp_thickness, 0, 2 * math.pi, b.registry, "mm"
+    )
+    clamp_springhole = geant4.solid.Box("signal_clamp_springhole", 10, 0.901, 0.251, b.registry, "mm")
+    clamp_holes = geant4.solid.MultiUnion(
+        "signal_clamp_holes",
+        [clamp_hole, clamp_hole, clamp_springhole],
+        [[[0, 0, 0], holes[0]], [[0, 0, 0], holes[1]], [[0, 0, 0], [0, 0, 0]]],
         b.registry,
-        "mm",
+    )
+    signal_clamp = geant4.solid.Subtraction(
+        "ultem_clamp_signal", signal_clamp_bulk, clamp_holes, [[0, 0, 0], [0, 0, 0]], b.registry
     )
 
-    signal_clamp_lv = geant4.LogicalVolume(
-        signal_clamp,
-        b.materials.ultem,
-        "ultem_clamp_signal",
-        b.registry,
-    )
+    signal_lmfe = geant4.solid.Box("lmfe", 16, 8, 0.5, b.registry, "mm")
+
+    signal_clamp_lv = geant4.LogicalVolume(signal_clamp, b.materials.ultem, "ultem_clamp_signal", b.registry)
 
     signal_lmfe_lv = geant4.LogicalVolume(
-        signal_lmfe,
-        b.materials.silica,  # suprasil is quartz glass.
-        "lmfe",
-        b.registry,
-    )
+        signal_lmfe, b.materials.silica, "lmfe", b.registry
+    )  # suprasil is quartz glass.
 
-    return signal_clamp_lv, signal_lmfe_lv
+    return signal_clamp_lv, signal_lmfe_lv, holes
 
 
 def _get_weldment(
@@ -1019,3 +1075,33 @@ def _get_insulator(
     insulator_du_holder_lv.pygeom_color_rgba = (0.64, 0.54, 0.31, 1)
 
     return insulator_du_holder_lv
+
+
+def _get_cu_pin(length: float, b: core.InstrumentationData):
+    if f"hpge_du_pin_{length}" in b.registry.logicalVolumeDict:
+        return b.registry.logicalVolumeDict[f"hpge_du_pin_{length}"]
+
+    pin = geant4.solid.Tubs(f"hpge_du_pin_{length}", 0, 1.3, length, 0, 2 * math.pi, b.registry)
+    pin = geant4.LogicalVolume(pin, b.materials.metal_copper, f"hpge_du_pin_{length}", b.registry)
+    pin.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
+    return pin
+
+
+def _get_phbr_washer(thickness: float, b: core.InstrumentationData):
+    if "phbr_washer" in b.registry.logicalVolumeDict:
+        return b.registry.logicalVolumeDict["phbr_washer"]
+
+    pin = geant4.solid.Tubs("phbr_washer", 1.4, 2.5, thickness, 0, 2 * math.pi, b.registry)
+    pin = geant4.LogicalVolume(pin, b.materials.metal_phosphor_bronze, "phbr_washer", b.registry)
+    pin.pygeom_color_rgba = (0.72, 0.5, 0.2, 1)
+    return pin
+
+
+def _get_phbr_spring(b: core.InstrumentationData):
+    if "phbr_spring" in b.registry.logicalVolumeDict:
+        return b.registry.logicalVolumeDict["phbr_spring"]
+
+    spring = geant4.solid.Box("phbr_spring", 13, 0.9, 0.25, b.registry)
+    spring = geant4.LogicalVolume(spring, b.materials.metal_phosphor_bronze, "phbr_spring", b.registry)
+    spring.pygeom_color_rgba = (0.72, 0.5, 0.2, 1)
+    return spring
