@@ -105,6 +105,7 @@ def _place_front_end_and_insulators(
 
     cu_pin = _get_cu_pin(thickness["clamp"] + thickness["pen"], b)
     phbr_washer = _get_phbr_washer(thickness["washer"], b)
+    phbr_spring = _get_phbr_spring(b)
 
     # add cable and clamp
     signal_cable = _get_signal_cable(thickness["cable"], det_unit.rodlength_cold, b)
@@ -116,6 +117,7 @@ def _place_front_end_and_insulators(
     angle_signal = math.pi * 1 / 2.0 - string_info.rot
     x_clamp, y_clamp = string_pos_v + parts_origin["signal"] * string_rot_v
     x_cable, y_cable = string_pos_v + (parts_origin["signal"] + 7.5 / 2 + 0.1) * string_rot_v
+    x_spring, y_spring = string_pos_v + (parts_origin["signal"] - (13 - 7.5) / 2) * string_rot_v
     lmfe_origin = parts_origin["signal"] + (7.5 + 16 + 0.1) / 2
     x_lmfe, y_lmfe = string_pos_v + lmfe_origin * string_rot_v
 
@@ -140,6 +142,14 @@ def _place_front_end_and_insulators(
         [x_lmfe, y_lmfe, z_pos["clamp"]],
         signal_lmfe,
         f"{signal_lmfe.name}_{det_unit.name}",
+        b.mother_lv,
+        b.registry,
+    )
+    geant4.PhysicalVolume(
+        [math.pi, 0, angle_signal],
+        [x_spring, y_spring, z_pos["clamp"]],
+        phbr_spring,
+        f"{phbr_spring.name}_signal_{det_unit.name}",
         b.mother_lv,
         b.registry,
     )
@@ -205,6 +215,14 @@ def _place_front_end_and_insulators(
         [x_clamp, y_clamp, hv_z_pos],
         hv_clamp,
         f"{hv_clamp.name}_{det_unit.name}",
+        b.mother_lv,
+        b.registry,
+    )
+    geant4.PhysicalVolume(
+        [0, 0, angle_hv],
+        [x_clamp, y_clamp, hv_z_pos],
+        phbr_spring,
+        f"{phbr_spring.name}_hv_{det_unit.name}",
         b.mother_lv,
         b.registry,
     )
@@ -755,22 +773,16 @@ def _get_hv_clamp(clamp_thickness: float, b: core.InstrumentationData):
     if "ultem_clamp_hv" in b.registry.logicalVolumeDict:
         return b.registry.logicalVolumeDict["ultem_clamp_hv"], holes
 
-    hv_clamp_bulk = geant4.solid.Box(
-        "ultem_clamp_hv_bulk",
-        13,
-        13,
-        clamp_thickness,
-        b.registry,
-        "mm",
-    )
+    hv_clamp_bulk = geant4.solid.Box("ultem_clamp_hv_bulk", 13, 13, clamp_thickness, b.registry, "mm")
 
     clamp_hole = geant4.solid.Tubs(
         "ultem_clamp_hv_hole", 0, 1.5, clamp_thickness, 0, 2 * math.pi, b.registry, "mm"
     )
+    clamp_springhole = geant4.solid.Box("ultem_clamp_signal_hole", 13.1, 1, 1, b.registry, "mm")
     clamp_holes = geant4.solid.MultiUnion(
         "ultem_clamp_hv_holes",
-        [clamp_hole, clamp_hole],
-        [[[0, 0, 0], holes[0]], [[0, 0, 0], holes[1]]],
+        [clamp_hole, clamp_hole, clamp_springhole],
+        [[[0, 0, 0], holes[0]], [[0, 0, 0], holes[1]], [[0, 0, 0], [0, 0, 0]]],
         b.registry,
     )
     hv_clamp = geant4.solid.Subtraction(
@@ -897,10 +909,11 @@ def _get_signal_clamp_and_lmfe(
     clamp_hole = geant4.solid.Tubs(
         "signal_clamp_hole", 0, 1.5, clamp_thickness, 0, 2 * math.pi, b.registry, "mm"
     )
+    clamp_springhole = geant4.solid.Box("signal_clamp_springhole", 10, 1, 1, b.registry, "mm")
     clamp_holes = geant4.solid.MultiUnion(
         "signal_clamp_holes",
-        [clamp_hole, clamp_hole],
-        [[[0, 0, 0], holes[0]], [[0, 0, 0], holes[1]]],
+        [clamp_hole, clamp_hole, clamp_springhole],
+        [[[0, 0, 0], holes[0]], [[0, 0, 0], holes[1]], [[0, 0, 0], [0, 0, 0]]],
         b.registry,
     )
     signal_clamp = geant4.solid.Subtraction(
@@ -1080,3 +1093,13 @@ def _get_phbr_washer(thickness: float, b: core.InstrumentationData):
     pin = geant4.LogicalVolume(pin, b.materials.metal_phosphor_bronze, "phbr_washer", b.registry)
     pin.pygeom_color_rgba = (0.72, 0.5, 0.2, 1)
     return pin
+
+
+def _get_phbr_spring(b: core.InstrumentationData):
+    if "phbr_spring" in b.registry.logicalVolumeDict:
+        return b.registry.logicalVolumeDict["phbr_spring"]
+
+    spring = geant4.solid.Box("phbr_spring", 13, 0.9, 0.9, b.registry)
+    spring = geant4.LogicalVolume(spring, b.materials.metal_phosphor_bronze, "phbr_spring", b.registry)
+    spring.pygeom_color_rgba = (0.72, 0.5, 0.2, 1)
+    return spring
