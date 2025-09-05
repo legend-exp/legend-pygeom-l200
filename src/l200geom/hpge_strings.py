@@ -103,7 +103,7 @@ def _place_front_end_and_insulators(
     string_rot_v = np.array([np.sin(string_info.rot), np.cos(string_info.rot)])
     string_pos_v = np.array([string_info.x, string_info.y])
 
-    cu_pin = _get_cu_pin(thickness["clamp"] + thickness["pen"], b)
+    cu_pin = _get_cu_pin(thickness["cu_pin"], b)
     phbr_washer = _get_phbr_washer(thickness["washer"], b)
     phbr_spring = _get_phbr_spring(b)
 
@@ -158,9 +158,10 @@ def _place_front_end_and_insulators(
         rot_v_perp = np.cross([*rot_v, 0], [0, 0, 1])[0:2]
         for hole_idx, hole in enumerate(holes):
             x_hole, y_hole = string_pos_v + sign * (r0 + hole[0]) * rot_v + hole[1] * rot_v_perp
+            pin_outside = thickness["cu_pin"] - thickness["pen"] - thickness["clamp"]
             geant4.PhysicalVolume(
                 [0, 0, 0],
-                [x_hole, y_hole, z_clamp + z_sign * thickness["pen"] / 2],
+                [x_hole, y_hole, z_clamp + z_sign * thickness["pen"] / 2 - z_sign * pin_outside / 2],
                 cu_pin,
                 f"{cu_pin.name}_{name}_{det_unit.name}_{hole_idx}",
                 b.mother_lv,
@@ -283,7 +284,8 @@ def _hpge_unit_get_z(bottom: float, det_unit: HPGeDetUnit) -> tuple[dict, dict]:
         "clamp": 3.7,  # mm, but no constant thickness (HV +0.5 mm)
         "weldment": 1.5,  # mm flap thickness
         "insulator": 2.4,  # mm flap thickness
-        "washer": 0.2,  # PhBr washers
+        "washer": 0.3,  # PhBr washers
+        "cu_pin": 7.8,
     }
 
     # TODO: the large PEN plate model has an unexpected rib at one of the spots for the insulator,
@@ -778,7 +780,7 @@ def _get_hv_clamp(clamp_thickness: float, b: core.InstrumentationData):
     clamp_hole = geant4.solid.Tubs(
         "ultem_clamp_hv_hole", 0, 1.5, clamp_thickness, 0, 2 * math.pi, b.registry, "mm"
     )
-    clamp_springhole = geant4.solid.Box("ultem_clamp_signal_hole", 13.1, 1, 1, b.registry, "mm")
+    clamp_springhole = geant4.solid.Box("ultem_clamp_signal_hole", 13.1, 0.901, 0.251, b.registry, "mm")
     clamp_holes = geant4.solid.MultiUnion(
         "ultem_clamp_hv_holes",
         [clamp_hole, clamp_hole, clamp_springhole],
@@ -909,7 +911,7 @@ def _get_signal_clamp_and_lmfe(
     clamp_hole = geant4.solid.Tubs(
         "signal_clamp_hole", 0, 1.5, clamp_thickness, 0, 2 * math.pi, b.registry, "mm"
     )
-    clamp_springhole = geant4.solid.Box("signal_clamp_springhole", 10, 1, 1, b.registry, "mm")
+    clamp_springhole = geant4.solid.Box("signal_clamp_springhole", 10, 0.901, 0.251, b.registry, "mm")
     clamp_holes = geant4.solid.MultiUnion(
         "signal_clamp_holes",
         [clamp_hole, clamp_hole, clamp_springhole],
@@ -1089,7 +1091,7 @@ def _get_phbr_washer(thickness: float, b: core.InstrumentationData):
     if "phbr_washer" in b.registry.logicalVolumeDict:
         return b.registry.logicalVolumeDict["phbr_washer"]
 
-    pin = geant4.solid.Tubs("phbr_washer", 1.4, 2.2, thickness, 0, 2 * math.pi, b.registry)
+    pin = geant4.solid.Tubs("phbr_washer", 1.4, 2.5, thickness, 0, 2 * math.pi, b.registry)
     pin = geant4.LogicalVolume(pin, b.materials.metal_phosphor_bronze, "phbr_washer", b.registry)
     pin.pygeom_color_rgba = (0.72, 0.5, 0.2, 1)
     return pin
@@ -1099,7 +1101,7 @@ def _get_phbr_spring(b: core.InstrumentationData):
     if "phbr_spring" in b.registry.logicalVolumeDict:
         return b.registry.logicalVolumeDict["phbr_spring"]
 
-    spring = geant4.solid.Box("phbr_spring", 13, 0.9, 0.9, b.registry)
+    spring = geant4.solid.Box("phbr_spring", 13, 0.9, 0.25, b.registry)
     spring = geant4.LogicalVolume(spring, b.materials.metal_phosphor_bronze, "phbr_spring", b.registry)
     spring.pygeom_color_rgba = (0.72, 0.5, 0.2, 1)
     return spring
