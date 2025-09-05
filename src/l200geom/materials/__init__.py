@@ -17,11 +17,11 @@ import pint
 import pyg4ometry.geant4 as g4
 from pygeomtools.materials import BaseMaterialRegistry, cached_property
 
+from .surfaces import OpticalSurfaceRegistry
+
 
 class OpticalMaterialRegistry(BaseMaterialRegistry):
     def __init__(self, g4_registry: g4.Registry):
-        from .surfaces import OpticalSurfaceRegistry
-
         super().__init__(g4_registry)
 
         self.lar_temperature = 88.8
@@ -118,6 +118,21 @@ class OpticalMaterialRegistry(BaseMaterialRegistry):
         _metal_copper.add_element_natoms(self.get_element("Cu"), natoms=1)
 
         return _metal_copper
+
+    @cached_property
+    def metal_phosphor_bronze(self) -> g4.Material:
+        """Copper structures."""
+        _metal_phbr = g4.Material(
+            name="metal_phosphor_bronze",
+            density=8.960,
+            number_of_components=1,
+            registry=self.g4_registry,
+        )
+        _metal_phbr.add_element_massfraction(self.get_element("Cu"), massfraction=0.948)
+        _metal_phbr.add_element_massfraction(self.get_element("Sn"), massfraction=0.05)
+        _metal_phbr.add_element_massfraction(self.get_element("P"), massfraction=0.002)
+
+        return _metal_phbr
 
     @cached_property
     def metal_caps_gold(self) -> g4.Material:
