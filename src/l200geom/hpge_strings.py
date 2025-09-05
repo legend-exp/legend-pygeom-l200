@@ -154,7 +154,7 @@ def _place_front_end_and_insulators(
         b.registry,
     )
 
-    def place_holes(r0, name, holes, z_clamp, *, sign=1, z_sign=1, rot_v=string_rot_v):
+    def place_clamp_details(r0, name, holes, z_clamp, *, sign=1, z_sign=1, rot_v=string_rot_v):
         rot_v_perp = np.cross([*rot_v, 0], [0, 0, 1])[0:2]
         for hole_idx, hole in enumerate(holes):
             x_hole, y_hole = string_pos_v + sign * (r0 + hole[0]) * rot_v + hole[1] * rot_v_perp
@@ -176,7 +176,7 @@ def _place_front_end_and_insulators(
                 b.registry,
             )
 
-    place_holes(parts_origin["signal"], "signal", signal_holes, z_pos["clamp"])
+    place_clamp_details(parts_origin["signal"], "signal", signal_holes, z_pos["clamp"])
 
     # shorter HV cable for top contact on PPCs.
     hv_cable_length = det_unit.rodlength_cold if not det_unit.name.startswith("P") else 15
@@ -228,7 +228,7 @@ def _place_front_end_and_insulators(
         b.registry,
     )
 
-    place_holes(
+    place_clamp_details(
         parts_origin["hv"], "hv", hv_holes, hv_z_pos, sign=-1, z_sign=hv_washer_z_sign, rot_v=hv_rot_v
     )
 
@@ -1078,11 +1078,11 @@ def _get_insulator(
 
 
 def _get_cu_pin(length: float, b: core.InstrumentationData):
-    if f"cu_pin_{length}" in b.registry.logicalVolumeDict:
-        return b.registry.logicalVolumeDict[f"cu_pin_{length}"]
+    if f"hpge_du_pin_{length}" in b.registry.logicalVolumeDict:
+        return b.registry.logicalVolumeDict[f"hpge_du_pin_{length}"]
 
-    pin = geant4.solid.Tubs(f"cu_pin_{length}", 0, 1.3, length, 0, 2 * math.pi, b.registry)
-    pin = geant4.LogicalVolume(pin, b.materials.metal_copper, f"cu_pin_{length}", b.registry)
+    pin = geant4.solid.Tubs(f"hpge_du_pin_{length}", 0, 1.3, length, 0, 2 * math.pi, b.registry)
+    pin = geant4.LogicalVolume(pin, b.materials.metal_copper, f"hpge_du_pin_{length}", b.registry)
     pin.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     return pin
 

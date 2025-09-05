@@ -54,17 +54,15 @@ parts:
   prefixed with `hpge_support_structure_`.
 - parts of the holder (insulators) and clamps for the frontend electronics are
   made from Ultem. Their volume names are prefixed with `ultem_`.
+- parts for the frontend electronics are made from phosphor bronze. Their volume
+  names are prefixed with `phbr_`.
+- the copper pins connecting the receptacles to the PEN plates are prefixed with
+  `hpge_du_pin_`.
 - cables are implemented in a very simplified manner; their volume names are
   prefixed with `cable_`.
 - nylon minishrouds surrounding each string, these have a name starting in
   `minishroud_`, and calibration tubes which have names `calibration_tube_{IDX}`
   where `{IDX}` is the index of the SIS (see {doc}`cfg-calibration`).
-
-:::{warning}
-
-The frontend electronics are not yet implemented in full detail.
-
-:::
 
 The hpge copper support structure consists of three components:
 
@@ -77,7 +75,7 @@ hpge_support_copper_string_support_structure_string_{STRING}
 
 where `{STRING}` is the string number,
 
-- a triangular copper support for each string (or "tristar") named
+- a triangular copper support (or "tristar") for each string named
 
 ```
 hpge_support_copper_tristar_{SIZE}_string_{STRING}
@@ -86,17 +84,17 @@ hpge_support_copper_tristar_{SIZE}_string_{STRING}
 where `{SIZE}` is the size of the string (`small`,`medium`, `large`, or
 `xlarge`).
 
-- copper rods for each HPGe detector which have names:
+- copper rods for each string which have names:
 
 ```
 hpge_support_copper_string_{STRING}_cu_rod_{IDX}
 ```
 
-where `{IDX}` is an index of the rod.
+where `{IDX}` is an index of the rod (range 0–3).
 
 :::{tip}
 
-To select all copper parts in _remage_ you can use a wildcard
+To select all copper support parts in _remage_ you can use a wildcard
 `hpge_support_copper.*` and similarly to select all copper rods, tristar or
 string support structures.
 
