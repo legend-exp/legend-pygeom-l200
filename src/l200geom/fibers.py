@@ -326,7 +326,10 @@ class ModuleFactoryBase(ABC):
             f"bsurface_lar_{sipm_name}",
             self.b.mother_pv,
             sipm_pv,
-            self.b.materials.surfaces.to_sipm_silicon,
+            self.b.materials.surfaces.to_sipm_silicon(
+                self.b.runtime_config,
+                sipm_name,
+            ),
             self.b.registry,
         )
 
@@ -741,7 +744,10 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                 f"bsurface_lar_{mod.channel_bottom_name}",
                 self.b.mother_pv,
                 sipm_pv,
-                self.b.materials.surfaces.to_sipm_silicon,
+                self.b.materials.surfaces.to_sipm_silicon(
+                    self.b.runtime_config,
+                    mod.channel_bottom_name,
+                ),
                 self.b.registry,
             )
 
@@ -1065,7 +1071,10 @@ class ModuleFactorySegment(ModuleFactoryBase):
                 f"bsurface_lar_{mod.channel_bottom_name}",
                 self.b.mother_pv,
                 sipm_pv,
-                self.b.materials.surfaces.to_sipm_silicon,
+                self.b.materials.surfaces.to_sipm_silicon(
+                    self.b.runtime_config,
+                    mod.channel_bottom_name,
+                ),
                 self.b.registry,
             )
 
