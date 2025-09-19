@@ -109,7 +109,7 @@ class OpticalSurfaceRegistry:
         λ, eff = ketek_sipm_efficiency()
 
         # Check whether to use the KETEK efficiency curve. If not, use flat 1s.
-        if not runtime_config.get("use_pde_curve", False):
+        if not runtime_config.get("use_pde_curve", True):
             eff = np.ones_like(λ)
 
         # Check if scaling_factors exist and contain this channel
