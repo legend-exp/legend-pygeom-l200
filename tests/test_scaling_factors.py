@@ -10,10 +10,10 @@ from l200geom import core
 public_geom = os.getenv("LEGEND_METADATA", "") == ""
 
 
-def test_construct_with_scaling_factors():
+def test_construct_with_efficiencies():
     cfg = AttrsDict(
         {
-            "scaling_factors": AttrsDict({"S002": 0.5}),
+            "efficiencies": AttrsDict({"S002": 0.5}),
             "use_pde_curve": False,
         }
     )
