@@ -112,13 +112,13 @@ class OpticalSurfaceRegistry:
         if not runtime_config.get("use_pde_curve", True):
             eff = np.ones_like(λ)
 
-        # Check if scaling_factors exist and contain this channel
-        sf = runtime_config.get("scaling_factors", {})
+        # Check if efficiencies exist and contain this channel
+        efficiencies = runtime_config.get("efficiencies", {})
 
         # get the factor for this channel, default to 1.0
-        scale_factor = sf.get(channel_name, 1.0)
+        eff_factor = efficiencies.get(channel_name, 1.0)
 
-        eff = eff * scale_factor  # scale channel-specific efficiency
+        eff = eff * eff_factor  # scale channel-specific efficiency
         eff = np.clip(eff, 0, 1)
 
         with u.context("sp"):
