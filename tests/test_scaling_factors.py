@@ -13,8 +13,8 @@ public_geom = os.getenv("LEGEND_METADATA", "") == ""
 def test_construct_with_efficiencies():
     cfg = AttrsDict(
         {
-            "efficiencies": AttrsDict({"S002": 0.5}),
-            "use_pde_curve": False,
+            "sipm_efficiencies": AttrsDict({"S002": 0.5}),
+            "sipm_use_pde_curve": False,
         }
     )
 
