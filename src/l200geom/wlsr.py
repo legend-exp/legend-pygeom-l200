@@ -19,7 +19,7 @@ import pyg4ometry.geant4 as g4
 
 from . import core, materials
 
-wlsr_tpb_diameter = 1374 / 2
+wlsr_tpb_radius = 1374 / 2
 wlsr_ttx_thickness = 254 * 1e-3  # 254 um Tetratex foil
 wlsr_cu_thickness = 50 * 1e-3  # 50 um copper foil for structure
 wlsr_height = 3000
@@ -33,8 +33,8 @@ def _construct_wlsr(
 ) -> tuple[g4.LogicalVolume, ...]:
     wlsr_outer = g4.solid.Tubs(
         "wlsr_outer",
-        wlsr_tpb_diameter,
-        wlsr_tpb_diameter + wlsr_tpb_thickness + wlsr_ttx_thickness + wlsr_cu_thickness,
+        wlsr_tpb_radius,
+        wlsr_tpb_radius + wlsr_tpb_thickness + wlsr_ttx_thickness + wlsr_cu_thickness,
         wlsr_height,
         0,
         2 * pi,
@@ -43,8 +43,8 @@ def _construct_wlsr(
     )
     wlsr_ttx = g4.solid.Tubs(
         "wlsr_ttx",
-        wlsr_tpb_diameter,
-        wlsr_tpb_diameter + wlsr_tpb_thickness + wlsr_ttx_thickness,
+        wlsr_tpb_radius,
+        wlsr_tpb_radius + wlsr_tpb_thickness + wlsr_ttx_thickness,
         wlsr_height,
         0,
         2 * pi,
@@ -53,8 +53,8 @@ def _construct_wlsr(
     )
     wlsr_tpb = g4.solid.Tubs(
         "wlsr_tpb",
-        wlsr_tpb_diameter,
-        wlsr_tpb_diameter + wlsr_tpb_thickness,
+        wlsr_tpb_radius,
+        wlsr_tpb_radius + wlsr_tpb_thickness,
         wlsr_height,
         0,
         2 * pi,
@@ -77,7 +77,12 @@ def place_wlsr(
     wlsr_outer_lv, wlsr_ttx_lv, wlsr_tpb_lv = _construct_wlsr(b.materials, b.registry)
 
     wlsr_outer_pv = g4.PhysicalVolume(
-        [0, 0, 0], [0, 0, z_displacement - wlsr_height / 2], wlsr_outer_lv, "wlsr_outer", b.mother_lv, reg
+        [0, 0, 0],
+        [0, 0, z_displacement - wlsr_height / 2],
+        wlsr_outer_lv,
+        "wlsr_outer",
+        b.mother_lv,
+        reg,
     )
     wlsr_ttx_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], wlsr_ttx_lv, "wlsr_ttx", wlsr_outer_lv, reg)
     wlsr_tpb_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], wlsr_tpb_lv, "wlsr_tpb", wlsr_ttx_lv, reg)
