@@ -7,7 +7,6 @@ from typing import Literal
 import numpy as np
 from dbetto import AttrsDict
 from pyg4ometry import geant4
-from scipy.spatial.transform import Rotation
 
 from . import core, hpge_strings
 
@@ -101,11 +100,6 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
 
         sis_z = sis_cfg[i].sis_z if "offset" not in sis_cfg[i] else (sis_cfg[i].sis_z) - sis_cfg[i].offset
         sis_xy = calib_tube_xy[:, idx]
-
-        # add a phi offset
-        if "phi_offset" in sis_cfg[i]:
-            rot = Rotation.from_euler("z", sis_cfg[i].phi_offset, degrees=True)
-            sis_xy = rot.apply(np.append(sis_xy, [0]))[:-1]
 
         pin_top = _sis_to_pygeoml200(sis_z)
 
