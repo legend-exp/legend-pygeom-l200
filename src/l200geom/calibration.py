@@ -62,7 +62,7 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
         phi = np.deg2rad(tube.angle_in_deg)
         if sis_cfg is not None and i in sis_cfg and sis_cfg[i] is not None and "phi_offset" in sis_cfg[i]:
             phi += np.deg2rad(sis_cfg[i].phi_offset)
-        
+
         # add the option for a radial offset
         if sis_cfg is not None and i in sis_cfg and sis_cfg[i] is not None and "r_offset" in sis_cfg[i]:
             tube.radius_in_mm += sis_cfg[i].r_offset
