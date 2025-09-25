@@ -49,3 +49,28 @@ def test_construct_with_sis(tmp_path):
     for i in range(3):
         assert f"source_inner_sis1_source{i}" in registry.physicalVolumeDict
         assert f"source_inner_sis2_source{i}" in registry.physicalVolumeDict
+
+    # test offsets
+    cfg = {
+        "sis": {
+            "1": {
+                "sis_z": 8250,
+                "sources": ["Th228", "Th228", "Th228", "Th228"],
+                "r_offset":1
+            },
+            "2": {
+                "sis_z": 8250,
+                "sources": ["Ra+Cu", "Ra+Cu", "Ra+Cu", "Ra+Cu"],
+                "phi_offset":3
+            },
+            "3": None,
+            "4": None,
+        },
+    }
+
+    # check it works
+    registry = core.construct(assemblies=["calibration"], config=cfg, public_geometry=public_geom)
+
+    for i in range(3):
+        assert f"source_inner_sis1_source{i}" in registry.physicalVolumeDict
+        assert f"source_inner_sis2_source{i}" in registry.physicalVolumeDict
