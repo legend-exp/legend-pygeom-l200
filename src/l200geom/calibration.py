@@ -63,6 +63,10 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
         if sis_cfg is not None and i in sis_cfg and sis_cfg[i] is not None and "phi_offset" in sis_cfg[i]:
             phi += np.deg2rad(sis_cfg[i].phi_offset)
 
+        # add the option for a radial offset
+        if sis_cfg is not None and i in sis_cfg and sis_cfg[i] is not None and "r_offset" in sis_cfg[i]:
+            tube.radius_in_mm += sis_cfg[i].r_offset
+
         # add a very small offset to prevent overlaps if we moved a cal tube
         off = 2 if (phi != np.deg2rad(tube.angle_in_deg)) else 0
 
@@ -102,7 +106,7 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
         # add a phi offset
         if "phi_offset" in sis_cfg[i]:
             rot = Rotation.from_euler("z", sis_cfg[i].phi_offset, degrees=True)
-            sis_xy = rot.apply(sis_xy.append([0]))[:-1]
+            sis_xy = rot.apply(np.append(sis_xy, [0]))[:-1]
 
         pin_top = _sis_to_pygeoml200(sis_z)
 
