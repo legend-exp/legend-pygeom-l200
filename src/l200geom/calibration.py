@@ -48,7 +48,7 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
     calib_tube_length = []
     calib_tube_xy = np.empty((2, len(b.special_metadata.calibration)))
 
-    sis_cfg = b.runtime_config.sis if hasattr(b.runtime_config, "sis") else None
+    sis_cfg = b.runtime_config.get("sis", {})
 
     for i, tube in b.special_metadata.calibration.items():
         idx = int(i) - 1
@@ -60,11 +60,11 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
 
         # allow for an offset to place properly the sis
         phi = np.deg2rad(tube.angle_in_deg)
-        if sis_cfg is not None and i in sis_cfg and sis_cfg[i] is not None and "phi_offset" in sis_cfg[i]:
+        if i in sis_cfg and sis_cfg[i] is not None and "phi_offset" in sis_cfg[i]:
             phi += np.deg2rad(sis_cfg[i].phi_offset)
 
         # add the option for a radial offset
-        if sis_cfg is not None and i in sis_cfg and sis_cfg[i] is not None and "r_offset" in sis_cfg[i]:
+        if i in sis_cfg and sis_cfg[i] is not None and "r_offset" in sis_cfg[i]:
             tube.radius_in_mm += sis_cfg[i].r_offset
 
         # add a very small offset to prevent overlaps if we moved a cal tube
@@ -90,7 +90,6 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
     # place the actual calibration sources inside.
     if not hasattr(b.runtime_config, "sis"):
         return
-    sis_cfg = b.runtime_config.sis
 
     for i, _ in b.special_metadata.calibration.items():
         if i not in sis_cfg or sis_cfg[i] is None:
