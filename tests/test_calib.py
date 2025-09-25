@@ -53,16 +53,8 @@ def test_construct_with_sis(tmp_path):
     # test offsets
     cfg = {
         "sis": {
-            "1": {
-                "sis_z": 8250,
-                "sources": ["Th228", "Th228", "Th228", "Th228"],
-                "r_offset":1
-            },
-            "2": {
-                "sis_z": 8250,
-                "sources": ["Ra+Cu", "Ra+Cu", "Ra+Cu", "Ra+Cu"],
-                "phi_offset":3
-            },
+            "1": {"sis_z": 8250, "sources": ["Th228", "Th228", "Th228", "Th228"], "r_offset": 1},
+            "2": {"sis_z": 8250, "sources": ["Ra+Cu", "Ra+Cu", "Ra+Cu", "Ra+Cu"], "phi_offset": 3},
             "3": None,
             "4": None,
         },
