@@ -59,15 +59,18 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
 
         # allow for an offset to place properly the sis
         phi = np.deg2rad(tube.angle_in_deg)
-        if i in sis_cfg and sis_cfg[i] is not None and "phi_offset" in sis_cfg[i]:
+        has_phi_offset = i in sis_cfg and sis_cfg[i] is not None and "phi_offset" in sis_cfg[i]
+        has_r_offset = i in sis_cfg and sis_cfg[i] is not None and "r_offset" in sis_cfg[i]
+
+        if has_phi_offset:
             phi += np.deg2rad(sis_cfg[i].phi_offset)
 
         # add the option for a radial offset
-        if i in sis_cfg and sis_cfg[i] is not None and "r_offset" in sis_cfg[i]:
+        if has_r_offset:
             tube.radius_in_mm += sis_cfg[i].r_offset
 
         # add a very small offset to prevent overlaps if we moved a cal tube
-        off = 2 if (phi != np.deg2rad(tube.angle_in_deg)) else 0
+        off = 2 if (has_phi_offset or has_r_offset) else 0
 
         calib_tube_xy[:, idx] = np.array([tube.radius_in_mm * np.cos(phi), -tube.radius_in_mm * np.sin(phi)])
 
