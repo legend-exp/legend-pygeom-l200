@@ -99,6 +99,7 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
         if tube is None or i not in sis_cfg or sis_cfg[i] is None:
             continue
         idx = int(i) - 1
+
         # SIS reading to our coordinates. This marks the top of the torlon initialization pin in our
         # (pygeom) coordinates.
 
