@@ -444,39 +444,42 @@ def _place_hpge_string(
     # not match reality).
     copper_rod_length_from_z0 = total_rod_length + 3.5
     copper_rod_length = copper_rod_length_from_z0 + 12
+    copper_rod_r = string_meta.rod_radius_in_mm
 
-    minishroud_length = MINISHROUD_LENGTH[0] + string_meta.get("minishroud_delta_length_in_mm", 0)
-    assert total_rod_length < minishroud_length
-    nms = _get_nylon_mini_shroud(
-        string_meta.minishroud_radius_in_mm, minishroud_length, True, b.materials, b.registry
-    )
-    z_nms = z0_string - copper_rod_length_from_z0 + minishroud_length / 2 - MINISHROUD_END_THICKNESS
-    nms_pv = geant4.PhysicalVolume(
-        [0, 0, 0],
-        [x_pos, y_pos, z_nms],
-        nms,
-        nms.name + "_string_" + string_id,
-        b.mother_lv,
-        b.registry,
-    )
-    _add_nms_surfaces(nms_pv, b.mother_pv, b.materials, b.registry)
-    nms_top = _get_nylon_mini_shroud(
-        string_meta.minishroud_radius_in_mm - MINISHROUD_END_THICKNESS,
-        MINISHROUD_LENGTH[1],
-        True,
-        b.materials,
-        b.registry,
-        min_radius=10,
-    )
-    nms_pv = geant4.PhysicalVolume(
-        [0, 0, 0],
-        [x_pos, y_pos, z0_string + 15 + MINISHROUD_LENGTH[1] / 2],
-        nms_top,
-        nms_top.name + "_string_" + string_id,
-        b.mother_lv,
-        b.registry,
-    )
-    _add_nms_surfaces(nms_pv, b.mother_pv, b.materials, b.registry)
+    if string_meta.minishroud_radius_in_mm is not None:
+        minishroud_length = MINISHROUD_LENGTH[0] + string_meta.get("minishroud_delta_length_in_mm", 0)
+        assert total_rod_length < minishroud_length
+        assert copper_rod_r < string_meta.minishroud_radius_in_mm - 0.75
+        nms = _get_nylon_mini_shroud(
+            string_meta.minishroud_radius_in_mm, minishroud_length, True, b.materials, b.registry
+        )
+        z_nms = z0_string - copper_rod_length_from_z0 + minishroud_length / 2 - MINISHROUD_END_THICKNESS
+        nms_pv = geant4.PhysicalVolume(
+            [0, 0, 0],
+            [x_pos, y_pos, z_nms],
+            nms,
+            nms.name + "_string_" + string_id,
+            b.mother_lv,
+            b.registry,
+        )
+        _add_nms_surfaces(nms_pv, b.mother_pv, b.materials, b.registry)
+        nms_top = _get_nylon_mini_shroud(
+            string_meta.minishroud_radius_in_mm - MINISHROUD_END_THICKNESS,
+            MINISHROUD_LENGTH[1],
+            True,
+            b.materials,
+            b.registry,
+            min_radius=10,
+        )
+        nms_pv = geant4.PhysicalVolume(
+            [0, 0, 0],
+            [x_pos, y_pos, z0_string + 15 + MINISHROUD_LENGTH[1] / 2],
+            nms_top,
+            nms_top.name + "_string_" + string_id,
+            b.mother_lv,
+            b.registry,
+        )
+        _add_nms_surfaces(nms_pv, b.mother_pv, b.materials, b.registry)
 
     support, tristar = _get_support_structure(string_slots[1].baseplate, b)
     if support is not None:
@@ -498,8 +501,6 @@ def _place_hpge_string(
             b.registry,
         )
 
-    copper_rod_r = string_meta.rod_radius_in_mm
-    assert copper_rod_r < string_meta.minishroud_radius_in_mm - 0.75
     copper_rod_name = f"hpge_support_copper_string_{string_id}_cu_rod"
     # the rod has a radius of 1.5 mm, but this would overlap with the coarse model of the PPC top PEN ring.
     copper_rod = geant4.solid.Tubs(copper_rod_name, 0, 1.40, copper_rod_length, 0, 2 * math.pi, b.registry)

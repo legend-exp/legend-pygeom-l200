@@ -45,12 +45,14 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
 
     calib_tubes = {}
     calib_tube_length = []
-    calib_tube_xy = np.empty((2, len(b.special_metadata.calibration)))
+    calib_tube_xy = np.empty((2, 4))
 
     sis_cfg = b.runtime_config.get("sis", {})
 
     for i, tube in b.special_metadata.calibration.items():
         idx = int(i) - 1
+        if tube is None:
+            continue
         if tube.length_in_mm not in calib_tubes:
             calib_tubes[tube.length_in_mm] = hpge_strings._get_nylon_mini_shroud(
                 tube.tube_radius_in_mm, tube.length_in_mm, True, b.materials, b.registry
@@ -93,8 +95,8 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
     if not hasattr(b.runtime_config, "sis"):
         return
 
-    for i, _ in b.special_metadata.calibration.items():
-        if i not in sis_cfg or sis_cfg[i] is None:
+    for i, tube in b.special_metadata.calibration.items():
+        if tube is None or i not in sis_cfg or sis_cfg[i] is None:
             continue
         idx = int(i) - 1
 

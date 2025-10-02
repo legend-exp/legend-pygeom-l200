@@ -3,6 +3,12 @@
   mode: reset
   apply:
     - l200-p03-r%-T%-all-config.yaml
+- valid_from: 20240411T000000Z
+  category: all
+  mode: reset
+  apply:
+    - l200-p03-r%-T%-all-config.yaml
+    - l200-p11-r%-T%-all-config.yaml
 - valid_from: 20241210T225016Z
   category: all
   mode: reset
