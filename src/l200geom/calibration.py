@@ -53,6 +53,8 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
         idx = int(i) - 1
         if tube is None:
             continue
+        tube_cfg = sis_cfg.get(i, {}) or {}
+
         if tube.length_in_mm not in calib_tubes:
             calib_tubes[tube.length_in_mm] = hpge_strings._get_nylon_mini_shroud(
                 tube.tube_radius_in_mm, tube.length_in_mm, True, b.materials, b.registry
@@ -61,18 +63,11 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
 
         # allow for an offset to place properly the sis
         phi = np.deg2rad(tube.angle_in_deg)
-        has_phi_offset = i in sis_cfg and sis_cfg[i] is not None and "phi_offset" in sis_cfg[i]
-        has_r_offset = i in sis_cfg and sis_cfg[i] is not None and "r_offset" in sis_cfg[i]
+        phi += np.deg2rad(tube_cfg.get("phi_offset", 0))
+        tube.radius_in_mm += tube_cfg.get("r_offset", 0)
 
-        if has_phi_offset:
-            phi += np.deg2rad(sis_cfg[i].phi_offset)
-
-        # add the option for a radial offset
-        if has_r_offset:
-            tube.radius_in_mm += sis_cfg[i].r_offset
-
-        # add a very small offset to prevent overlaps if we moved a cal tube
-        off = 2 if (has_phi_offset or has_r_offset) else 0
+        # add a very small z-offset to prevent overlaps if we moved a cal tube
+        off = 2 if ("phi_offset" in tube_cfg or "r_offset" in tube_cfg) else 0
 
         calib_tube_xy[:, idx] = np.array([tube.radius_in_mm * np.cos(phi), -tube.radius_in_mm * np.sin(phi)])
 
@@ -103,7 +98,7 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
         # SIS reading to our coordinates. This marks the top of the torlon initialization pin in our
         # (pygeom) coordinates.
 
-        sis_z = sis_cfg[i].sis_z if "offset" not in sis_cfg[i] else (sis_cfg[i].sis_z) - sis_cfg[i].offset
+        sis_z = sis_cfg[i].sis_z - sis_cfg[i].get("offset", 0)
         sis_xy = calib_tube_xy[:, idx]
 
         pin_top = _sis_to_pygeoml200(sis_z)
