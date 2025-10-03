@@ -98,24 +98,26 @@ def place_fiber_modules(
         if mod.barrel == "inner":
             ib_factory.create_module(mod)
 
-    fiber_support_outer = get_fiber_support_outer(b)
-    g4.PhysicalVolume(
-        [0, 0, 0],
-        [0, 0, b.top_plate_z_pos - 730],
-        fiber_support_outer,
-        "fiber_support_outer",
-        b.mother_lv,
-        b.registry,
-    )
-    fiber_support_inner = get_fiber_support_inner(b)
-    g4.PhysicalVolume(
-        [0, 0, 0],
-        [0, 0, b.top_plate_z_pos - 730 - ib_delta_z],
-        fiber_support_inner,
-        "fiber_support_inner",
-        b.mother_lv,
-        b.registry,
-    )
+    if any(mod.barrel == "outer" for mod in modules.values()):
+        fiber_support_outer = get_fiber_support_outer(b)
+        g4.PhysicalVolume(
+            [0, 0, 0],
+            [0, 0, b.top_plate_z_pos - 730],
+            fiber_support_outer,
+            "fiber_support_outer",
+            b.mother_lv,
+            b.registry,
+        )
+    if any(mod.barrel == "inner" for mod in modules.values()):
+        fiber_support_inner = get_fiber_support_inner(b)
+        g4.PhysicalVolume(
+            [0, 0, 0],
+            [0, 0, b.top_plate_z_pos - 730 - ib_delta_z],
+            fiber_support_inner,
+            "fiber_support_inner",
+            b.mother_lv,
+            b.registry,
+        )
 
 
 def _module_name_to_num(mod_name: str) -> int:
