@@ -29,7 +29,7 @@ def conctruct_fiber_variants():
 
 def test_construct(tmp_path, conctruct_fiber_variants):
     # do nothing here, we just want to test the fixture.
-    reg_detailed, reg_segmented = conctruct_fiber_variants
+    _reg_detailed, _reg_segmented = conctruct_fiber_variants
 
 
 @pytest.mark.xfail(
