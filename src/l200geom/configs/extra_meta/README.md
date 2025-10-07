@@ -14,7 +14,8 @@ This metadata is passed to all instrumentation modules, stored as
     string
   - `angle_in_deg` → azimutal position of the string with respect to the
     positive x-direction
-  - `minishroud_radius_in_mm` → radius of the minishroud of this string
+  - `minishroud_radius_in_mm` → radius of the minishroud of this string, or
+    `null` to indicate no minishroud is present.
   - `minishroud_delta_length_in_mm` → modification of the default length of a
     NMS. If unspecified, 0 will be used.
   - `rod_radius_in_mm` → placement radius of the support rod of this string
@@ -48,3 +49,6 @@ This metadata is passed to all instrumentation modules, stored as
     the positive x-direction
   - `tube_radius_in_mm` → radius of the tube itself
   - `length_in_mm` → length of the calibration tube below the top copper plate
+
+Each tube in the mapping can be `null` to indicate that this calibration system
+tube is not present.
