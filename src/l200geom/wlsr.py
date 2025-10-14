@@ -46,7 +46,7 @@ def _construct_wlsr(
         "wlsr_ttx",
         wlsr_tpb_radius + wlsr_tpb_thickness,
         wlsr_tpb_radius + wlsr_tpb_thickness + wlsr_ttx_thickness,
-        wlsr_height - spacing,
+        wlsr_height - 2 * spacing,
         0,
         2 * pi,
         reg,
