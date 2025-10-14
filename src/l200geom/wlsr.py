@@ -31,10 +31,11 @@ def _construct_wlsr(
     mats: materials.OpticalMaterialRegistry,
     reg: g4.Registry,
 ) -> tuple[g4.LogicalVolume, ...]:
+    spacing = 2e-9  # spacing larger than the geometry tolerance (0.01 nm = 1e-11 m)
     wlsr_outer = g4.solid.Tubs(
         "wlsr_outer",
-        wlsr_tpb_radius,
-        wlsr_tpb_radius + wlsr_tpb_thickness + wlsr_ttx_thickness + wlsr_cu_thickness,
+        wlsr_tpb_radius + wlsr_tpb_thickness + wlsr_ttx_thickness + 2 * spacing,
+        wlsr_tpb_radius + wlsr_tpb_thickness + wlsr_ttx_thickness + 2 * spacing + wlsr_cu_thickness,
         wlsr_height,
         0,
         2 * pi,
@@ -43,9 +44,9 @@ def _construct_wlsr(
     )
     wlsr_ttx = g4.solid.Tubs(
         "wlsr_ttx",
-        wlsr_tpb_radius,
+        wlsr_tpb_radius + wlsr_tpb_thickness,
         wlsr_tpb_radius + wlsr_tpb_thickness + wlsr_ttx_thickness,
-        wlsr_height,
+        wlsr_height - spacing,
         0,
         2 * pi,
         reg,
@@ -54,7 +55,7 @@ def _construct_wlsr(
     wlsr_tpb = g4.solid.Tubs(
         "wlsr_tpb",
         wlsr_tpb_radius,
-        wlsr_tpb_radius + wlsr_tpb_thickness,
+        wlsr_tpb_radius + wlsr_tpb_thickness + wlsr_ttx_thickness + spacing,
         wlsr_height,
         0,
         2 * pi,
@@ -84,8 +85,8 @@ def place_wlsr(
         b.mother_lv,
         reg,
     )
-    wlsr_ttx_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], wlsr_ttx_lv, "wlsr_ttx", wlsr_outer_lv, reg)
-    wlsr_tpb_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], wlsr_tpb_lv, "wlsr_tpb", wlsr_ttx_lv, reg)
+    wlsr_tpb_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], wlsr_tpb_lv, "wlsr_tpb", b.mother_lv, reg)
+    wlsr_ttx_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], wlsr_ttx_lv, "wlsr_ttx", wlsr_tpb_lv, reg)
 
     wlsr_ttx_lv.pygeom_color_rgba = [1, 1, 1, 0.2]
     wlsr_tpb_lv.pygeom_color_rgba = False
