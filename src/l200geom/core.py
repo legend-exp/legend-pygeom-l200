@@ -51,6 +51,7 @@ def construct(
     assemblies: list[str] | set[str] = DEFAULT_ASSEMBLIES,
     pmt_configuration_mv: str = "LEGEND200",
     use_detailed_fiber_model: bool = False,
+    remove_fiber_copper: bool = False,
     config: dict | None = None,
     public_geometry: bool = False,
 ) -> geant4.Registry:
@@ -165,7 +166,9 @@ def construct(
         top.place_top_plate(instr)
     if "fibers" in assemblies:
         hw_meta = lmeta.hardware.detectors.lar.fibers if lmeta is not None else dummy_geom.fibers
-        fibers.place_fiber_modules(hw_meta, instr, use_detailed_fiber_model)
+        fibers.place_fiber_modules(
+            hw_meta, instr, use_detailed_fiber_model, remove_fiber_copper=remove_fiber_copper
+        )
 
     _assign_common_copper_surface(instr)
 

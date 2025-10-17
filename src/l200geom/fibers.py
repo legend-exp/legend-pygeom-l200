@@ -16,6 +16,7 @@ def place_fiber_modules(
     fiber_metadata: TextDB,
     b: core.InstrumentationData,
     use_detailed_fiber_model: bool = False,
+    remove_fiber_copper: bool = False,
 ) -> None:
     """Construct LEGEND-200 liquid argon instrumentation.
 
@@ -98,7 +99,7 @@ def place_fiber_modules(
         if mod.barrel == "inner":
             ib_factory.create_module(mod)
 
-    if any(mod.barrel == "outer" for mod in modules.values()):
+    if any(mod.barrel == "outer" for mod in modules.values()) and (not remove_fiber_copper):
         fiber_support_outer = get_fiber_support_outer(b)
         g4.PhysicalVolume(
             [0, 0, 0],
@@ -108,7 +109,7 @@ def place_fiber_modules(
             b.mother_lv,
             b.registry,
         )
-    if any(mod.barrel == "inner" for mod in modules.values()):
+    if any(mod.barrel == "inner" for mod in modules.values()) and (not remove_fiber_copper):
         fiber_support_inner = get_fiber_support_inner(b)
         g4.PhysicalVolume(
             [0, 0, 0],
