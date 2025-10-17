@@ -38,6 +38,7 @@ def dump_gdml_cli(argv: list[str] | None = None) -> None:
         assemblies=args.assemblies,
         pmt_configuration_mv=args.pmt_config,
         use_detailed_fiber_model=args.fiber_modules == "detailed",
+        remove_fiber_copper=args.remove_fiber_copper,
         config=config,
         public_geometry=args.public_geom,
     )
@@ -142,6 +143,13 @@ def _parse_cli_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, 
         choices=("segmented", "detailed"),
         help=f"""Select the fiber shroud model, either coarse segments or single fibers. (default: {fiber_modules_default})""",
     )
+
+    geom_opts.add_argument(
+        "--remove-fiber-copper",
+        action="store_true",
+        default=None,
+        help="""Remove the fiber support copper which could currently cause some performance penalty.""",
+    )
     pmt_config_default = "LEGEND200"
     geom_opts.add_argument(
         "--pmt-config",
@@ -177,6 +185,7 @@ def _parse_cli_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, 
     # also load geometry options from config file.
     _config_or_cli_arg(args, config, "assemblies", None)
     _config_or_cli_arg(args, config, "fiber_modules", fiber_modules_default)
+    _config_or_cli_arg(args, config, "remove_fiber_copper", False)
     _config_or_cli_arg(args, config, "pmt_config", pmt_config_default)
     _config_or_cli_arg(args, config, "public_geom", False)
 
