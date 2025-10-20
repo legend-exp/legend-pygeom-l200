@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -93,31 +94,16 @@ def place_fiber_modules(
     )
 
     for mod in modules.values():
+        continue
         if mod.barrel == "outer":
             ob_factory.create_module(mod)
         if mod.barrel == "inner":
             ib_factory.create_module(mod)
 
     if any(mod.barrel == "outer" for mod in modules.values()):
-        fiber_support_outer = get_fiber_support_outer(b)
-        g4.PhysicalVolume(
-            [0, 0, 0],
-            [0, 0, b.top_plate_z_pos - 730],
-            fiber_support_outer,
-            "fiber_support_outer",
-            b.mother_lv,
-            b.registry,
-        )
+        create_fiber_support_outer(b, b.top_plate_z_pos - 730)
     if any(mod.barrel == "inner" for mod in modules.values()):
-        fiber_support_inner = get_fiber_support_inner(b)
-        g4.PhysicalVolume(
-            [0, 0, 0],
-            [0, 0, b.top_plate_z_pos - 730 - ib_delta_z],
-            fiber_support_inner,
-            "fiber_support_inner",
-            b.mother_lv,
-            b.registry,
-        )
+        create_fiber_support_inner(b, b.top_plate_z_pos - 730 - ib_delta_z)
 
 
 def _module_name_to_num(mod_name: str) -> int:
@@ -1090,11 +1076,10 @@ class ModuleFactorySegment(ModuleFactoryBase):
             )
 
 
-def get_fiber_support_inner(b: core.InstrumentationData) -> g4.LogicalVolume:
+def create_fiber_support_inner(b: core.InstrumentationData, z_pos: float) -> g4.LogicalVolume:
     inner_radius = 127.5  # mm, from CAD model.
     outer_radius = inner_radius + 6.5  # mm
     ring_thickness = 3  # mm
-    rod_length = 1400  # mm
     rod_radius = 2.5  # mm
 
     vols = []
@@ -1107,29 +1092,48 @@ def get_fiber_support_inner(b: core.InstrumentationData) -> g4.LogicalVolume:
     z_ring = (-700, -600, -300, 0, 300, 600, 700)  # mm
     for z in z_ring:
         vols.append(ring)
-        tras.append([[0, 0, 0], [0, 0, z]])
+        tras.append([0, [0, 0, z]])
 
     # Create the rods
     radius_rod = (inner_radius + outer_radius) / 2
-    rod = g4.solid.Tubs("fiber_support_inner_rod", 0, rod_radius, rod_length, 0, 2 * np.pi, b.registry)
     for i in range(3):
-        vols.append(rod)
-        phi = i * 2 * np.pi / 3
-        tras.append([[0, 0, 0], [radius_rod * np.cos(phi), radius_rod * np.sin(phi), 0]])
+        rl = 0
+        for rings in itertools.pairwise(z_ring):
+            rod_length = rings[1] - rings[0]
+            rod_name = f"fiber_support_inner_rod_{rod_length}"
+            if rod_name not in b.registry.solidDict:
+                g4.solid.Tubs(
+                    rod_name, 0, rod_radius, rod_length - ring_thickness - 2e-9, 0, 2 * np.pi, b.registry
+                )
+            rod = b.registry.solidDict[rod_name]
+
+            vols.append(rod)
+            phi = i * 2 * np.pi / 3
+            tras.append([0, [radius_rod * np.cos(phi), radius_rod * np.sin(phi), rings[0] + rod_length / 2]])
+            rl += rod_length
+        assert rl == 1400
 
     # Combine rings and rods
-    fiber_support = g4.solid.MultiUnion("fiber_support_inner", vols, tras, b.registry)
-    fiber_support = g4.LogicalVolume(
-        fiber_support,
-        b.materials.metal_copper,
-        "fiber_support_inner",
-        b.registry,
-    )
-    fiber_support.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
-    return fiber_support
+    for idx, (vol, tra) in enumerate(zip(vols, tras, strict=True)):
+        vol_lv = g4.LogicalVolume(
+            vol,
+            b.materials.metal_copper,
+            f"fiber_support_inner_{idx}",
+            b.registry,
+        )
+        vol_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
+
+        g4.PhysicalVolume(
+            [0, 0, -tra[0]],
+            np.array([0, 0, z_pos]) + np.array(tra[1]),
+            vol_lv,
+            f"fiber_support_inner_{idx}",
+            b.mother_lv,
+            b.registry,
+        )
 
 
-def get_fiber_support_outer(b: core.InstrumentationData) -> g4.LogicalVolume:
+def create_fiber_support_outer(b: core.InstrumentationData, z_pos: float) -> g4.LogicalVolume:
     vols = []
     tras = []
 
@@ -1168,37 +1172,56 @@ def get_fiber_support_outer(b: core.InstrumentationData) -> g4.LogicalVolume:
         vols.append(fin)
         tras.append(
             [
-                [0, 0, i * 2 * np.pi / 20 - np.pi / 2],
+                i * 2 * np.pi / 20 - np.pi / 2,
                 [radius_fins * np.cos(i * 2 * np.pi / 20), radius_fins * np.sin(i * 2 * np.pi / 20), 55 - 10],
             ]
         )
 
-    # add the three support rods.
-    rod = g4.solid.Tubs("fiber_support_outer_rod", 0, 2.5, 1300, 0, 2 * np.pi, b.registry)
-    radius_rod = (radius + radius_out) / 2
-    for i in range(4):
-        vols.append(rod)
-        phi = i * 2 * np.pi / 4
-        tras.append([[0, 0, 0], [radius_rod * np.cos(phi), radius_rod * np.sin(phi), 50]])
-
     # place the 7 rings at a spacing of 100?,300,300,300,150,150,160
-    for z in [0, -300, -450, -600, 300, 600]:
-        vols.append(thinring)
-        tras.append([[0, 0, 0], [0, 0, z]])
-
-    vols.append(topring)
-    tras.append([[0, 0, 0], [0, 0, 700]])
+    rings_z = [-600, -450, -300, 0, 300, 600, 700]
+    rings_thickness = [2, 2, 2, 2, 2, 2, 3]
+    for z, thickness in zip(rings_z, rings_thickness, strict=True):
+        vols.append(thinring if thickness == 2 else topring)
+        tras.append([0, [0, 0, z]])
 
     vols.append(bottomring)
-    tras.append([[0, 0, 0], [0, 0, -600 - fin_radius - 10]])
+    tras.append([0, [0, 0, -600 - fin_radius - 10]])
+
+    # add the three support rods.
+    radius_rod = (radius + radius_out) / 2
+    for i in range(4):
+        rl = 0
+        for rings in itertools.pairwise(zip(rings_z, rings_thickness, strict=True)):
+            rod_length = rings[1][0] - rings[0][0]
+            rod_delta = max([rings[1][1], rings[0][1]])
+            rod_name = f"fiber_support_outer_rod_{rod_length}"
+            if rod_name not in b.registry.solidDict:
+                g4.solid.Tubs(rod_name, 0, 2.5, rod_length - rod_delta - 2e-9, 0, 2 * np.pi, b.registry)
+            rod = b.registry.solidDict[rod_name]
+
+            vols.append(rod)
+            phi = i * 2 * np.pi / 4
+            tras.append(
+                [0, [radius_rod * np.cos(phi), radius_rod * np.sin(phi), rings[0][0] + rod_length / 2]]
+            )
+            rl += rod_length
+        assert rl == 1300
 
     # Combine rings and rods
-    fiber_support = g4.solid.MultiUnion("fiber_support_outer", vols, tras, b.registry)
-    fiber_support = g4.LogicalVolume(
-        fiber_support,
-        b.materials.metal_copper,
-        "fiber_support_outer",
-        b.registry,
-    )
-    fiber_support.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
-    return fiber_support
+    for idx, (vol, tra) in enumerate(zip(vols, tras, strict=True)):
+        vol_lv = g4.LogicalVolume(
+            vol,
+            b.materials.metal_copper,
+            f"fiber_support_outer_{idx}",
+            b.registry,
+        )
+        vol_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
+
+        g4.PhysicalVolume(
+            [0, 0, -tra[0]],
+            np.array([0, 0, z_pos]) + np.array(tra[1]),
+            vol_lv,
+            f"fiber_support_outer_{idx}",
+            b.mother_lv,
+            b.registry,
+        )
