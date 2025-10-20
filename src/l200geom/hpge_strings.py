@@ -167,9 +167,10 @@ def _place_front_end_and_insulators(
                 b.mother_lv,
                 b.registry,
             )
+            delta_z_washer = (thickness["clamp"] + thickness["washer"]) / 2 + thickness["safety"]
             geant4.PhysicalVolume(
                 [0, 0, 0],
-                [x_hole, y_hole, z_clamp - z_sign * (thickness["clamp"] + thickness["washer"]) / 2],
+                [x_hole, y_hole, z_clamp - z_sign * delta_z_washer],
                 phbr_washer,
                 f"{phbr_washer.name}_{name}_{det_unit.name}_{hole_idx}",
                 b.mother_lv,
@@ -202,6 +203,7 @@ def _place_front_end_and_insulators(
 
     x_clamp, y_clamp = string_pos_v - parts_origin["hv"] * hv_rot_v
     x_cable, y_cable = string_pos_v - (parts_origin["hv"] - 3) * hv_rot_v
+    x_spring, y_spring = string_pos_v - (parts_origin["hv"] - 3 - 2e-10) * hv_rot_v
 
     geant4.PhysicalVolume(
         [0, 0, angle_hv],
@@ -221,7 +223,7 @@ def _place_front_end_and_insulators(
     )
     geant4.PhysicalVolume(
         [0, 0, angle_hv],
-        [x_clamp, y_clamp, hv_z_pos],
+        [x_spring, y_spring, hv_z_pos],
         phbr_spring,
         f"{phbr_spring.name}_hv_{det_unit.name}",
         b.mother_lv,
@@ -301,6 +303,7 @@ def _hpge_unit_get_z(bottom: float, det_unit: HPGeDetUnit) -> tuple[dict, dict]:
     z_det = bottom + 3.7 + 1.3 + t["pen"] + insulator_spacer
 
     safety = 0.001  # 1 micro meter
+    t["safety"] = safety
     # - note from CAD model: the distance between PEN plate top and detector bottom face varies
     #   a lot between different diodes (i.e. BEGe's/IC's all(?) use a single standard insulator
     #   type, and have a distance of 2.1 mm; for PPCs this varies between ca. 2.5 and 4 mm.)
@@ -310,7 +313,7 @@ def _hpge_unit_get_z(bottom: float, det_unit: HPGeDetUnit) -> tuple[dict, dict]:
         "pen": z_det - insulator_spacer - t["pen"] / 2.0 - safety * 2,
         "weldment": z_det - insulator_spacer - t["pen"] - t["weldment"] / 2.0 - safety * 3,
         "clamp": z_det - insulator_spacer - t["pen"] - t["clamp"] / 2.0 - safety * 4,
-        "pen_top": z_det + det_unit.height + t["pen"] / 2,
+        "pen_top": z_det + det_unit.height + t["pen"] / 2 + safety,
         "clamp_top": z_det + det_unit.height + t["pen"] + t["clamp"] / 2.0 + safety * 3,
     }
     return t, z
@@ -453,7 +456,7 @@ def _place_hpge_string(
         nms = _get_nylon_mini_shroud(
             string_meta.minishroud_radius_in_mm, minishroud_length, True, b.materials, b.registry
         )
-        z_nms = z0_string - copper_rod_length_from_z0 + minishroud_length / 2 - MINISHROUD_END_THICKNESS
+        z_nms = z0_string - copper_rod_length_from_z0 + minishroud_length / 2 - MINISHROUD_END_THICKNESS - 0.1
         nms_pv = geant4.PhysicalVolume(
             [0, 0, 0],
             [x_pos, y_pos, z_nms],
@@ -1082,7 +1085,7 @@ def _get_cu_pin(length: float, b: core.InstrumentationData):
     if f"hpge_du_pin_{length}" in b.registry.logicalVolumeDict:
         return b.registry.logicalVolumeDict[f"hpge_du_pin_{length}"]
 
-    pin = geant4.solid.Tubs(f"hpge_du_pin_{length}", 0, 1.3, length, 0, 2 * math.pi, b.registry)
+    pin = geant4.solid.Tubs(f"hpge_du_pin_{length}", 0, 1.3 - 2e-10, length, 0, 2 * math.pi, b.registry)
     pin = geant4.LogicalVolume(pin, b.materials.metal_copper, f"hpge_du_pin_{length}", b.registry)
     pin.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     return pin
