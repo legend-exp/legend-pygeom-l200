@@ -202,8 +202,8 @@ def _place_front_end_and_insulators(
     hv_z_pos = z_pos["clamp" if not det_unit.name.startswith("P") else "clamp_top"]
 
     x_clamp, y_clamp = string_pos_v - parts_origin["hv"] * hv_rot_v
-    x_cable, y_cable = string_pos_v - (parts_origin["hv"] - 3 - 2e-10) * hv_rot_v
-    x_spring, y_spring = string_pos_v - (parts_origin["hv"] - 3 - 2 * 2e-10) * hv_rot_v
+    x_cable, y_cable = string_pos_v - (parts_origin["hv"] - 3 + 2e-10) * hv_rot_v
+    x_spring, y_spring = string_pos_v - (parts_origin["hv"] - 3 + 2 * 2e-10) * hv_rot_v
 
     geant4.PhysicalVolume(
         [0, 0, angle_hv],
