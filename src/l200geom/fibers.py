@@ -94,7 +94,6 @@ def place_fiber_modules(
     )
 
     for mod in modules.values():
-        continue
         if mod.barrel == "outer":
             ob_factory.create_module(mod)
         if mod.barrel == "inner":
