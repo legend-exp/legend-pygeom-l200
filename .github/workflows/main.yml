@@ -111,7 +111,7 @@ jobs:
     name: Test legend-pygeom-l200 with remage
     runs-on: ubuntu-latest
     needs: build-and-test
-    container: docker://legendexp/remage-base:latest
+    container: docker://legendexp/remage:latest
     steps:
       - uses: actions/checkout@v5
       - name: Get dependencies and install l200geom
