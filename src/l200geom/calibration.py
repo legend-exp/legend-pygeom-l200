@@ -145,6 +145,8 @@ ABSORBER_HEIGHT = 37.5  # mm
 source_outside_holder = 10.6  # mm
 source_inside_holder = source_height - source_outside_holder
 
+safety = 1e-9  # mm
+
 
 def _place_source(
     b: core.InstrumentationData,
@@ -175,7 +177,13 @@ def _place_source(
     if not bare:
         if "source_outer" not in b.registry.solidDict:
             geant4.solid.Tubs(
-                "source_outer", 0, source_radius_outer, source_height, 0, 2 * math.pi, b.registry
+                "source_outer",
+                0,
+                source_radius_outer - safety,
+                source_height - safety,
+                0,
+                2 * math.pi,
+                b.registry,
             )
         if f"source_outer{suffix}" not in b.registry.logicalVolumeDict:
             geant4.LogicalVolume(
@@ -231,8 +239,8 @@ def _place_source(
     if cu_absorber:
         cu_absorber_cu, cu_absorber_lar = _get_cu_cap(b, cu_absorber)
         cu_absorber_z0 = z0 + max([0, source_outside_holder - cu_absorber.inner_height])
-        cu_absorber_z = cu_absorber_z0 + cu_absorber.height / 2
-        cu_absorber_lar_z = cu_absorber_z0 + cu_absorber.inner_height / 2
+        cu_absorber_z = cu_absorber_z0 + cu_absorber.height / 2 + safety
+        cu_absorber_lar_z = cu_absorber_z0 + cu_absorber.inner_height / 2 + safety
         geant4.PhysicalVolume(
             [0, 0, 0],
             [*xy, cu_absorber_z],
@@ -287,6 +295,15 @@ def _get_cu_cap(
 
     cu_absorber_lar = None
     if dimens.inner_radius != source_radius_outer:
+        cu_absorber_lar_outer = geant4.solid.Tubs(
+            "cu_absorber_lar_inactive_outer",
+            0,
+            dimens.inner_radius - safety,
+            dimens.inner_height - 2 * safety,
+            0,
+            2 * math.pi,
+            b.registry,
+        )
         cu_absorber_lar_inner = geant4.solid.Tubs(
             "cu_absorber_lar_inactive_inner",
             0,
@@ -298,9 +315,9 @@ def _get_cu_cap(
         )
         cu_absorber_lar = geant4.solid.Subtraction(
             "cu_absorber_lar_inactive",
-            cu_absorber_inner,
+            cu_absorber_lar_outer,
             cu_absorber_lar_inner,
-            [[0, 0, 0], [0, 0, -(dimens.inner_height - source_outside_holder) / 2]],
+            [[0, 0, 0], [0, 0, -(dimens.inner_height - 2 * safety - source_outside_holder) / 2]],
             b.registry,
         )
         cu_absorber_lar = geant4.LogicalVolume(
@@ -339,7 +356,7 @@ def _place_ta_absorber(
         peek_holder = geant4.LogicalVolume(peek_holder, b.materials.peek, "peek_holder", b.registry)
         peek_holder.pygeom_color_rgba = (0.5, 0.32, 0, 1)
 
-    peek_holder_z = z0 + ABSORBER_HEIGHT / 2 + 25 / 2
+    peek_holder_z = z0 + ABSORBER_HEIGHT / 2 + 25 / 2 + safety
     geant4.PhysicalVolume(
         [0, 0, 0],
         [*xy, peek_holder_z],
@@ -366,8 +383,8 @@ def _get_ta_absorber(b: core.InstrumentationData):
     ta_absorber_inner = geant4.solid.Tubs(
         "ta_absorber_inner",
         0,
-        source_radius_outer,
-        source_height - source_outside_holder,
+        source_radius_outer + safety,
+        source_height - source_outside_holder + 2 * safety,
         0,
         2 * math.pi,
         b.registry,
@@ -376,7 +393,7 @@ def _get_ta_absorber(b: core.InstrumentationData):
         "ta_absorber",
         ta_absorber_outer,
         ta_absorber_inner,
-        [[0, 0, 0], [0, 0, (ABSORBER_HEIGHT - source_inside_holder) / 2]],
+        [[0, 0, 0], [0, 0, (ABSORBER_HEIGHT - source_inside_holder) / 2 - safety]],
         b.registry,
     )
     return geant4.LogicalVolume(ta_absorber, b.materials.metal_tantalum, "ta_absorber", b.registry)
