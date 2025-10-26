@@ -42,6 +42,9 @@ def dump_gdml_cli(argv: list[str] | None = None) -> None:
         public_geometry=args.public_geom,
     )
 
+    if args.print_volumes:
+        _print_volumes(registry, args.print_volumes)
+
     if args.check_overlaps:
         msg = "checking for overlaps"
         log.info(msg)
@@ -63,6 +66,36 @@ def dump_gdml_cli(argv: list[str] | None = None) -> None:
         from pygeomtools import viewer
 
         viewer.visualize(registry, vis_scene)
+
+
+def _print_volumes(registry, which: str) -> None:
+    import pandas as pd
+
+    lines = []
+    if which == "logical":
+        for name, lv in registry.logicalVolumeDict.items():
+            solid = lv.solid
+            solid_type = solid.__class__.__name__ if solid is not None else "UnknownSolid"
+            material = lv.material
+            mat_name = getattr(material, "name", "UnknownMaterial")
+            density = getattr(material, "density", "UnknownDensity")
+            lines.append(
+                {"name": name, "solid": solid_type, "material": mat_name, "density [g/cm3]": density}
+            )
+    elif which == "physical":
+        for name, pv in registry.physicalVolumeDict.items():
+            copy_nr = pv.copyNumber
+            lv = pv.logicalVolume
+            lv_name = lv if isinstance(lv, str) else getattr(lv, "name", "?")
+            lines.append({"name": name, "copy_nr": copy_nr, "logical": lv_name})
+    elif which == "detector":
+        for pv, det in detectors.walk_detectors(registry.worldVolume):
+            lines.append({"name": pv.name, "uid": det.uid, "type": det.detector_type})
+    else:
+        msg = f"unknown volume type {which}"
+        raise ValueError(msg)
+    table = pd.DataFrame.from_dict(lines).set_index("name").sort_index()
+    print(table.to_string())  # noqa: T201
 
 
 def _parse_cli_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, dict]:
@@ -111,6 +144,12 @@ def _parse_cli_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, 
         "--check-overlaps",
         action="store_true",
         help="""Check for overlaps with pyg4ometry (note: this might not be accurate)""",
+    )
+    parser.add_argument(
+        "--print-volumes",
+        action="store",
+        choices=("logical", "physical", "detector"),
+        help="""Print a list of logical or physical volume names (from the pyg4ometry registry)""",
     )
 
     parser.add_argument(
