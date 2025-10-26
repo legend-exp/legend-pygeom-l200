@@ -604,7 +604,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
             self.b.registry,
         )
 
-        coating_lv.pygeom_color_rgba = [0, 1, 0, 0.01]
+        coating_lv.pygeom_color_rgba = [0, 1, 0.165, 0.07]  # 520 nm
 
         return coating_lv
 
@@ -982,7 +982,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
             self.b.registry,
         )
 
-        coating_lv.pygeom_color_rgba = [0, 1, 0, 0.1]
+        coating_lv.pygeom_color_rgba = [0, 1, 0.165, 0.07]  # 520 nm
 
         return coating_lv
 
