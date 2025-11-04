@@ -101,6 +101,7 @@ def construct(
             - cryo.cryo_access_height
             - (cryo.cryo_tub_height / 2 + cryo.cryo_top_height)
             - cryo.access_overlap / 2
+            - 1e-9  # safety
         )  # -153
 
         water_lv, _ = watertank.insert_muon_veto(
