@@ -312,7 +312,7 @@ def insert_vm2000(
     manhole_rotation: list,
     man_hole_offset: float,
     cryo_displacement_z: float,
-):
+) -> tuple[g4.PhysicalVolume, ...]:
     # VM2000 at inside of water tank tube
     water_tank_reflection_foil_tube = g4.solid.Tubs(
         "water_tank_reflection_foil_tube",
@@ -469,73 +469,22 @@ def insert_vm2000(
         reg,
     )
 
-    vm2000_border_opt_table = (
-        surfaces.water_to_vm2000
-    )  # The name is confusing. This is in the direction vm2000 -> water
-    vm2000_opt_table = surfaces.to_vm2000
+    def _vm2000_surfaces(pv: g4.PhysicalVolume) -> None:
+        name = pv.name.replace("_pv", "")
+        # water -> VM2000
+        g4.BorderSurface(name + "_border_surface", pv, water_pv, surfaces.vm2000_to_water, reg)
+        # VM2000 -> water
+        # TODO: can this be removed? vm2000_to_water is a dielectric_metal surface, so there
+        # should be no photons that enter the VM2000.
+        g4.SkinSurface(name + "_skin_surface", pv.logicalVolume, surfaces.to_vm2000, reg)
 
-    # Border Surfaces
-    g4.BorderSurface(
-        "pillbox_outer_tube_foil_border_surface",
-        pillbox_outer_reflection_foil_tube_pv,
-        water_pv,
-        vm2000_border_opt_table,
-        reg,
-    )
-    g4.BorderSurface(
-        "pillbox_inner_tube_foil_border_surface",
-        pillbox_inner_reflection_foil_tube_pv,
-        water_pv,
-        vm2000_border_opt_table,
-        reg,
-    )
-    g4.BorderSurface(
-        "pillbox_bottom_foil_border_surface",
-        pillbox_reflection_foil_bottom_pv,
-        water_pv,
-        vm2000_border_opt_table,
-        reg,
-    )
-    g4.BorderSurface(
-        "pillbox_top_foil_border_surface",
-        pillbox_reflection_foil_top_pv,
-        water_pv,
-        vm2000_border_opt_table,
-        reg,
-    )
-    g4.BorderSurface(
-        "watertank_tube_foil_border_surface",
-        water_tank_reflection_foil_tube_pv,
-        water_pv,
-        vm2000_border_opt_table,
-        reg,
-    )
-    g4.BorderSurface(
-        "watertank_bottom_foil_border_surface",
-        water_tank_reflection_foil_bottom_pv,
-        water_pv,
-        vm2000_border_opt_table,
-        reg,
-    )
-    g4.BorderSurface("cryo_border_surface", cryo_reflection_foil_pv, water_pv, vm2000_border_opt_table, reg)
-
-    g4.SkinSurface(
-        "pillbox_outer_tube_foil_skin_surface", pillbox_outer_reflection_foil_tube_lv, vm2000_opt_table, reg
-    )
-    g4.SkinSurface(
-        "pillbox_inner_tube_foil_skin_surface", pillbox_inner_reflection_foil_tube_lv, vm2000_opt_table, reg
-    )
-    g4.SkinSurface("pillbox_top_foil_skin_surface", pillbox_reflection_foil_top_lv, vm2000_opt_table, reg)
-    g4.SkinSurface(
-        "watertank_tube_foil_skin_surface", water_tank_reflection_foil_tube_lv, vm2000_opt_table, reg
-    )
-    g4.SkinSurface(
-        "watertank_bottom_foil_skin_surface", water_tank_reflection_foil_bottom_lv, vm2000_opt_table, reg
-    )
-    g4.SkinSurface("cryo_skin_foil_surface", cryo_reflection_foil_lv, vm2000_opt_table, reg)
-
-    # This means in the direction vm2000 -> water it is governed by vm2000_border_opt_table (which is 100% transmission)
-    # And in the direction water -> vm2000 it is governed by vm2000_opt_table
+    _vm2000_surfaces(pillbox_outer_reflection_foil_tube_pv)
+    _vm2000_surfaces(pillbox_inner_reflection_foil_tube_pv)
+    _vm2000_surfaces(pillbox_reflection_foil_bottom_pv)
+    _vm2000_surfaces(pillbox_reflection_foil_top_pv)
+    _vm2000_surfaces(water_tank_reflection_foil_tube_pv)
+    _vm2000_surfaces(water_tank_reflection_foil_bottom_pv)
+    _vm2000_surfaces(cryo_reflection_foil_pv)
 
     return (
         water_tank_reflection_foil_tube_pv,

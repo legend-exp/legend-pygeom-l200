@@ -168,7 +168,6 @@ class OpticalSurfaceRegistry:
     @cached_property
     def to_vm2000(self) -> g4.solid.OpticalSurface:
         """Reflective surface for VM2000."""
-        # Create material properties table for VM2000 surface
         _to_vm2000 = g4.solid.OpticalSurface(
             name="water_tank_foil_surface",
             finish="polished",
@@ -184,10 +183,9 @@ class OpticalSurfaceRegistry:
         return _to_vm2000
 
     @cached_property
-    def water_to_vm2000(self) -> g4.solid.OpticalSurface:
-        """Optical surface between water and VM2000."""
-        # Create material properties table for VM2000 border surface
-        _water_to_vm2000 = g4.solid.OpticalSurface(
+    def vm2000_to_water(self) -> g4.solid.OpticalSurface:
+        """Optical surface between VM2000 and water."""
+        _vm2000_to_water = g4.solid.OpticalSurface(
             name="WaterTankFoilBorder",
             finish="polished",
             model="unified",
@@ -196,9 +194,9 @@ class OpticalSurfaceRegistry:
             registry=self.g4_registry,
         )
 
-        legendoptics.vm2000.pyg4_vm2000_attach_border_params(_water_to_vm2000, self.g4_registry)
+        legendoptics.vm2000.pyg4_vm2000_attach_border_params(_vm2000_to_water, self.g4_registry)
 
-        return _water_to_vm2000
+        return _vm2000_to_water
 
     @cached_property
     def to_pmt_steel(self) -> g4.solid.OpticalSurface:
