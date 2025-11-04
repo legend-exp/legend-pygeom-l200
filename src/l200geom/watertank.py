@@ -100,18 +100,19 @@ cryo_bottom_height = (
         cryo.cryo_tub_height / 2
     )  # The lower part of the cryo is shifted this much down compared to the center
     - (cryo.cryo_bottom_height + cryo.cryo_wall)  # This is the (half)-height of the cryo bottom
+    - 1e-8
 )
-pillbox_offset = -water_height / 2 + 0.5 * cryo_bottom_height
+pillbox_offset = -water_height / 2 + 0.5 * cryo_bottom_height + 1e-9
 
 # Air buffer
 outer_water_tank_radius = water_radius + water_tank_thickness
-air_buffer_radius = water_radius - reflective_foil_thickness
+air_buffer_radius = water_radius - reflective_foil_thickness - 1e-9
 air_buffer_height = 486.0
 
 
 # z-axis Offsets
 air_buffer_offset = 0.5 * (water_height - air_buffer_height)
-bottom_foil_offset = -0.5 * water_height + 0.5 * reflective_foil_thickness
+bottom_foil_offset = -0.5 * water_height + 0.5 * reflective_foil_thickness + 1e-9
 
 
 # PMTs
@@ -158,9 +159,13 @@ pmt_cathode_offset = (
     + pmt_steel_bottom_height
 )
 pmt_cone_offset = (
-    -water_height / 2 + reflective_foil_thickness + 0.25 * pmt_steel_cone_height + pmt_steel_bottom_height
+    -water_height / 2
+    + reflective_foil_thickness
+    + 0.25 * pmt_steel_cone_height
+    + pmt_steel_bottom_height
+    + 2e-9
 )
-pmt_bottom_offset = -water_height / 2 + reflective_foil_thickness + 0.5 * pmt_steel_bottom_height
+pmt_bottom_offset = -water_height / 2 + reflective_foil_thickness + 0.5 * pmt_steel_bottom_height + 2e-9
 
 distance_pmt_base_tank = (
     water_radius
@@ -208,7 +213,7 @@ def place_water(reg: g4.Registry, water_lv: g4.LogicalVolume, tank_lv: g4.Logica
 def construct_air_buffer(reg: g4.Registry, air_material: g4.Material) -> g4.LogicalVolume:
     air_buffer = g4.solid.Tubs(
         "air_buffer",
-        cryo.cryo_access_radius + cryo.cryo_access_wall,
+        cryo.cryo_access_radius + cryo.cryo_access_wall + 1e-9,
         air_buffer_radius,
         air_buffer_height,
         0,
@@ -222,7 +227,7 @@ def place_air_buffer(
     reg: g4.Registry, air_buffer_lv: g4.LogicalVolume, water_lv: g4.LogicalVolume
 ) -> g4.PhysicalVolume:
     return g4.PhysicalVolume(
-        [0, 0, 0], [0, 0, air_buffer_offset], air_buffer_lv, "air_buffer_pv", water_lv, reg
+        [0, 0, 0], [0, 0, air_buffer_offset - 1e-9], air_buffer_lv, "air_buffer_pv", water_lv, reg
     )
 
 
@@ -312,8 +317,8 @@ def insert_vm2000(
     water_tank_reflection_foil_tube = g4.solid.Tubs(
         "water_tank_reflection_foil_tube",
         water_radius - reflective_foil_thickness,
-        water_radius,
-        water_height,
+        water_radius - 1e-9,
+        water_height - 2e-9,
         0,
         2 * pi,
         reg,
@@ -333,8 +338,8 @@ def insert_vm2000(
     # VM2000 at bottom of water tank tube
     water_tank_reflection_foil_bottom = g4.solid.Tubs(
         "water_tank_reflection_foil_bottom",
-        shielding_foot_or + reflective_foil_thickness,
-        water_radius - reflective_foil_thickness,
+        shielding_foot_or + reflective_foil_thickness + 1e-9,
+        water_radius - reflective_foil_thickness - 1e-9,
         reflective_foil_thickness,
         0,
         2 * pi,
@@ -356,7 +361,7 @@ def insert_vm2000(
     # VM2000 at outside of Pillbox
     pillbox_outer_reflection_foil_tube_subtraction1 = g4.solid.Tubs(
         "pillbox_outer_reflection_foil_tube_subtraction1",
-        shielding_foot_or,
+        shielding_foot_or + 1e-9,
         shielding_foot_or + reflective_foil_thickness,
         cryo_bottom_height,
         0,
@@ -386,8 +391,8 @@ def insert_vm2000(
     pillbox_inner_reflection_foil_tube_subtraction1 = g4.solid.Tubs(
         "pillbox_inner_reflection_foil_tube_subtraction1",
         shielding_foot_ir - reflective_foil_thickness,
-        shielding_foot_ir,
-        cryo_bottom_height - shielding_foot_thickness,
+        shielding_foot_ir - 1e-9,
+        cryo_bottom_height - shielding_foot_thickness - 2e-9,
         0,
         2 * pi,
         reg,
@@ -404,7 +409,7 @@ def insert_vm2000(
     )
     pillbox_inner_reflection_foil_tube_pv = g4.PhysicalVolume(
         [0, 0, 0],
-        [0, 0, pillbox_offset],
+        [0, 0, pillbox_offset + 1e-9],
         pillbox_inner_reflection_foil_tube_lv,
         "pillbox_inner_reflection_foil_tube_pv",
         water_lv,
@@ -415,7 +420,7 @@ def insert_vm2000(
     pillbox_reflection_foil_top = g4.solid.Tubs(
         "pillbox_reflection_foil_top",
         inner_radius,
-        shielding_foot_ir,
+        shielding_foot_ir - 2e-9,
         reflective_foil_thickness,
         0,
         2 * pi,
@@ -445,7 +450,7 @@ def insert_vm2000(
 
     cryo_reflection_foil = g4.solid.Tubs(
         "cryo_reflection_foil",
-        cryo.cryo_radius + cryo.cryo_wall,
+        cryo.cryo_radius + cryo.cryo_wall + 1e-9,
         cryo.cryo_radius + cryo.cryo_wall + reflective_foil_thickness,
         cryo.cryo_tub_height + cryo.cryo_top_height + cryo.cryo_bottom_height + 2 * cryo.cryo_wall,
         0,
@@ -941,6 +946,7 @@ def insert_pmts(
         - distance_pmt_base_tank
         - pmt_steel_cone_height * 0.5
         - pmt_steel_bottom_height
+        - 2e-9
     )
     dphi = 2.0 * np.pi / n_pmt_per_ring
 
