@@ -59,6 +59,7 @@ def place_hpge_strings(hpge_metadata: TextDB, b: core.InstrumentationData) -> No
             hpge_extra_meta["rodlength_in_mm"],
             # convert the "warm" length of the rod to the (shorter) length in the cooled down state.
             hpge_extra_meta["rodlength_in_mm"] * 0.997,
+            hpge_extra_meta.get("has_top_insulators", False),
             full_meta,
         )
         mass_total += hpge.mass.to("kg").m
@@ -89,6 +90,7 @@ class HPGeDetUnit:
     baseplate: str
     rodlength: float
     rodlength_cold: float
+    has_top_insulators: bool
     meta: AttrsDict
 
 
@@ -277,6 +279,21 @@ def _place_front_end_and_insulators(
             b.mother_lv,
             b.registry,
         )
+        if det_unit.has_top_insulators:
+            assert det_unit.name.startswith("V")
+            insulator_top_rot = Rotation.from_euler("XZ", [-np.pi, pieces_th]).as_euler("xyz")
+            geant4.PhysicalVolume(
+                list(insulator_top_rot),
+                [
+                    string_info.x + delta_insulator[0],
+                    string_info.y + delta_insulator[1],
+                    z_pos["insulator_top"],
+                ],
+                insulator,
+                f"{insulator.name}_{det_unit.name}_{i}_top",
+                b.mother_lv,
+                b.registry,
+            )
 
 
 def _hpge_unit_get_z(bottom: float, det_unit: HPGeDetUnit) -> tuple[dict, dict]:
@@ -314,6 +331,7 @@ def _hpge_unit_get_z(bottom: float, det_unit: HPGeDetUnit) -> tuple[dict, dict]:
         "weldment": z_det - insulator_spacer - t["pen"] - t["weldment"] / 2.0 - safety * 3,
         "clamp": z_det - insulator_spacer - t["pen"] - t["clamp"] / 2.0 - safety * 4,
         "pen_top": z_det + det_unit.height + t["pen"] / 2 + safety,
+        "insulator_top": z_det + det_unit.height + t["insulator"] / 2.0 + safety,
         "clamp_top": z_det + det_unit.height + t["pen"] + t["clamp"] / 2.0 + safety * 3,
     }
     return t, z
