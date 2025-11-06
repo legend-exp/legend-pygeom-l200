@@ -369,7 +369,7 @@ def insert_vm2000(
         reg,
     )
     pillbox_outer_reflection_foil_tube = g4.solid.Subtraction(
-        "pillbox_outer_reflection_foil_tube ",
+        "pillbox_outer_reflection_foil_tube",
         pillbox_outer_reflection_foil_tube_subtraction1,
         manhole_pillbox,
         [manhole_rotation, [0, 0, 0 - man_hole_offset]],
@@ -398,7 +398,7 @@ def insert_vm2000(
         reg,
     )
     pillbox_inner_reflection_foil_tube = g4.solid.Subtraction(
-        "pillbox_inner_reflection_foil_tube ",
+        "pillbox_inner_reflection_foil_tube",
         pillbox_inner_reflection_foil_tube_subtraction1,
         manhole_pillbox,
         [manhole_rotation, [0, 0, 0 - man_hole_offset]],
