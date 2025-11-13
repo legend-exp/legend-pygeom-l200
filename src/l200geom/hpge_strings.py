@@ -472,7 +472,12 @@ def _place_hpge_string(
         assert total_rod_length < minishroud_length
         assert copper_rod_r < string_meta.minishroud_radius_in_mm - 0.75
         nms = _get_nylon_mini_shroud(
-            string_meta.minishroud_radius_in_mm, minishroud_length, True, b.materials, b.registry
+            string_meta.minishroud_radius_in_mm,
+            minishroud_length,
+            True,
+            b.materials,
+            b.registry,
+            minishroud_name="minishroud_side",
         )
         z_nms = z0_string - copper_rod_length_from_z0 + minishroud_length / 2 - MINISHROUD_END_THICKNESS - 0.1
         nms_pv = geant4.PhysicalVolume(
@@ -491,6 +496,7 @@ def _place_hpge_string(
             b.materials,
             b.registry,
             min_radius=10,
+            minishroud_name="minishroud_top",
         )
         nms_pv = geant4.PhysicalVolume(
             [0, 0, 0],
@@ -684,13 +690,14 @@ def _get_nylon_mini_shroud(
     materials: materials.OpticalMaterialRegistry,
     registry: geant4.Registry,
     min_radius: int = 0,
+    minishroud_name: str = "minishroud",
 ) -> geant4.LogicalVolume:
     """Create a nylon/TPB funnel of the given outer dimensions, which will be closed at the bottom.
 
     .. note:: this can also be used for calibration tubes.
     """
     assert top_open  # just for b/c of this shared interface. remove in future.
-    shroud_name = f"minishroud_{radius}x{length}"
+    shroud_name = f"{minishroud_name}_{radius}x{length}"
     if shroud_name not in registry.logicalVolumeDict:
         outer = geant4.solid.Tubs(f"{shroud_name}_outer", min_radius, radius, length, 0, 2 * np.pi, registry)
         inner = geant4.solid.Tubs(
