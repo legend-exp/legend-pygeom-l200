@@ -484,7 +484,7 @@ def _place_hpge_string(
             [0, 0, 0],
             [x_pos, y_pos, z_nms],
             nms,
-            nms.name + "string_" + string_id,
+            nms.name + "_string_" + string_id,
             b.mother_lv,
             b.registry,
         )
@@ -502,7 +502,7 @@ def _place_hpge_string(
             [0, 0, 0],
             [x_pos, y_pos, z0_string + 15 + MINISHROUD_LENGTH[1] / 2],
             nms_top,
-            nms_top.name + "string_" + string_id,
+            nms_top.name + "_string_" + string_id,
             b.mother_lv,
             b.registry,
         )
