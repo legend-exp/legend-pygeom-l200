@@ -144,7 +144,7 @@ def _parse_cli_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, 
             additionally available: {",".join(extra_assemblies)})"""
         ),
     )
-    fiber_modules_default = "segmented"
+    fiber_modules_default = "detailed"
     geom_opts.add_argument(
         "--fiber-modules",
         action="store",

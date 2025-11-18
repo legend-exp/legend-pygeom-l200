@@ -12,7 +12,7 @@ def test_cli():
     p = Path(__file__).parent.resolve() / "test_cfg"
 
     args, _config = _parse_cli_args([])
-    assert args.fiber_modules == "segmented"
+    assert args.fiber_modules == "detailed"
     assert args.assemblies == DEFAULT_ASSEMBLIES
 
     args, _config = _parse_cli_args(["--config", str(p / "cfg_geom.yaml")])
