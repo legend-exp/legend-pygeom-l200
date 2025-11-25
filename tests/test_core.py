@@ -12,6 +12,11 @@ from pygeomtools import detectors, write_pygeom
 public_geom = os.getenv("LEGEND_METADATA", "") == ""
 
 
+def test_import_legacy():
+    with pytest.deprecated_call():
+        import l200geom  # noqa: F401
+
+
 def test_import():
     import pygeoml200  # noqa: F401
 
