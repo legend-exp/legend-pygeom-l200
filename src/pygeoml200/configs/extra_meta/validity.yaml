@@ -29,3 +29,10 @@
   mode: reset
   apply:
     - l200-p15-r%-T%-all-config.yaml
+
+- valid_from: 20251108T002705Z # first timestamp in p18/r000 phy data
+  mode: reset
+  category:
+    - all
+  apply:
+    - l200-p18-r%-T%-all-config.yaml
