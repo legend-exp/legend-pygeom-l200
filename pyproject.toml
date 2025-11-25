@@ -78,9 +78,6 @@ legend-pygeom-l200 = "pygeoml200.cli:dump_gdml_cli"
 [tool.setuptools]
 include-package-data = true
 zip-safe = false
-license-files = [
-    "LICENSE",
-]
 
 [tool.setuptools.package-dir]
 "" = "src"
