@@ -10,7 +10,7 @@ class PublicMetadataProxy:
     """Provides proxies to transparently replace legend hardware metadata with sample data."""
 
     def __init__(self):
-        dummy = TextDB(resources.files("l200geom") / "configs" / "dummy_geom")
+        dummy = TextDB(resources.files("pygeoml200") / "configs" / "dummy_geom")
 
         self.chmap = dummy.channelmap
         self.diodes = _DiodeProxy(dummy)

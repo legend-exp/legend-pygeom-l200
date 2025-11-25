@@ -5,7 +5,7 @@ import os
 import numpy as np
 from dbetto import AttrsDict
 
-from l200geom import core
+from pygeoml200 import core
 
 public_geom = os.getenv("LEGEND_METADATA", "") == ""
 

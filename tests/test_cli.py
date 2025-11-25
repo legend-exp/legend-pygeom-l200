@@ -6,8 +6,8 @@ import pytest
 
 
 def test_cli():
-    from l200geom.cli import _parse_cli_args
-    from l200geom.core import DEFAULT_ASSEMBLIES
+    from pygeoml200.cli import _parse_cli_args
+    from pygeoml200.core import DEFAULT_ASSEMBLIES
 
     p = Path(__file__).parent.resolve() / "test_cfg"
 
@@ -29,8 +29,8 @@ def test_cli():
 
 
 def test_assemblies():
-    from l200geom.cli import _parse_assemblies
-    from l200geom.core import DEFAULT_ASSEMBLIES
+    from pygeoml200.cli import _parse_assemblies
+    from pygeoml200.core import DEFAULT_ASSEMBLIES
 
     assert _parse_assemblies(None) == DEFAULT_ASSEMBLIES
     assert _parse_assemblies("watertank,calibration") == {"watertank", "calibration"}
