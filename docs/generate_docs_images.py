@@ -6,7 +6,7 @@ import logging
 from pyg4ometry import config as meshconfig
 from pygeomtools import viewer, write_pygeom
 
-from l200geom import core
+from pygeoml200 import core
 
 logging.basicConfig()
 meshconfig.setGlobalMeshSliceAndStack(100)

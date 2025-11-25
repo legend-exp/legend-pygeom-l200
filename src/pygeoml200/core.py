@@ -16,7 +16,7 @@ from .metadata import PublicMetadataProxy
 
 log = logging.getLogger(__name__)
 
-configs = TextDB(resources.files("l200geom") / "configs" / "extra_meta")
+configs = TextDB(resources.files("pygeoml200") / "configs" / "extra_meta")
 
 DEFAULT_ASSEMBLIES = {"wlsr", "strings", "calibration", "fibers", "top"}
 DEFINED_ASSEMBLIES = DEFAULT_ASSEMBLIES | {"watertank"}

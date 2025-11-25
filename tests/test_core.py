@@ -13,12 +13,12 @@ public_geom = os.getenv("LEGEND_METADATA", "") == ""
 
 
 def test_import():
-    import l200geom  # noqa: F401
+    import pygeoml200  # noqa: F401
 
 
 @pytest.fixture(scope="session")
 def conctruct_fiber_variants():
-    from l200geom import core
+    from pygeoml200 import core
 
     assemblies = core.DEFINED_ASSEMBLIES
     reg_detailed = core.construct(assemblies, use_detailed_fiber_model=True, public_geometry=public_geom)
@@ -86,7 +86,7 @@ def test_material_store():
     from legendoptics import store
     from legendoptics.fibers import fiber_core_refractive_index
 
-    from l200geom import core
+    from pygeoml200 import core
 
     # test that replaced material properties are reflected in the GDML.
     fiber_core_refractive_index.replace_implementation(lambda: 1234)
@@ -116,7 +116,7 @@ def test_material_store_cli(change_dir, tmp_path):
 
     from legendoptics import store
 
-    from l200geom import cli
+    from pygeoml200 import cli
 
     output_file = tmp_path / "matstore.gdml"
 
@@ -150,7 +150,7 @@ def change_dir(request):
 
 
 def test_special(change_dir, tmp_path):
-    from l200geom import cli
+    from pygeoml200 import cli
 
     output_file = tmp_path / "special.gdml"
 

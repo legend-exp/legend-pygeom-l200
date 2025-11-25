@@ -3,7 +3,7 @@ ci:
   autoupdate_schedule: "monthly"
   autofix_commit_msg: "style: pre-commit fixes"
 
-exclude: "^src/l200geom/models/"
+exclude: "^src/pygeoml200/models/"
 
 repos:
   - repo: https://github.com/adamchainz/blacken-docs

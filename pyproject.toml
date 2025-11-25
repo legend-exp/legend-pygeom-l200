@@ -52,7 +52,7 @@ Discussions = "https://github.com/legend-exp/legend-pygeom-l200/discussions"
 Changelog = "https://github.com/legend-exp/legend-pygeom-l200/releases"
 
 [tool.setuptools_scm]
-write_to = "src/l200geom/_version.py"
+write_to = "src/pygeoml200/_version.py"
 
 [project.optional-dependencies]
 all = [
@@ -73,7 +73,7 @@ test = [
 ]
 
 [project.scripts]
-legend-pygeom-l200 = "l200geom.cli:dump_gdml_cli"
+legend-pygeom-l200 = "pygeoml200.cli:dump_gdml_cli"
 
 [tool.setuptools]
 include-package-data = true

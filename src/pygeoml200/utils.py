@@ -32,6 +32,6 @@ def _read_model(
         log.warning("skipping mesh %s", name)
         return None
 
-    file = resources.files("l200geom") / "models" / file
+    file = resources.files("pygeoml200") / "models" / file
     solid = pyg4ometry.stl.Reader(file, solidname=name, centre=False, registry=b.registry).getSolid()
     return geant4.LogicalVolume(solid, material, name, b.registry)

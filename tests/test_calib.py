@@ -6,7 +6,7 @@ public_geom = os.getenv("LEGEND_METADATA", "") == ""
 
 
 def test_construct_with_sis(tmp_path):
-    from l200geom import core
+    from pygeoml200 import core
 
     # test single source.
     cfg = {

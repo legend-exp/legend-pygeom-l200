@@ -11,7 +11,7 @@ build:
     pre_build:
       - rm -rf docs/source/api
       - sphinx-apidoc --private --module-first --force --output-dir
-        docs/source/api src/l200geom src/l200geom/_version.py
+        docs/source/api src/pygeoml200 src/pygeoml200/_version.py
 
 python:
   install:

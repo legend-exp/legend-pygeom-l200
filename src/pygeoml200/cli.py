@@ -19,7 +19,7 @@ def dump_gdml_cli(argv: list[str] | None = None) -> None:
 
     logging.basicConfig()
     if args.verbose:
-        logging.getLogger("l200geom").setLevel(logging.DEBUG)
+        logging.getLogger("pygeoml200").setLevel(logging.DEBUG)
     if args.debug:
         logging.root.setLevel(logging.DEBUG)
 

@@ -1,4 +1,4 @@
-# Welcome to l200geom's documentation!
+# Welcome to pygeoml200's documentation!
 
 <img src="_images/wlsr.png" alt="" align="right" style="height: 350px; padding: 2em">
 
