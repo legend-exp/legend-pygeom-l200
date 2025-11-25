@@ -6,8 +6,8 @@ from dataclasses import dataclass
 
 import numpy as np
 from dbetto import AttrsDict, TextDB
-from legendhpges import make_hpge
 from pyg4ometry import geant4
+from pygeomhpges import make_hpge
 from pygeomtools import RemageDetectorInfo
 from scipy.spatial.transform import Rotation
 

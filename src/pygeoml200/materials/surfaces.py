@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-import legendoptics.copper
-import legendoptics.germanium
-import legendoptics.pmts
-import legendoptics.silicon
-import legendoptics.tetratex
-import legendoptics.vm2000
 import numpy as np
 import pint
 import pyg4ometry.geant4 as g4
+import pygeomoptics.copper
+import pygeomoptics.germanium
+import pygeomoptics.pmts
+import pygeomoptics.silicon
+import pygeomoptics.tetratex
+import pygeomoptics.vm2000
 from dbetto.attrsdict import AttrsDict
 from pygeomtools.materials import cached_property
 
@@ -56,7 +56,7 @@ class OpticalSurfaceRegistry:
             registry=self.g4_registry,
         )
 
-        legendoptics.copper.pyg4_copper_attach_reflectivity(_to_copper, self.g4_registry)
+        pygeomoptics.copper.pyg4_copper_attach_reflectivity(_to_copper, self.g4_registry)
 
         return _to_copper
 
@@ -72,7 +72,7 @@ class OpticalSurfaceRegistry:
             registry=self.g4_registry,
         )
 
-        legendoptics.germanium.pyg4_germanium_attach_reflectivity(_to_germanium, self.g4_registry)
+        pygeomoptics.germanium.pyg4_germanium_attach_reflectivity(_to_germanium, self.g4_registry)
 
         return _to_germanium
 
@@ -88,7 +88,7 @@ class OpticalSurfaceRegistry:
             registry=self.g4_registry,
         )
 
-        legendoptics.tetratex.pyg4_tetratex_attach_reflectivity(_to_tetratex, self.g4_registry)
+        pygeomoptics.tetratex.pyg4_tetratex_attach_reflectivity(_to_tetratex, self.g4_registry)
 
         return _to_tetratex
 
@@ -103,9 +103,9 @@ class OpticalSurfaceRegistry:
             registry=self.g4_registry,
         )
 
-        legendoptics.silicon.pyg4_silicon_attach_complex_rindex(_to_sipm_silicon, self.g4_registry)
+        pygeomoptics.silicon.pyg4_silicon_attach_complex_rindex(_to_sipm_silicon, self.g4_registry)
 
-        # add custom efficiency for the KETEK SiPMs. This is not part of legendoptics.
+        # add custom efficiency for the KETEK SiPMs. This is not part of pygeomoptics.
         λ, eff = ketek_sipm_efficiency()
 
         # Check whether to use the KETEK efficiency curve. If not, use flat 1s.
@@ -177,8 +177,8 @@ class OpticalSurfaceRegistry:
             registry=self.g4_registry,
         )
 
-        legendoptics.vm2000.pyg4_vm2000_attach_reflectivity(_to_vm2000, self.g4_registry)
-        legendoptics.vm2000.pyg4_vm2000_attach_efficiency(_to_vm2000, self.g4_registry)
+        pygeomoptics.vm2000.pyg4_vm2000_attach_reflectivity(_to_vm2000, self.g4_registry)
+        pygeomoptics.vm2000.pyg4_vm2000_attach_efficiency(_to_vm2000, self.g4_registry)
 
         return _to_vm2000
 
@@ -194,7 +194,7 @@ class OpticalSurfaceRegistry:
             registry=self.g4_registry,
         )
 
-        legendoptics.vm2000.pyg4_vm2000_attach_border_params(_vm2000_to_water, self.g4_registry)
+        pygeomoptics.vm2000.pyg4_vm2000_attach_border_params(_vm2000_to_water, self.g4_registry)
 
         return _vm2000_to_water
 
@@ -210,8 +210,8 @@ class OpticalSurfaceRegistry:
             registry=self.g4_registry,
         )
 
-        legendoptics.pmts.pyg4_pmt_attach_steel_reflectivity(_to_pmt_steel, self.g4_registry)
-        legendoptics.pmts.pyg4_pmt_attach_steel_efficiency(_to_pmt_steel, self.g4_registry)
+        pygeomoptics.pmts.pyg4_pmt_attach_steel_reflectivity(_to_pmt_steel, self.g4_registry)
+        pygeomoptics.pmts.pyg4_pmt_attach_steel_efficiency(_to_pmt_steel, self.g4_registry)
 
         return _to_pmt_steel
 
@@ -228,7 +228,7 @@ class OpticalSurfaceRegistry:
             registry=self.g4_registry,
         )
 
-        legendoptics.pmts.pyg4_pmt_attach_photocathode_reflectivity(_to_photocathode, self.g4_registry)
-        legendoptics.pmts.pyg4_pmt_attach_photocathode_efficiency(_to_photocathode, self.g4_registry)
+        pygeomoptics.pmts.pyg4_pmt_attach_photocathode_reflectivity(_to_photocathode, self.g4_registry)
+        pygeomoptics.pmts.pyg4_pmt_attach_photocathode_efficiency(_to_photocathode, self.g4_registry)
 
         return _to_photocathode
