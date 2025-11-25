@@ -9,8 +9,8 @@ This geometry can be used as an input to the
 [remage](https://remage.readthedocs.io/en/stable/) simulation software.
 
 This package is based on {doc}`pyg4ometry <pyg4ometry:index>`,
-{doc}`legend-pygeom-hpges <legendhpges:index>` (implementation of HPGe
-detectors), {doc}`legend-pygeom-optics <legendoptics:index>` (optical properties
+{doc}`legend-pygeom-hpges <pygeomhpges:index>` (implementation of HPGe
+detectors), {doc}`legend-pygeom-optics <pygeomoptics:index>` (optical properties
 of materials) and {doc}`legend-pygeom-tools <pygeomtools:index>`.
 
 :::{warning}

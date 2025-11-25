@@ -5,8 +5,8 @@ import logging
 from collections.abc import Iterable
 
 from dbetto import utils
-from legendoptics.store import load_user_material_code
 from pyg4ometry import config as meshconfig
+from pygeomoptics.store import load_user_material_code
 from pygeomtools import detectors, geometry, visualization, write_pygeom
 
 from . import _version, core

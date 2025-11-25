@@ -1,4 +1,4 @@
-"""Efficiency for the KETEK SiPMs. This is not part of legendoptics.
+"""Efficiency for the KETEK SiPMs. This is not part of pygeomoptics.
 
 .. [Wiest2011] F. Wiest. “SiPM Developments at KETEK.” (Feb. 17, 2011).
     https://indico.cern.ch/event/117424/contributions/1329246/attachments/56776/81752/CERN_SiPM-Status-Ketek_17-Feb-2011.pdf
@@ -10,8 +10,8 @@ import logging
 
 import numpy as np
 import pint
-from legendoptics import store
 from pint import Quantity
+from pygeomoptics import store
 
 log = logging.getLogger(__name__)
 u = pint.get_application_registry()
