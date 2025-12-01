@@ -706,7 +706,7 @@ def _get_nylon_mini_shroud(
     .. note:: this can also be used for calibration tubes.
     """
     assert top_open  # just for b/c of this shared interface. remove in future.
-    shroud_name = f"{minishroud_name}_{radius}x{length}"
+    shroud_name = f"{minishroud_name}_{radius:.2f}x{length:.2f}"
     if shroud_name not in registry.logicalVolumeDict:
         outer = geant4.solid.Tubs(f"{shroud_name}_outer", min_radius, radius, length, 0, 2 * np.pi, registry)
         inner = geant4.solid.Tubs(
@@ -755,7 +755,7 @@ def _get_hv_cable(
     cable_length: float,
     b: core.InstrumentationData,
 ):
-    cable_name = f"cable_hv_{cable_length}"
+    cable_name = f"cable_hv_{cable_length:.2f}"
     if cable_name in b.registry.logicalVolumeDict:
         return b.registry.logicalVolumeDict[cable_name]
 
@@ -837,7 +837,7 @@ def _get_signal_cable(
     cable_length: float,
     b: core.InstrumentationData,
 ):
-    cable_name = f"cable_signal_{cable_length}"
+    cable_name = f"cable_signal_{cable_length:.2f}"
     if cable_name in b.registry.logicalVolumeDict:
         return b.registry.logicalVolumeDict[cable_name]
 
@@ -1042,7 +1042,7 @@ def _get_insulator(
     insulator_top_length: float,
     b: core.InstrumentationData,
 ):
-    name_prefix = f"ultem_insulator_{insulator_top_length}"
+    name_prefix = f"hpge_assembly_insulator_ultem_{insulator_top_length:.2f}"
     if name_prefix in b.registry.logicalVolumeDict:
         return b.registry.logicalVolumeDict[name_prefix]
 
@@ -1116,11 +1116,12 @@ def _get_insulator(
 
 
 def _get_cu_pin(length: float, b: core.InstrumentationData):
-    if f"hpge_du_pin_{length}" in b.registry.logicalVolumeDict:
-        return b.registry.logicalVolumeDict[f"hpge_du_pin_{length}"]
+    pin_name = f"hpge_du_pin_{length:.2f}"
+    if pin_name in b.registry.logicalVolumeDict:
+        return b.registry.logicalVolumeDict[pin_name]
 
-    pin = geant4.solid.Tubs(f"hpge_du_pin_{length}", 0, 1.3 - 2e-10, length, 0, 2 * math.pi, b.registry)
-    pin = geant4.LogicalVolume(pin, b.materials.metal_copper, f"hpge_du_pin_{length}", b.registry)
+    pin = geant4.solid.Tubs(pin_name, 0, 1.3 - 2e-10, length, 0, 2 * math.pi, b.registry)
+    pin = geant4.LogicalVolume(pin, b.materials.metal_copper, pin_name, b.registry)
     pin.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     return pin
 

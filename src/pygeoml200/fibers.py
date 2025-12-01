@@ -191,7 +191,7 @@ class ModuleFactoryBase(ABC):
 
     def _cached_sipm_volumes(self) -> None:
         """Creates (dummy) SiPM volumes for use at the top/bottom of straight fiber sections."""
-        v_suffix = f"_r{self.radius}_nmod{self.number_of_modules}"
+        v_suffix = f"_r{self.radius:.2f}_nmod{self.number_of_modules}"
         v_name = f"sipm{v_suffix}"
         if v_name in self.b.registry.solidDict:
             return
@@ -410,7 +410,9 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
 
     def _cached_fiber_volumes(self) -> None:
         """Create solids, logical and physical volumes for the fibers, as specified by the parameters of this instance."""
-        v_suffix = f"_l{self.fiber_length}_b{(self.bend_radius_mm or np.inf)}"
+        v_suffix = f"_l{self.fiber_length:.2f}"
+        if self.bend_radius_mm:
+            v_suffix += f"_b{self.bend_radius_mm:.2f}"
         if f"fiber_cl2{v_suffix}" in self.b.registry.solidDict:
             return
 
@@ -421,7 +423,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                     continue
                 fibers_to_gen += [
                     (
-                        f"_l{self.fiber_length + delta_length}_b{self.bend_radius_mm}",
+                        f"_l{(self.fiber_length + delta_length):.2f}_b{self.bend_radius_mm:.2f}",
                         self.fiber_length + delta_length,
                     )
                 ]
@@ -573,7 +575,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
             raise ValueError(msg)
         fiber_length = self.fiber_length + delta_length
 
-        v_suffix = f"{'_bend' if bend else ''}_l{fiber_length}_tpb{tpb_thickness_nm}"
+        v_suffix = f"{'_bend' if bend else ''}_l{fiber_length:.2f}_tpb{tpb_thickness_nm:}"
         v_name = f"fiber_coating{v_suffix}"
         if v_name in self.b.registry.solidDict:
             return self.b.registry.logicalVolumeDict[v_name]
@@ -770,7 +772,9 @@ class ModuleFactorySegment(ModuleFactoryBase):
 
     def _cached_sipm_volumes_bend(self) -> None:
         """Creates (dummy) SiPM volumes for use at the bottom of bent fiber sections."""
-        v_suffix = f"_bend{(self.bend_radius_mm or np.inf)}_r{self.radius}_nmod{self.number_of_modules}"
+        v_suffix = (
+            f"_bend{(self.bend_radius_mm or np.inf):.2f}_r{self.radius:.2f}_nmod{self.number_of_modules}"
+        )
         v_name = f"sipm{v_suffix}"
         if v_name in self.b.registry.solidDict:
             return
@@ -830,7 +834,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
 
     def _cached_fiber_volumes(self) -> None:
         """Create solids, logical and physical volumes for the fibers, as specified by the parameters of this instance."""
-        v_suffix = f"_l{self.fiber_length}"
+        v_suffix = f"_l{self.fiber_length:.2f}"
         if f"fiber_cl2{v_suffix}" in self.b.registry.solidDict:
             return
 
@@ -949,7 +953,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
         The TPB-Layer is dependent on the module (i.e. the applied thickness varies slightly),
         so we cannot cache it globally on this instance.
         """
-        v_suffix = f"{'_bend' if bend else ''}_l{self.fiber_length}_tpb{tpb_thickness_nm}"
+        v_suffix = f"{'_bend' if bend else ''}_l{self.fiber_length:.2f}_tpb{tpb_thickness_nm}"
         v_name = f"fiber_coating{v_suffix}"
         if v_name in self.b.registry.solidDict:
             return self.b.registry.logicalVolumeDict[v_name]
