@@ -14,7 +14,7 @@ TOP_PLATE_THICKNESS = 3
 
 def place_top_plate(b: core.InstrumentationData) -> None:
     """Construct LEGEND-200 copper top plate."""
-    plate = _read_model("TopPlate.stl", "top_plate", b.materials.metal_copper, b)
+    plate = _read_model("TopPlate.stl", "birds_nest_plate_copper", b.materials.metal_copper, b)
     if plate is None:
         return
     plate.pygeom_color_rgba = (0.72, 0.45, 0.2, 0.2)

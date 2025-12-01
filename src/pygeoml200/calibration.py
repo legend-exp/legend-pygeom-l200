@@ -75,7 +75,7 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
             [0, 0, 0],
             [*calib_tube_xy[:, idx], b.top_plate_z_pos - tube.length_in_mm / 2 - off],
             calib_tubes[tube.length_in_mm],
-            f"calibration_tube_{i}",
+            f"calibration_tube_nylon_sis{i}",
             b.mother_lv,
             b.registry,
         )

@@ -33,7 +33,7 @@ def _construct_wlsr(
 ) -> tuple[g4.LogicalVolume, ...]:
     spacing = 2e-9  # spacing larger than the geometry tolerance (0.01 nm = 1e-11 m)
     wlsr_outer = g4.solid.Tubs(
-        "wlsr_outer",
+        "wlsr_copper",
         wlsr_tpb_radius + wlsr_tpb_thickness + wlsr_ttx_thickness + 2 * spacing,
         wlsr_tpb_radius + wlsr_tpb_thickness + wlsr_ttx_thickness + 2 * spacing + wlsr_cu_thickness,
         wlsr_height,
@@ -43,7 +43,7 @@ def _construct_wlsr(
         "mm",
     )
     wlsr_ttx = g4.solid.Tubs(
-        "wlsr_ttx",
+        "wlsr_tetratex",
         wlsr_tpb_radius + wlsr_tpb_thickness,
         wlsr_tpb_radius + wlsr_tpb_thickness + wlsr_ttx_thickness,
         wlsr_height - 2 * spacing,
@@ -63,8 +63,8 @@ def _construct_wlsr(
         "mm",
     )
 
-    wlsr_outer_lv = g4.LogicalVolume(wlsr_outer, mats.metal_copper, "wlsr_outer", reg)
-    wlsr_ttx_lv = g4.LogicalVolume(wlsr_ttx, mats.tetratex, "wlsr_ttx", reg)
+    wlsr_outer_lv = g4.LogicalVolume(wlsr_outer, mats.metal_copper, "wlsr_copper", reg)
+    wlsr_ttx_lv = g4.LogicalVolume(wlsr_ttx, mats.tetratex, "wlsr_tetratex", reg)
     wlsr_tpb_lv = g4.LogicalVolume(wlsr_tpb, mats.tpb_on_tetratex, "wlsr_tpb", reg)
 
     return wlsr_outer_lv, wlsr_ttx_lv, wlsr_tpb_lv
@@ -81,12 +81,12 @@ def place_wlsr(
         [0, 0, 0],
         [0, 0, z_displacement - wlsr_height / 2],
         wlsr_outer_lv,
-        "wlsr_outer",
+        "wlsr_copper",
         b.mother_lv,
         reg,
     )
     wlsr_tpb_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], wlsr_tpb_lv, "wlsr_tpb", b.mother_lv, reg)
-    wlsr_ttx_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], wlsr_ttx_lv, "wlsr_ttx", wlsr_tpb_lv, reg)
+    wlsr_ttx_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], wlsr_ttx_lv, "wlsr_tetratex", wlsr_tpb_lv, reg)
 
     wlsr_ttx_lv.pygeom_color_rgba = [1, 1, 1, 0.2]
     wlsr_tpb_lv.pygeom_color_rgba = False

@@ -96,7 +96,7 @@ class HPGeDetUnit:
 
 def _place_front_end_and_insulators(
     det_unit: HPGeDetUnit,
-    string_info: dict,
+    string_info: AttrsDict,
     b: core.InstrumentationData,
     z_pos: dict,
     thickness: dict,
@@ -127,7 +127,7 @@ def _place_front_end_and_insulators(
         [math.pi, 0, angle_signal],
         [x_cable, y_cable, z_pos["clamp"]],
         signal_cable,
-        f"{signal_cable.name}_{det_unit.name}",
+        f"hpge_cable_signal_{det_unit.name}",
         b.mother_lv,
         b.registry,
     )
@@ -135,7 +135,7 @@ def _place_front_end_and_insulators(
         [math.pi, 0, angle_signal],
         [x_clamp, y_clamp, z_pos["clamp"]],
         signal_clamp,
-        f"{signal_clamp.name}_{det_unit.name}",
+        f"hpge_assembly_clamp_signal_ultem_{det_unit.name}",
         b.mother_lv,
         b.registry,
     )
@@ -143,7 +143,7 @@ def _place_front_end_and_insulators(
         [math.pi, 0, angle_signal],
         [x_lmfe, y_lmfe, z_pos["clamp"]],
         signal_lmfe,
-        f"{signal_lmfe.name}_{det_unit.name}",
+        f"hpge_assembly_lmfe_{det_unit.name}",
         b.mother_lv,
         b.registry,
     )
@@ -151,12 +151,14 @@ def _place_front_end_and_insulators(
         [math.pi, 0, angle_signal],
         [x_spring, y_spring, z_pos["clamp"]],
         phbr_spring,
-        f"{phbr_spring.name}_signal_{det_unit.name}",
+        f"hpge_assembly_spring_signal_phbr_{det_unit.name}",
         b.mother_lv,
         b.registry,
     )
 
-    def place_clamp_details(r0, name, holes, z_clamp, *, sign=1, z_sign=1, rot_v=string_rot_v):
+    def place_clamp_details(
+        r0: float, name: str, holes, z_clamp: float, *, sign: int = 1, z_sign: int = 1, rot_v=string_rot_v
+    ):
         rot_v_perp = np.cross([*rot_v, 0], [0, 0, 1])[0:2]
         for hole_idx, hole in enumerate(holes):
             x_hole, y_hole = string_pos_v + sign * (r0 + hole[0]) * rot_v + hole[1] * rot_v_perp
@@ -165,7 +167,7 @@ def _place_front_end_and_insulators(
                 [0, 0, 0],
                 [x_hole, y_hole, z_clamp + z_sign * thickness["pen"] / 2 - z_sign * pin_outside / 2],
                 cu_pin,
-                f"{cu_pin.name}_{name}_{det_unit.name}_{hole_idx}",
+                f"hpge_assembly_clamp_{name}_pin_copper_{det_unit.name}_{hole_idx}",
                 b.mother_lv,
                 b.registry,
             )
@@ -174,7 +176,7 @@ def _place_front_end_and_insulators(
                 [0, 0, 0],
                 [x_hole, y_hole, z_clamp - z_sign * delta_z_washer],
                 phbr_washer,
-                f"{phbr_washer.name}_{name}_{det_unit.name}_{hole_idx}",
+                f"hpge_assembly_washer_{name}_phbr_{det_unit.name}_{hole_idx}",
                 b.mother_lv,
                 b.registry,
             )
@@ -211,7 +213,7 @@ def _place_front_end_and_insulators(
         [0, 0, angle_hv],
         [x_cable, y_cable, hv_z_pos],
         hv_cable,
-        f"{hv_cable.name}_{det_unit.name}",
+        f"hpge_cable_hv_{det_unit.name}",
         b.mother_lv,
         b.registry,
     )
@@ -219,7 +221,7 @@ def _place_front_end_and_insulators(
         [0, 0, angle_hv],
         [x_clamp, y_clamp, hv_z_pos],
         hv_clamp,
-        f"{hv_clamp.name}_{det_unit.name}",
+        f"hpge_assembly_clamp_hv_ultem_{det_unit.name}",
         b.mother_lv,
         b.registry,
     )
@@ -227,7 +229,7 @@ def _place_front_end_and_insulators(
         [0, 0, angle_hv],
         [x_spring, y_spring, hv_z_pos],
         phbr_spring,
-        f"{phbr_spring.name}_hv_{det_unit.name}",
+        f"hpge_assembly_spring_hv_phbr{det_unit.name}",
         b.mother_lv,
         b.registry,
     )
@@ -263,7 +265,7 @@ def _place_front_end_and_insulators(
                 z_pos["weldment"],
             ],
             weldment,
-            f"{weldment.name}_{det_unit.name}_{i}",
+            f"hpge_string_support_weldment_copper_string{string_info.id}_{det_unit.name}_{i}",
             b.mother_lv,
             b.registry,
         )
@@ -275,7 +277,7 @@ def _place_front_end_and_insulators(
                 z_pos["insulator"],
             ],
             insulator,
-            f"{insulator.name}_{det_unit.name}_{i}",
+            f"hpge_assembly_insulator_ultem_{det_unit.name}_{i}",
             b.mother_lv,
             b.registry,
         )
@@ -290,7 +292,7 @@ def _place_front_end_and_insulators(
                     z_pos["insulator_top"],
                 ],
                 insulator,
-                f"{insulator.name}_{det_unit.name}_{i}_top",
+                f"hpge_assembly_insulator_ultem_{det_unit.name}_{i + 3}",
                 b.mother_lv,
                 b.registry,
             )
@@ -385,7 +387,7 @@ def _place_hpge_unit(
             list(pen_rot),
             [string_info.x, string_info.y, z_pos["pen"]],
             pen_plate,
-            "pen_" + det_unit.name,
+            f"hpge_assembly_plate_pen_{det_unit.name}",
             b.mother_lv,
             b.registry,
         )
@@ -402,7 +404,7 @@ def _place_hpge_unit(
                 list(pen_top_rot),
                 [string_info.x, string_info.y, z_pos["pen_top"]],
                 pen_plate,
-                "pen_top_" + det_unit.name,
+                f"hpge_assembly_top_ring_pen_{det_unit.name}",
                 b.mother_lv,
                 b.registry,
             )
@@ -440,7 +442,14 @@ def _place_hpge_string(
         [[np.sin(string_rot), np.cos(string_rot)], [np.cos(string_rot), -np.sin(string_rot)]]
     )
     string_info = AttrsDict(
-        {"rot": string_rot, "rot_m": string_rot_m, "meta": string_meta, "x": x_pos, "y": y_pos}
+        {
+            "rot": string_rot,
+            "rot_m": string_rot_m,
+            "meta": string_meta,
+            "x": x_pos,
+            "y": y_pos,
+            "id": string_id,
+        }
     )
 
     # offset the height of the string by the length of the string support rod.
@@ -477,14 +486,14 @@ def _place_hpge_string(
             True,
             b.materials,
             b.registry,
-            minishroud_name="minishroud_side",
+            minishroud_name="minishroud_tube",
         )
         z_nms = z0_string - copper_rod_length_from_z0 + minishroud_length / 2 - MINISHROUD_END_THICKNESS - 0.1
         nms_pv = geant4.PhysicalVolume(
             [0, 0, 0],
             [x_pos, y_pos, z_nms],
             nms,
-            nms.name + "_string_" + string_id,
+            f"minishroud_tube_string{string_id}",
             b.mother_lv,
             b.registry,
         )
@@ -496,13 +505,13 @@ def _place_hpge_string(
             b.materials,
             b.registry,
             min_radius=10,
-            minishroud_name="minishroud_top",
+            minishroud_name="minishroud_lid",
         )
         nms_pv = geant4.PhysicalVolume(
             [0, 0, 0],
             [x_pos, y_pos, z0_string + 15 + MINISHROUD_LENGTH[1] / 2],
             nms_top,
-            nms_top.name + "_string_" + string_id,
+            f"minishroud_lid_string{string_id}",
             b.mother_lv,
             b.registry,
         )
@@ -514,7 +523,7 @@ def _place_hpge_string(
             [0, 0, np.deg2rad(30) + string_rot],
             [x_pos, y_pos, z0_string + 12],  # this offset of 12 is measured from the CAD file.
             support,
-            support.name + "_string_" + string_id,
+            f"hpge_string_support_hanger_copper_string{string_id}",
             b.mother_lv,
             b.registry,
         )
@@ -523,12 +532,12 @@ def _place_hpge_string(
             [0, 0, string_rot],
             [x_pos, y_pos, z0_string + 12 - 1e-6],  # this offset of 12 is measured from the CAD file.
             tristar,
-            tristar.name + "_string_" + string_id,
+            f"hpge_string_support_tristar_copper_string{string_id}",
             b.mother_lv,
             b.registry,
         )
 
-    copper_rod_name = f"hpge_support_copper_string_{string_id}_cu_rod"
+    copper_rod_name = f"hpge_string_support_rod_copper_string{string_id}"
     # the rod has a radius of 1.5 mm, but this would overlap with the coarse model of the PPC top PEN ring.
     copper_rod = geant4.solid.Tubs(copper_rod_name, 0, 1.40, copper_rod_length, 0, 2 * math.pi, b.registry)
     copper_rod = geant4.LogicalVolume(copper_rod, b.materials.metal_copper, copper_rod_name, b.registry)
@@ -540,7 +549,7 @@ def _place_hpge_string(
             [0, 0, 0],
             [x_pos + delta[0], y_pos + delta[1], z0_string + 12 - copper_rod_length / 2],
             copper_rod,
-            f"{copper_rod_name}_{i}",
+            f"hpge_string_support_rod_copper_string{string_id}_{i}",
             b.mother_lv,
             b.registry,
         )
