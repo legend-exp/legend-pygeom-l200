@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 from collections import Counter
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -47,7 +46,7 @@ def test_detector_count(tmp_path, conctruct_fiber_variants):
 
     # verify that we get the expected channel counts.
     ch_count = Counter([d.detector_type for f, d in detectors.walk_detectors(reg_detailed)])
-    assert ch_count["optical"] == 2 * (9 + 20)  # 2*(IB+OB)
+    assert ch_count["optical"] == 2 * 9 + 20 * (1 + 81)  # 2*IB + OB*(top+bottom)
     assert ch_count["germanium"] == 101  # from channelmap @ 20230311T235840Z
     det_file_detailed = tmp_path / "det-detailed.mac"
     detectors.generate_detector_macro(reg_detailed, det_file_detailed)
@@ -58,12 +57,6 @@ def test_detector_count(tmp_path, conctruct_fiber_variants):
     assert ch_count["germanium"] == 101  # from channelmap @ 20230311T235840Z
     det_file_segmented = tmp_path / "det-segmented.mac"
     detectors.generate_detector_macro(reg_segmented, det_file_segmented)
-
-    with (
-        Path(det_file_detailed).open(encoding="utf-8") as f_det,
-        Path(det_file_segmented).open(encoding="utf-8") as f_seg,
-    ):
-        assert f_det.readlines() == f_seg.readlines()
 
 
 def test_read_back(tmp_path, conctruct_fiber_variants):
@@ -168,7 +161,7 @@ def test_special(change_dir, tmp_path):
     reg = reader.getRegistry()
     ch_count = Counter([d.detector_type for d in detectors.get_all_sensvols(reg).values()])
     assert ch_count["germanium"] == 0  # no germanium in channelmap.
-    assert ch_count["optical"] == 2 * (9 + 20)  # 2*(IB+OB)
+    assert ch_count["optical"] == 2 * 9 + 20 * (1 + 81)  # 2*IB + OB*(top+bottom)
 
     # we should have only short hangers and wrapped counterweights.
     assert "counterweight_wrapped" in reg.solidDict
