@@ -718,33 +718,39 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
             )
 
         if self.bend_radius_mm is not None:
-            sipm_vols = [self.sipm_bend] * len(sipm_transforms)
-            sipm_mu = g4.solid.MultiUnion(
-                mod.channel_bottom_name, sipm_vols, sipm_transforms, self.b.registry
-            )
-            sipm_mu_lv = g4.LogicalVolume(
-                sipm_mu, self.b.materials.metal_silicon, mod.channel_bottom_name, self.b.registry
-            )
-            sipm_pv = g4.PhysicalVolume(
-                [0, 0, 0],
-                [0, 0, 0],
-                sipm_mu_lv,
+            surface = self.b.materials.surfaces.to_sipm_silicon(
+                self.b.runtime_config,
                 mod.channel_bottom_name,
-                self.b.mother_lv,
-                self.b.registry,
             )
-            sipm_pv.set_pygeom_active_detector(RemageDetectorInfo("optical", mod.channel_bottom_rawid))
-            # Add border surface to mother volume.
-            g4.BorderSurface(
-                f"bsurface_lar_{mod.channel_bottom_name}",
-                self.b.mother_pv,
-                sipm_pv,
-                self.b.materials.surfaces.to_sipm_silicon(
-                    self.b.runtime_config,
-                    mod.channel_bottom_name,
-                ),
-                self.b.registry,
+            sipm_lv = g4.LogicalVolume(
+                self.sipm_bend, self.b.materials.metal_silicon, mod.channel_bottom_name, self.b.registry
             )
+            for idx, tra in enumerate(sipm_transforms):
+                sipm_pv = g4.PhysicalVolume(
+                    [-t for t in tra[0]],
+                    tra[1],
+                    sipm_lv,
+                    f"{mod.channel_bottom_name}_{idx}",
+                    self.b.mother_lv,
+                    self.b.registry,
+                )
+                sipm_pv.set_pygeom_active_detector(
+                    RemageDetectorInfo(
+                        "optical",
+                        mod.channel_bottom_rawid,
+                        allow_uid_reuse=True,
+                        ntuple_name=mod.channel_bottom_name,
+                    )
+                )
+
+                # Add border surface to mother volume.
+                g4.BorderSurface(
+                    f"bsurface_lar_{sipm_pv.name}",
+                    self.b.mother_pv,
+                    sipm_pv,
+                    surface,
+                    self.b.registry,
+                )
 
 
 class ModuleFactorySegment(ModuleFactoryBase):
