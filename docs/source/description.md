@@ -46,23 +46,26 @@ these are given physical volume names of the **detector name** (i.e. `V99000A`).
 The center shows the detector holder structure. This is divided into several
 parts:
 
-- the pen baseplates for each detector, with physical volume names `pen_{NAME}`
-  where `{NAME}` is the detector name
-- for some detectors there are also top pen rings named `pen_top_{NAME}`,
+- the pen baseplates for each detector, with physical volume names
+  `hpge_assembly_plate_pen_{NAME}` where `{NAME}` is the detector name.
+- for some detectors there are also top pen rings named
+  `hpge_assembly_top_ring_pen_{NAME}`,
 - the HPGe detectors are supported by a copper support structure, all parts of
   this structure are made of electroformed copper and have physical volumes
-  prefixed with `hpge_support_structure_`.
+  prefixed with `hpge_string_support_.*_copper_`.
 - parts of the holder (insulators) and clamps for the frontend electronics are
-  made from Ultem. Their volume names are prefixed with `ultem_`.
+  made from Ultem. Their volume names are prefixed with
+  `hpge_assembly_clamp_[signal,hv]_ultem_` and `hpge_assembly_insulator_ultem_`.
 - parts for the frontend electronics are made from phosphor bronze. Their volume
-  names are prefixed with `phbr_`.
+  names are prefixed with `hpge_assembly_[washer,spring]_[signal,hv]_phbr_`.
 - the copper pins connecting the receptacles to the PEN plates are prefixed with
-  `hpge_du_pin_`.
+  `hpge_assembly_clamp_[signal,hv]_pin_copper_`.
 - cables are implemented in a very simplified manner; their volume names are
-  prefixed with `cable_`.
-- nylon minishrouds surrounding each string, these have a name starting in
-  `minishroud_`, and calibration tubes which have names `calibration_tube_{IDX}`
-  where `{IDX}` is the index of the SIS (see {doc}`cfg-calibration`).
+  prefixed with `hpge_cable_[signal,hv]_`.
+- nylon minishrouds surrounding each string named
+  `minishroud_[tube,lid]_string{STRING}`, and calibration tubes which have names
+  `calibration_tube_nylon_sis{IDX}` where `{IDX}` is the index of the SIS (see
+  {doc}`cfg-calibration`).
 
 The hpge copper support structure consists of three components:
 
@@ -70,7 +73,7 @@ The hpge copper support structure consists of three components:
   have names:
 
 ```
-hpge_support_copper_string_support_structure_string_{STRING}
+hpge_string_support_hanger_copper_string{STRING}
 ```
 
 where `{STRING}` is the string number,
@@ -78,32 +81,33 @@ where `{STRING}` is the string number,
 - a triangular copper support (or "tristar") for each string named
 
 ```
-hpge_support_copper_tristar_{SIZE}_string_{STRING}
+hpge_string_support_tristar_copper_string{STRING}
 ```
-
-where `{SIZE}` is the size of the string (`small`,`medium`, `large`, or
-`xlarge`).
 
 - copper rods for each string which have names:
 
 ```
-hpge_support_copper_string_{STRING}_cu_rod_{IDX}
+hpge_string_support_rod_copper_string{STRING}_{IDX}
 ```
 
 where `{IDX}` is an index of the rod (range 0–3).
 
 :::{tip}
 
-To select all copper support parts in _remage_ you can use a wildcard
-`hpge_support_copper.*` and similarly to select all copper rods, tristar or
-string support structures.
+To select all copper string support parts in _remage_ you can use a wildcard
+`hpge_string_support_.*_copper.*` to select all copper rods, tristar or string
+support structures.
+
+To select all parts made of copper, irrespective whether they are part of the
+string support, use a regex like `.*_copper_.*`. This can be adapted for any
+material.
 
 :::
 
 ## Top plate
 
 The `top` assembly consists of the top plate holding the CC4 electronics,
-currently this is a single physical volume called `top_plate`.
+currently this is a single physical volume called `birds_nest_plate_copper`.
 
 This is shown on the left figure of the rendering below.
 
@@ -117,7 +121,7 @@ This is shown on the left figure of the rendering below.
 
 :::{image} ./images/fibers.png
 :height: 400px
-:alt: Fiber shrouds.
+:alt: Fiber shrouds
 :::
 
 ```
@@ -140,15 +144,16 @@ In both cases the fiber volumes are divided into 4 parts:
 The optical fiber system consists of a large number of physical volumes, to
 enable concise _remage_ macros the names are first prefixed with:
 
-- `fiber_inner`: for the inner barrel fibers (inner cylinder),
-- `fiber_outer`: for the outer barrel fibers.
+- `fiber_inner_barrel_`: for the inner barrel fibers (inner cylinder),
+- `fiber_outer_barrel_`: for the outer barrel fibers.
 
-Next the name contains an identifier of the part of the fiber either, `tpb`,
-`cladding1`, `cladding2` or `core`.
+Next the name contains an identifier of the part of the fiber either,
+`coating_tpb`, `cladding1`, `cladding2` or `fibercore`.
 
 The rest of the names give further information on the fiber, and uses the length
 of the fiber, whether it is part of the lower bend for the outer barrel and the
-fiber index to obtain a unique physical volume name.
+fiber index to obtain a unique physical volume name. However, only the TPB
+coating name contains information about the module the fibers are part of.
 
 :::{tip}
 
@@ -158,17 +163,19 @@ fibers.
 :::
 
 The SiPMs are named after the **detector name** (ie `S001`), and there are also
-physical volumes of a wrapping around the SiPMs with names `{NAME}_wrap` (where
-`{NAME}` is the SiPM name). This wrapping does not fully correspond to the
-wrapping used in the real experiment, however.
+physical volumes of a wrapping around the SiPMs with names
+`larinstr_sipm_wrap_tetratex_{NAME}[_{n}]` (where `{NAME}` is the SiPM name).
+This wrapping does not fully correspond to the wrapping used in the real
+experiment, however.
 
 The copper support structures holding the fiber shrouds is named
-`fiber_support_outer` and `fiber_support_inner` for the outer and inner fiber
-barrels. These volumes are implemented as one large solid containing all parts.
+`larinstr_support_outer_copper_.*` and `larinstr_support_inner_copper_.*` for
+the outer and inner fiber barrels. These volumes are implemented as one large
+solid containing all parts.
 
 ## Wavelength shifting reflector
 
-The array is emersed in liquid argon (physical volume named `lar`) and
+The array is emersed in liquid argon (physical volume named `liquid_argon`) and
 surrounded by a tetratex and TPB lined copper foil for reflecting scintillation
 light (WLSR).
 
@@ -182,6 +189,6 @@ of the experiment. The WLSR is the shown as the outer grey component.
 
 This consists of three physical volumes:
 
-- `wlsr_outer` the copper foil,
+- `wlsr_copper` the copper foil,
 - `wlsr_tetratex` the tetratex coating,
 - `wlsr_tpb` the TPB coating.

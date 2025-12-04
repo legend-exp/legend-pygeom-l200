@@ -72,7 +72,7 @@ def construct_cryostat(cryostat_material: g4.Material, reg: g4.Registry) -> g4.L
         reg,
     )
 
-    return g4.LogicalVolume(cryo, cryostat_material, "cryostat", reg)
+    return g4.LogicalVolume(cryo, cryostat_material, "cryostat_steel", reg)
 
 
 def place_cryostat(
@@ -82,7 +82,7 @@ def place_cryostat(
     reg: g4.Registry,
 ) -> g4.PhysicalVolume:
     cryostat_pv = g4.PhysicalVolume(
-        [0, 0, 0], [0, 0, cryostat_displacement_z], cryostat_lv, "cryostat", wl, reg
+        [0, 0, 0], [0, 0, cryostat_displacement_z], cryostat_lv, "cryostat_steel", wl, reg
     )
     cryostat_lv.pygeom_color_rgba = False
     return cryostat_pv
@@ -130,12 +130,12 @@ def construct_argon(lar_material: g4.Material, reg: g4.Registry) -> tuple[g4.Log
         reg,
         "mm",
     )
-    lar_tub = g4.solid.Tubs("lar_tub", 0, cryo_radius, cryo_tub_height, 0, 2 * pi, reg, "mm")
+    lar_tub = g4.solid.Tubs("liquid_argon_tub", 0, cryo_radius, cryo_tub_height, 0, 2 * pi, reg, "mm")
 
-    lar1 = g4.solid.Union("lar1", lar_tub, lar_top, [[0, 0, 0], [0, 0, cryo_tub_height / 2]], reg)
-    lar2 = g4.solid.Union("lar2", lar1, lar_bottom, [[0, pi, 0], [0, 0, -cryo_tub_height / 2]], reg)
+    lar1 = g4.solid.Union("liquid_argon1", lar_tub, lar_top, [[0, 0, 0], [0, 0, cryo_tub_height / 2]], reg)
+    lar2 = g4.solid.Union("liquid_argon2", lar1, lar_bottom, [[0, pi, 0], [0, 0, -cryo_tub_height / 2]], reg)
     lar = g4.solid.Union(
-        "lar",
+        "liquid_argon",
         lar2,
         lar_access,
         [
@@ -148,7 +148,7 @@ def construct_argon(lar_material: g4.Material, reg: g4.Registry) -> tuple[g4.Log
     neck_height = (
         cryo_tub_height / 2 + cryo_top_height - 20
     )  # offset is below the "virtual" top point of the round segment (see technical drawing)
-    return g4.LogicalVolume(lar, lar_material, "lar", reg), neck_height
+    return g4.LogicalVolume(lar, lar_material, "liquid_argon", reg), neck_height
 
 
 def place_argon(
@@ -157,7 +157,9 @@ def place_argon(
     cryostat_displacement_z: float,
     reg: g4.Registry,
 ) -> g4.PhysicalVolume:
-    lar_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, cryostat_displacement_z], lar_lv, "lar", cryostat_lv, reg)
+    lar_pv = g4.PhysicalVolume(
+        [0, 0, 0], [0, 0, cryostat_displacement_z], lar_lv, "liquid_argon", cryostat_lv, reg
+    )
     lar_lv.pygeom_color_rgba = [0, 0, 0, 0.03]
 
     # set lar as active with det id 0

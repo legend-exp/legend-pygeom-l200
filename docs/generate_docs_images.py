@@ -17,34 +17,36 @@ images = {
     "holders": {
         "assemblies": ["strings"],
         "overrides": {
-            "minishroud_.*": False,
+            ".*_minishroud_.*": False,
             "[BVPC].*": False,
-            "pen_.*": [0, 0, 1, 1],
+            ".*_pen_.*": [0, 0, 1, 1],
         },
     },
     "hpge_strings": {
         "assemblies": ["strings"],
         "overrides": {
-            "pen_.*": False,
-            "minishroud_.*": False,
-            "hpge_support_copper_.*": False,
-            "cable.*": False,
-            "ultem_.*": False,
+            ".*_pen_.*": False,
+            ".*_minishroud_.*": False,
+            "hpge_string_support_.*_copper_.*": False,
+            ".*_cable.*": False,
+            ".*_ultem_.*": False,
+            ".*_lmfe_.*": False,
         },
     },
     "nylon": {
         "assemblies": ["strings", "calibration"],
         "overrides": {
-            "pen_.*": False,
-            "hpge_support_copper_.*": False,
-            "cable.*": False,
-            "ultem_.*": False,
+            ".*_pen_.*": False,
+            "hpge_string_support_.*_copper_.*": False,
+            ".*_cable.*": False,
+            ".*_ultem_.*": False,
+            ".*_lmfe_.*": False,
             "[BVPC].*": False,
         },
     },
     "wlsr": {
         "assemblies": ["strings", "calibration", "fibers", "wlsr", "top"],
-        "overrides": {"pen_.*": [0, 0, 1, 1]},
+        "overrides": {".*_pen_.*": [0, 0, 1, 1]},
         "default": {
             # "focus": [0, 0, 0],
             # "up": [0.45, 0, 0.89],

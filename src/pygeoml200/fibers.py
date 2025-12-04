@@ -191,7 +191,7 @@ class ModuleFactoryBase(ABC):
 
     def _cached_sipm_volumes(self) -> None:
         """Creates (dummy) SiPM volumes for use at the top/bottom of straight fiber sections."""
-        v_suffix = f"_r{self.radius}_nmod{self.number_of_modules}"
+        v_suffix = f"_r{self.radius:.2f}_nmod{self.number_of_modules}"
         v_name = f"sipm{v_suffix}"
         if v_name in self.b.registry.solidDict:
             return
@@ -326,7 +326,7 @@ class ModuleFactoryBase(ABC):
             [0, 0, -self.start_angle(module_num)],
             [0, 0, z_outer],
             self.sipm_outer_top_lv if is_top else self.sipm_outer_bottom_lv,
-            f"{sipm_name}_wrap",
+            f"larinstr_sipm_wrap_tetratex_{sipm_name}",
             self.b.mother_lv,
             self.b.registry,
         )
@@ -410,7 +410,9 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
 
     def _cached_fiber_volumes(self) -> None:
         """Create solids, logical and physical volumes for the fibers, as specified by the parameters of this instance."""
-        v_suffix = f"_l{self.fiber_length}_b{self.bend_radius_mm}"
+        v_suffix = f"_l{self.fiber_length:.2f}"
+        if self.bend_radius_mm:
+            v_suffix += f"_b{self.bend_radius_mm:.2f}"
         if f"fiber_cl2{v_suffix}" in self.b.registry.solidDict:
             return
 
@@ -421,7 +423,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                     continue
                 fibers_to_gen += [
                     (
-                        f"_l{self.fiber_length + delta_length}_b{self.bend_radius_mm}",
+                        f"_l{(self.fiber_length + delta_length):.2f}_b{self.bend_radius_mm:.2f}",
                         self.fiber_length + delta_length,
                     )
                 ]
@@ -527,7 +529,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                 [0, 0, 0],
                 [0, 0, 0],
                 fiber_cl1_lv[fiber_length],
-                f"fiber_{self.barrel}_cladding1{fiber_name}",
+                f"fiber_{self.barrel}_barrel_cladding1{fiber_name}",
                 self.fiber_cl2_lv[fiber_length],
                 self.b.registry,
             )
@@ -535,7 +537,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                 [0, 0, 0],
                 [0, 0, 0],
                 fiber_core_lv[fiber_length],
-                f"fiber_{self.barrel}_core{fiber_name}",
+                f"fiber_{self.barrel}_barrel_fibercore{fiber_name}",
                 fiber_cl1_lv[fiber_length],
                 self.b.registry,
             )
@@ -544,7 +546,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                 [0, 0, 0],
                 [0, 0, 0],
                 fiber_cl1_bend_lv,
-                f"fiber_{self.barrel}_cladding1_bend{v_suffix}",
+                f"fiber_{self.barrel}_barrel_cladding1_bend{fiber_name}",
                 self.fiber_cl2_bend_lv,
                 self.b.registry,
             )
@@ -552,7 +554,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                 [0, 0, 0],
                 [0, 0, 0],
                 fiber_core_bend_lv,
-                f"fiber_{self.barrel}_core_bend{v_suffix}",
+                f"fiber_{self.barrel}_barrel_fibercore_bend{fiber_name}",
                 fiber_cl1_bend_lv,
                 self.b.registry,
             )
@@ -573,7 +575,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
             raise ValueError(msg)
         fiber_length = self.fiber_length + delta_length
 
-        v_suffix = f"{'_bend' if bend else ''}_l{fiber_length}_tpb{tpb_thickness_nm}"
+        v_suffix = f"{'_bend' if bend else ''}_l{fiber_length:.2f}_tpb{tpb_thickness_nm:}"
         v_name = f"fiber_coating{v_suffix}"
         if v_name in self.b.registry.solidDict:
             return self.b.registry.logicalVolumeDict[v_name]
@@ -599,7 +601,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
             [0, 0, 0],
             [0, 0, 0],
             inner_lv,
-            f"fiber_{self.barrel}_cladding2{v_suffix}",
+            f"fiber_{self.barrel}_barrel_cladding2{v_suffix}",
             coating_lv,
             self.b.registry,
         )
@@ -649,7 +651,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                     [0, 0, -th],
                     [x, y, z_displacement_straight - delta_length / 2],
                     coating_lv,
-                    f"fiber_{self.barrel}_tpb_{mod.name}_{n}",
+                    f"fiber_{self.barrel}_barrel_coating_tpb_{mod.name}_{n}",
                     self.b.mother_lv,
                     self.b.registry,
                 )
@@ -663,7 +665,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                         [math.pi / 2, th, 0],
                         [x2, y2, z_displacement_straight - self.fiber_length / 2 - delta_length],
                         coating_lv_bend,
-                        f"fiber_{self.barrel}_tpb_{mod.name}_bend_{n}",
+                        f"fiber_{self.barrel}_barrel_coating_tpb_{mod.name}_bend_{n}",
                         self.b.mother_lv,
                         self.b.registry,
                     )
@@ -689,7 +691,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                     [0, 0, -th],
                     [x2, y2, z],
                     self.sipm_outer_bottom_lv_bend,
-                    f"{mod.channel_bottom_name}_{n}_wrap",
+                    f"larinstr_sipm_wrap_tetratex_{mod.channel_bottom_name}_{n}",
                     self.b.mother_lv,
                     self.b.registry,
                 )
@@ -770,7 +772,9 @@ class ModuleFactorySegment(ModuleFactoryBase):
 
     def _cached_sipm_volumes_bend(self) -> None:
         """Creates (dummy) SiPM volumes for use at the bottom of bent fiber sections."""
-        v_suffix = f"_bend{self.bend_radius_mm}_r{self.radius}_nmod{self.number_of_modules}"
+        v_suffix = (
+            f"_bend{(self.bend_radius_mm or np.inf):.2f}_r{self.radius:.2f}_nmod{self.number_of_modules}"
+        )
         v_name = f"sipm{v_suffix}"
         if v_name in self.b.registry.solidDict:
             return
@@ -830,7 +834,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
 
     def _cached_fiber_volumes(self) -> None:
         """Create solids, logical and physical volumes for the fibers, as specified by the parameters of this instance."""
-        v_suffix = f"_l{self.fiber_length}"
+        v_suffix = f"_l{self.fiber_length:.2f}"
         if f"fiber_cl2{v_suffix}" in self.b.registry.solidDict:
             return
 
@@ -913,7 +917,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
             [0, 0, 0],
             [0, 0, 0],
             fiber_cl1_lv,
-            f"fiber_{self.barrel}_cladding1{v_suffix}",
+            f"fiber_{self.barrel}_barrel_cladding1{v_suffix}",
             self.fiber_cl2_lv,
             self.b.registry,
         )
@@ -921,7 +925,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
             [0, 0, 0],
             [0, 0, 0],
             fiber_core_lv,
-            f"fiber_{self.barrel}_core{v_suffix}",
+            f"fiber_{self.barrel}_barrel_fibercore{v_suffix}",
             fiber_cl1_lv,
             self.b.registry,
         )
@@ -930,7 +934,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
                 [0, 0, 0],
                 [0, 0, 0],
                 fiber_cl1_bend_lv,
-                f"fiber_{self.barrel}_cladding1_bend{v_suffix}",
+                f"fiber_{self.barrel}_barrel_cladding1_bend{v_suffix}",
                 self.fiber_cl2_bend_lv,
                 self.b.registry,
             )
@@ -938,7 +942,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
                 [0, 0, 0],
                 [0, 0, 0],
                 fiber_core_bend_lv,
-                f"fiber_{self.barrel}_core_bend{v_suffix}",
+                f"fiber_{self.barrel}_barrel_fibercore_bend{v_suffix}",
                 fiber_cl1_bend_lv,
                 self.b.registry,
             )
@@ -949,7 +953,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
         The TPB-Layer is dependent on the module (i.e. the applied thickness varies slightly),
         so we cannot cache it globally on this instance.
         """
-        v_suffix = f"{'_bend' if bend else ''}_l{self.fiber_length}_tpb{tpb_thickness_nm}"
+        v_suffix = f"{'_bend' if bend else ''}_l{self.fiber_length:.2f}_tpb{tpb_thickness_nm}"
         v_name = f"fiber_coating{v_suffix}"
         if v_name in self.b.registry.solidDict:
             return self.b.registry.logicalVolumeDict[v_name]
@@ -977,7 +981,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
             [0, 0, 0],
             [0, 0, 0],
             inner_lv,
-            f"fiber_{self.barrel}_cladding2{v_suffix}",
+            f"fiber_{self.barrel}_barrel_cladding2{v_suffix}",
             coating_lv,
             self.b.registry,
         )
@@ -1011,7 +1015,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
                 [0, 0, -th],
                 [0, 0, z_displacement_straight],
                 coating_lv,
-                f"fiber_{self.barrel}_tpb_{mod.name}_s",
+                f"fiber_{self.barrel}_barrel_coating_tpb_{mod.name}",
                 self.b.mother_lv,
                 self.b.registry,
             )
@@ -1022,7 +1026,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
                     [0, 0, -th],
                     [0, 0, z_displacement_straight - self.fiber_length / 2 - self.bend_radius_mm],
                     coating_lv_bend,
-                    f"fiber_{self.barrel}_tpb_{mod.name}_bend_s",
+                    f"fiber_{self.barrel}_barrel_coating_tpb_{mod.name}_bend",
                     self.b.mother_lv,
                     self.b.registry,
                 )
@@ -1075,7 +1079,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
                 [0, 0, -start_angle],
                 [0, 0, z],
                 self.sipm_outer_bottom_lv_bend,
-                f"{mod.channel_bottom_name}_wrap",
+                f"larinstr_sipm_wrap_tetratex_{mod.channel_bottom_name}",
                 self.b.mother_lv,
                 self.b.registry,
             )
@@ -1123,7 +1127,7 @@ def create_fiber_support_inner(b: core.InstrumentationData, z_pos: float) -> g4.
         vol_lv = g4.LogicalVolume(
             vol,
             b.materials.metal_copper,
-            f"fiber_support_inner_{idx}",
+            f"larinstr_support_inner_copper_{idx}",
             b.registry,
         )
         vol_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
@@ -1132,7 +1136,7 @@ def create_fiber_support_inner(b: core.InstrumentationData, z_pos: float) -> g4.
             [0, 0, -tra[0]],
             np.array([0, 0, z_pos]) + np.array(tra[1]),
             vol_lv,
-            f"fiber_support_inner_{idx}",
+            f"larinstr_support_inner_copper_{idx}",
             b.mother_lv,
             b.registry,
         )
@@ -1217,7 +1221,7 @@ def create_fiber_support_outer(b: core.InstrumentationData, z_pos: float) -> g4.
         vol_lv = g4.LogicalVolume(
             vol,
             b.materials.metal_copper,
-            f"fiber_support_outer_{idx}",
+            f"larinstr_support_outer_copper_{idx}",
             b.registry,
         )
         vol_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
@@ -1226,7 +1230,7 @@ def create_fiber_support_outer(b: core.InstrumentationData, z_pos: float) -> g4.
             [0, 0, -tra[0]],
             np.array([0, 0, z_pos]) + np.array(tra[1]),
             vol_lv,
-            f"fiber_support_outer_{idx}",
+            f"larinstr_support_outer_copper_{idx}",
             b.mother_lv,
             b.registry,
         )
