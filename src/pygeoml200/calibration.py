@@ -103,25 +103,42 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
 
         pin_top = _sis_to_pygeoml200(sis_z)
 
-        if len(sis_cfg[i].sources) != 4:
-            msg = f"Invalid number of sources in config of SIS{i}"
-            raise ValueError(msg)
+        sources_cfg = sis_cfg[i].get("sources", None)
+        sources: dict[int, str | None] = dict.fromkeys(range(1, 5))
+        if sources_cfg is not None:
+            if not isinstance(sources_cfg, dict):
+                msg = f"Invalid sources config type {type(sources_cfg)} in config of SIS{i}"
+                raise TypeError(msg)
 
-        # z offsets from top of pin to bottom of source.
-        delta_z = (-271, -171, -71, 42 + source_inside_holder)
+            for slot, src in sources_cfg.items():
+                try:
+                    slot_idx = int(slot)
+                except ValueError as exc:  # pragma: no cover - defensive programming
+                    msg = f"Invalid slot index {slot!r} in config of SIS{i}"
+                    raise ValueError(msg) from exc
+
+                if slot_idx not in sources:
+                    msg = f"Invalid slot index {slot_idx} in config of SIS{i}"
+                    raise ValueError(msg)
+
+                sources[slot_idx] = src
+
+        # z offsets from top of pin to bottom of source. Slot numbering follows the hardware convention,
+        # starting from the lowest slot on the tantalum absorber.
+        delta_z = {1: 42 + source_inside_holder, 2: -71, 3: -171, 4: -271}
 
         # always place the Ta absorber, irrespective if it holds a source.
-        _place_ta_absorber(b, f"_sis{i}", sis_xy, pin_top + delta_z[3] - source_inside_holder)
+        _place_ta_absorber(b, f"_sis{i}", sis_xy, pin_top + delta_z[1] - source_inside_holder)
 
-        for si in range(4):
-            if sis_cfg[i].sources[si] is None:
+        for slot, src in sources.items():
+            if src is None:
                 continue
-            source_spec = _parse_source_spec(sis_cfg[i].sources[si])
+            source_spec = _parse_source_spec(src)
             _place_source(
                 b,
-                f"_sis{i}_source{si}",
+                f"_sis{i}_source{slot}",
                 sis_xy,
-                pin_top + delta_z[si] - source_inside_holder,
+                pin_top + delta_z[slot] - source_inside_holder,
                 source_type=source_spec["type"],
                 cu_absorber=(cu_absorber_config if source_spec["has_cu"] else None),
                 bare=source_spec["bare"],
@@ -144,6 +161,7 @@ ABSORBER_HEIGHT = 37.5  # mm
 # overlap of steel container with Ta absorber/source holder:
 source_outside_holder = 10.6  # mm
 source_inside_holder = source_height - source_outside_holder
+
 
 safety = 1e-9  # mm
 
