@@ -49,6 +49,10 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
 
     sis_cfg = b.runtime_config.get("sis", {})
 
+    if not all(isinstance(k, int) for k in sis_cfg):
+        msg = "SIS config blocks must be keyed by SIS number (an integer)"
+        raise TypeError(msg)
+
     for i, tube in b.special_metadata.calibration.items():
         idx = i - 1
         if tube is None:
@@ -110,18 +114,16 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
                 msg = f"Invalid sources config type {type(sources_cfg)} in config of SIS{i}"
                 raise TypeError(msg)
 
-            for slot, src in sources_cfg.items():
-                try:
-                    slot_idx = int(slot)
-                except ValueError as exc:  # pragma: no cover - defensive programming
-                    msg = f"Invalid slot index {slot!r} in config of SIS{i}"
-                    raise ValueError(msg) from exc
+            if not all(isinstance(k, int) for k in sources_cfg):
+                msg = "calibration source slots must be keyed by slot number (an integer)"
+                raise TypeError(msg)
 
-                if slot_idx not in sources:
-                    msg = f"Invalid slot index {slot_idx} in config of SIS{i}"
+            for slot, src in sources_cfg.items():
+                if slot not in sources:
+                    msg = f"Invalid slot index {slot} in config of SIS{i}"
                     raise ValueError(msg)
 
-                sources[slot_idx] = src
+                sources[slot] = src
 
         # z offsets from top of pin to bottom of source. Slot numbering follows the hardware convention,
         # starting from the lowest slot on the tantalum absorber.
