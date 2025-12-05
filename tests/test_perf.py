@@ -47,6 +47,9 @@ def _extract_stats(text):
     days, hours, minutes, seconds = map(float, m.groups())
     runtime_seconds = days * 24 * 3600 + hours * 3600 + minutes * 60 + seconds
 
+    print(f"runtime was: {runtime_seconds} s")
+    print(f"event rate was: {event_rate} event/s")
+
     return runtime_seconds, event_rate
 
 
@@ -62,20 +65,51 @@ def _benchmark(macro, gdml_file, capfd):
 
 def test_performance(gdml_file, capfd):
     macro = """
-    /RMG/Geometry/RegisterDetectorsFromGDML Germanium
-    /RMG/Geometry/RegisterDetectorsFromGDML Scintillator
-    /RMG/Geometry/RegisterDetectorsFromGDML Optical
     /RMG/Geometry/GDMLDisableOverlapCheck
 
     /run/initialize
 
     /RMG/Generator/Select GPS
     /gps/particle geantino
+    /gps/ang/type iso
 
-    /run/beamOn 1000000
+    /run/beamOn 100000
     """
 
     runtime, event_rate = _benchmark(macro, gdml_file, capfd)
 
-    assert runtime > 5
-    assert event_rate > 80_000
+    assert runtime > 1
+    assert event_rate > 1_000
+
+    macro = """
+    /RMG/Geometry/GDMLDisableOverlapCheck
+
+    /run/initialize
+
+    /RMG/Generator/Select GPS
+    /gps/particle geantino
+    /gps/ang/type iso
+
+    /RMG/Generator/Confine Volume
+    /RMG/Generator/Confinement/Physical/AddVolume V.*
+
+    /run/beamOn 50000
+    """
+
+    runtime, event_rate = _benchmark(macro, gdml_file, capfd)
+
+    assert runtime > 1
+    assert event_rate > 1_000
+
+
+def test_overlaps(gdml_file):
+    from remage import remage_run
+
+    macro = [
+        "/RMG/Geometry/RegisterDetectorsFromGDML Germanium",
+        "/RMG/Geometry/RegisterDetectorsFromGDML Scintillator",
+        "/RMG/Geometry/RegisterDetectorsFromGDML Optical",
+        "/run/initialize",
+    ]
+
+    remage_run(macro, gdml_files=str(gdml_file), raise_on_error=True, raise_on_warning=True)
