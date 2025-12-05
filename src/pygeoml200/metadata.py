@@ -18,7 +18,7 @@ class PublicMetadataProxy:
 
     def update_special_metadata(self, special_metadata) -> None:
         # the string is shorter because of missing special detectors.
-        special_metadata.hpge_string["7"].minishroud_delta_length_in_mm = -200
+        special_metadata.hpge_string[7].minishroud_delta_length_in_mm = -200
 
 
 class _DiodeProxy:

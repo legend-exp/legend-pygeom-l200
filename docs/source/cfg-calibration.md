@@ -10,12 +10,16 @@ in the python code, but can be configured in a runtime configuration file.
 
 ```yaml
 sis:
-  "1":
+  1:
     sis_z: 8250
-    sources: ["Th228", null, null, "Th228"]
-  "2": null
-  "3": null
-  "4": null
+    sources:
+      1: "Th228"
+      2: "Th228"
+      3: null
+      4: null
+  2: null
+  3: null
+  4: null
 ```
 
 :::{warning}
@@ -38,9 +42,10 @@ The `sis_z` coordinate is the SIS reading of the deployed SIS strings. The
 coordinate is transformed into simulation coordinates as described on [the
 Confluence page][confluence-coord].
 
-Each SIS string has four slots for sources, that can be filled differently with
-this tool. The `sources` array contains the four slots from the top to the
-bottom. The bottom source is seated on top of the tantalum absorber.
+Each SIS string has four slots for sources that can be filled differently with
+this tool. The slots are numbered according to the hardware convention from 1 to
+4, starting from the lowest position in _z_ (directly on the tantalum absorber)
+and going upwards. The `sources` mapping uses these indices as keys.
 
 Different types of sources can be included in the slots:
 
@@ -57,9 +62,9 @@ Different types of sources can be included in the slots:
 The generated geometry does **not contain the requested source material**. The
 decaying isotope has to be configured in the user's Geant4/remage macro file.
 
-The volumes named `source_inner_sis{SIS number}_source{slot}` can be used as the
-confinement volumes in remage (i.e. with a regex `^source_inner_.*`, if all
-sources share an isotope).
+The volumes named `source_inner_sis{SIS number}_source{slot}` use the same slot
+numbering and can be used as the confinement volumes in remage (i.e. with a
+regex `^source_inner_.*`, if all sources share an isotope).
 
 :::
 
