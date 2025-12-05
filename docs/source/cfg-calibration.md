@@ -10,16 +10,16 @@ in the python code, but can be configured in a runtime configuration file.
 
 ```yaml
 sis:
-  "1":
+  1:
     sis_z: 8250
     sources:
-      "1": "Th228"
-      "2": "Th228"
-      "3": null
-      "4": null
-  "2": null
-  "3": null
-  "4": null
+      1: "Th228"
+      2: "Th228"
+      3: null
+      4: null
+  2: null
+  3: null
+  4: null
 ```
 
 :::{warning}

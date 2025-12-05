@@ -50,10 +50,11 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
     sis_cfg = b.runtime_config.get("sis", {})
 
     for i, tube in b.special_metadata.calibration.items():
-        idx = int(i) - 1
+        i_int = int(i)
+        idx = i_int - 1
         if tube is None:
             continue
-        tube_cfg = sis_cfg.get(i, {}) or {}
+        tube_cfg = sis_cfg.get(i_int, {}) or {}
 
         if tube.length_in_mm not in calib_tubes:
             calib_tubes[tube.length_in_mm] = hpge_strings._get_nylon_mini_shroud(
@@ -91,19 +92,20 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
         return
 
     for i, tube in b.special_metadata.calibration.items():
-        if tube is None or i not in sis_cfg or sis_cfg[i] is None:
+        i_int = int(i)
+        if tube is None or i_int not in sis_cfg or sis_cfg[i_int] is None:
             continue
-        idx = int(i) - 1
+        idx = i_int - 1
 
         # SIS reading to our coordinates. This marks the top of the torlon initialization pin in our
         # (pygeom) coordinates.
 
-        sis_z = sis_cfg[i].sis_z - sis_cfg[i].get("offset", 0)
+        sis_z = sis_cfg[i_int].sis_z - sis_cfg[i_int].get("offset", 0)
         sis_xy = calib_tube_xy[:, idx]
 
         pin_top = _sis_to_pygeoml200(sis_z)
 
-        sources_cfg = sis_cfg[i].get("sources", None)
+        sources_cfg = sis_cfg[i_int].get("sources", None)
         sources: dict[int, str | None] = dict.fromkeys(range(1, 5))
         if sources_cfg is not None:
             if not isinstance(sources_cfg, dict):
@@ -161,7 +163,6 @@ ABSORBER_HEIGHT = 37.5  # mm
 # overlap of steel container with Ta absorber/source holder:
 source_outside_holder = 10.6  # mm
 source_inside_holder = source_height - source_outside_holder
-
 
 safety = 1e-9  # mm
 
