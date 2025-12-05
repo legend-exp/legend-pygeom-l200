@@ -1,29 +1,29 @@
 hpge_string:
-  "1":
+  1:
     minishroud_radius_in_mm: null
-  "2":
+  2:
     minishroud_radius_in_mm: null
-  "3":
+  3:
     minishroud_radius_in_mm: null
-  "4":
+  4:
     minishroud_radius_in_mm: null
-  "5":
+  5:
     minishroud_radius_in_mm: null
-  "6":
+  6:
     minishroud_radius_in_mm: null
-  "7":
+  7:
     minishroud_radius_in_mm: null
-  "8":
+  8:
     minishroud_radius_in_mm: null
-  "9":
+  9:
     minishroud_radius_in_mm: null
-  "10":
+  10:
     minishroud_radius_in_mm: null
-  "11":
+  11:
     minishroud_radius_in_mm: null
-  "12":
+  12:
     minishroud_radius_in_mm: null
 
 calibration:
-  "2": null
-  "4": null
+  2: null
+  4: null

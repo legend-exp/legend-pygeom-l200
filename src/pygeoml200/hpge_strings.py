@@ -37,7 +37,7 @@ def place_hpge_strings(hpge_metadata: TextDB, b: core.InstrumentationData) -> No
             log.warning("%s has no enrichment in metadata - setting to dummy value 0.9!", hpge_meta.name)
             hpge_meta.production.enrichment = 0.9
 
-        hpge_string_id = str(ch_meta.location.string)
+        hpge_string_id = ch_meta.location.string
         hpge_unit_id_in_string = ch_meta.location.position
 
         if hpge_string_id not in strings_to_build:
@@ -424,7 +424,7 @@ def _place_hpge_unit(
 
 
 def _place_hpge_string(
-    string_id: str,
+    string_id: int,
     string_slots: list,
     b: core.InstrumentationData,
 ):
@@ -555,7 +555,7 @@ def _place_hpge_string(
         )
 
 
-def _place_empty_string(string_id: str, b: core.InstrumentationData):
+def _place_empty_string(string_id: int, b: core.InstrumentationData):
     """Place an empty string (i.e. with no HPGe detectors), optionally with a counterweight."""
     string_meta = b.special_metadata.hpge_string[string_id]
 
@@ -586,7 +586,7 @@ def _place_empty_string(string_id: str, b: core.InstrumentationData):
             [0, 0, np.deg2rad(30) + string_rot],
             [x_pos, y_pos, z0_string],
             support_lv,
-            support_lv.name + "_string_" + string_id,
+            f"{support_lv.name}_string_{string_id}",
             b.mother_lv,
             b.registry,
         )

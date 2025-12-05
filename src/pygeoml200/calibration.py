@@ -50,11 +50,10 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
     sis_cfg = b.runtime_config.get("sis", {})
 
     for i, tube in b.special_metadata.calibration.items():
-        i_int = int(i)
-        idx = i_int - 1
+        idx = i - 1
         if tube is None:
             continue
-        tube_cfg = sis_cfg.get(i_int, {}) or {}
+        tube_cfg = sis_cfg.get(i, {}) or {}
 
         if tube.length_in_mm not in calib_tubes:
             calib_tubes[tube.length_in_mm] = hpge_strings._get_nylon_mini_shroud(
@@ -92,20 +91,19 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
         return
 
     for i, tube in b.special_metadata.calibration.items():
-        i_int = int(i)
-        if tube is None or i_int not in sis_cfg or sis_cfg[i_int] is None:
+        if tube is None or i not in sis_cfg or sis_cfg[i] is None:
             continue
-        idx = i_int - 1
+        idx = i - 1
 
         # SIS reading to our coordinates. This marks the top of the torlon initialization pin in our
         # (pygeom) coordinates.
 
-        sis_z = sis_cfg[i_int].sis_z - sis_cfg[i_int].get("offset", 0)
+        sis_z = sis_cfg[i].sis_z - sis_cfg[i].get("offset", 0)
         sis_xy = calib_tube_xy[:, idx]
 
         pin_top = _sis_to_pygeoml200(sis_z)
 
-        sources_cfg = sis_cfg[i_int].get("sources", None)
+        sources_cfg = sis_cfg[i].get("sources", None)
         sources: dict[int, str | None] = dict.fromkeys(range(1, 5))
         if sources_cfg is not None:
             if not isinstance(sources_cfg, dict):
@@ -183,11 +181,11 @@ def _place_source(
     source_type
         controls the interior design of the source container
     cu_absorber
-        include a copper absorber cap of the given dimensions. The dimensions have to be the same for all
-        sources in this geometry.
+        include a copper absorber cap of the given dimensions. The dimensions
+        have to be the same for all sources in this geometry.
     bare
-        Do not encapsulate the source. only use if you know what you do; this does not correspond to any
-        physical source geometry used in LEGEND.
+        Do not encapsulate the source. only use if you know what you do; this
+        does not correspond to any physical source geometry used in LEGEND.
     """
     z0 = b.top_plate_z_pos - delta_z
 
