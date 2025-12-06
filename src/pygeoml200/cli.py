@@ -3,7 +3,9 @@ from __future__ import annotations
 import argparse
 import logging
 from collections.abc import Iterable
+from importlib import resources
 
+import jsonschema
 from dbetto import utils
 from pyg4ometry import config as meshconfig
 from pygeomoptics.store import load_user_material_code
@@ -182,6 +184,20 @@ def _parse_cli_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, 
     config = {}
     if args.config is not None:
         config = utils.load_dict(args.config)
+        schema = utils.load_dict(resources.files("pygeoml200") / "configs" / "runtime_config_schema.yaml")
+
+        def _stringify_keys(obj):
+            if isinstance(obj, dict):
+                for k in obj:
+                    if isinstance(k, str) and k.isnumeric():
+                        msg = f"numeric key \"{k}\" must be int, not string."
+                        raise ValueError(msg)
+                return {str(k): _stringify_keys(v) for k, v in obj.items()}
+            if isinstance(obj, list):
+                return [_stringify_keys(item) for item in obj]
+            return obj
+
+        jsonschema.validate(instance=_stringify_keys(config), schema=schema)
 
     # also load geometry options from config file.
     _config_or_cli_arg(args, config, "assemblies", None)
