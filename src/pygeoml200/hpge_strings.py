@@ -569,7 +569,7 @@ def _place_empty_string(string_id: int, b: core.InstrumentationData):
     # TODO: this is also still a warm length.
     z0_string = b.top_plate_z_pos - 410.1  # from CAD model.
 
-    if "hpge_support_copper_string_support_structure_short" not in b.registry.logicalVolumeDict:
+    if "hpge_string_support_hanger_copper_short" not in b.registry.logicalVolumeDict:
         support_lv = _read_model(
             "StringSupportStructure-short.stl",
             "hpge_string_support_hanger_copper_short",
