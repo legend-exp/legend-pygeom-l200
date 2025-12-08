@@ -572,21 +572,21 @@ def _place_empty_string(string_id: int, b: core.InstrumentationData):
     if "hpge_support_copper_string_support_structure_short" not in b.registry.logicalVolumeDict:
         support_lv = _read_model(
             "StringSupportStructure-short.stl",
-            "hpge_support_copper_string_support_structure_short",
+            "hpge_string_support_hanger_copper_short",
             b.materials.metal_copper,
             b,
         )
         if support_lv is not None:
             support_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     else:
-        support_lv = b.registry.logicalVolumeDict["hpge_support_copper_string_support_structure_short"]
+        support_lv = b.registry.logicalVolumeDict["hpge_string_support_hanger_copper_short"]
 
     if support_lv is not None:
         geant4.PhysicalVolume(
             [0, 0, np.deg2rad(30) + string_rot],
             [x_pos, y_pos, z0_string],
             support_lv,
-            f"{support_lv.name}_string_{string_id}",
+            f"hpge_string_support_hanger_copper_string{string_id}",
             b.mother_lv,
             b.registry,
         )
@@ -620,7 +620,7 @@ def _place_empty_string(string_id: int, b: core.InstrumentationData):
             [0, 0, 0],
             [x_pos, y_pos, counterweight_z],
             b.registry.logicalVolumeDict[counterweight_name],
-            f"{counterweight_name}_{string_id}",
+            f"hpge_string_support_counterweight_steel_string{string_id}",
             b.mother_lv,
             b.registry,
         )
