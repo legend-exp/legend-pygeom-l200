@@ -1,0 +1,93 @@
+"$schema": https://json-schema.org/draft/2020-12/schema
+title: legend-pygeom-l200 config file
+
+type: object
+properties:
+  assemblies:
+    type: array
+    items:
+      type: string
+    uniqueItems: true
+  fiber_modules:
+    enum: [detailed, segmented]
+  pmt_config:
+    enum: [LEGEND200, GERDA]
+  sipm_use_pde_curve:
+    type: boolean
+  sipm_efficiencies:
+    type: object
+    patternProperties:
+      ".*":
+        type: number
+  special_metadata:
+    type: [object, string]
+  channelmap:
+    type: [object, string]
+  metadata_timestamp:
+    type: string
+    pattern: "^\\d{8}T\\d{6}Z$"
+  public_geom:
+    type: boolean
+  no_meshes:
+    anyOf:
+      - type: boolean
+      - type: array
+        items:
+          type: string
+        uniqueItems: true
+
+  cu_absorber:
+    type: object
+    properties:
+      height:
+        type: number
+      inner_height:
+        type: number
+      inner_radius:
+        type: number
+      outer_radius:
+        type: number
+    additionalProperties: false
+
+  extra_source:
+    type: object
+    properties:
+      source:
+        type: string
+      name:
+        type: string
+      position_in_mm:
+        type: array
+        items:
+          type: number
+        minItems: 3
+        maxItems: 3
+    required: [source, position_in_mm]
+    additionalProperties: false
+
+  sis:
+    type: object
+    patternProperties:
+      "^\\d+$":
+        anyOf:
+          - type: "null"
+          - type: object
+            properties:
+              phi_offset:
+                type: number
+              r_offset:
+                type: number
+              offset:
+                type: number
+              sis_z:
+                type: number
+              sources:
+                type: object
+                patternProperties:
+                  "^\\d+$":
+                    type: [string, "null"]
+                additionalProperties: false
+
+            additionalProperties: false
+            required: [sis_z]
+    additionalProperties: false
