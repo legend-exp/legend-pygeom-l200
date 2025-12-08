@@ -569,24 +569,24 @@ def _place_empty_string(string_id: int, b: core.InstrumentationData):
     # TODO: this is also still a warm length.
     z0_string = b.top_plate_z_pos - 410.1  # from CAD model.
 
-    if "hpge_support_copper_string_support_structure_short" not in b.registry.logicalVolumeDict:
+    if "hpge_string_support_hanger_copper_short" not in b.registry.logicalVolumeDict:
         support_lv = _read_model(
             "StringSupportStructure-short.stl",
-            "hpge_support_copper_string_support_structure_short",
+            "hpge_string_support_hanger_copper_short",
             b.materials.metal_copper,
             b,
         )
         if support_lv is not None:
             support_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     else:
-        support_lv = b.registry.logicalVolumeDict["hpge_support_copper_string_support_structure_short"]
+        support_lv = b.registry.logicalVolumeDict["hpge_string_support_hanger_copper_short"]
 
     if support_lv is not None:
         geant4.PhysicalVolume(
             [0, 0, np.deg2rad(30) + string_rot],
             [x_pos, y_pos, z0_string],
             support_lv,
-            f"{support_lv.name}_string_{string_id}",
+            f"hpge_string_support_hanger_copper_string{string_id}",
             b.mother_lv,
             b.registry,
         )
@@ -620,7 +620,7 @@ def _place_empty_string(string_id: int, b: core.InstrumentationData):
             [0, 0, 0],
             [x_pos, y_pos, counterweight_z],
             b.registry.logicalVolumeDict[counterweight_name],
-            f"{counterweight_name}_{string_id}",
+            f"hpge_string_support_counterweight_steel_string{string_id}",
             b.mother_lv,
             b.registry,
         )
@@ -669,17 +669,17 @@ def _get_support_structure(
     """Get the (simplified) support structure and the tristar of the requested size.
 
     .. note :: Both models' coordinate origins are a the top face of the tristar structure."""
-    if "hpge_support_copper_string_support_structure" not in b.registry.logicalVolumeDict:
+    if "hpge_string_support_hanger_copper" not in b.registry.logicalVolumeDict:
         support_lv = _read_model(
             "StringSupportStructure.stl",
-            "hpge_support_copper_string_support_structure",
+            "hpge_string_support_hanger_copper",
             b.materials.metal_copper,
             b,
         )
         if support_lv is not None:
             support_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     else:
-        support_lv = b.registry.logicalVolumeDict["hpge_support_copper_string_support_structure"]
+        support_lv = b.registry.logicalVolumeDict["hpge_string_support_hanger_copper"]
 
     tristar_lv_name = f"hpge_support_copper_tristar_{size}"
     if tristar_lv_name not in b.registry.logicalVolumeDict:
