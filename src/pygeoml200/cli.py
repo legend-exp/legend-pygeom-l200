@@ -190,7 +190,7 @@ def _parse_cli_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, 
             if isinstance(obj, dict):
                 for k in obj:
                     if isinstance(k, str) and k.isnumeric():
-                        msg = f"numeric key \"{k}\" must be int, not string."
+                        msg = f'numeric key "{k}" must be int, not string.'
                         raise ValueError(msg)
                 return {str(k): _stringify_keys(v) for k, v in obj.items()}
             if isinstance(obj, list):
