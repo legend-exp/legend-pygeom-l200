@@ -1,4 +1,5 @@
 # NMS lengths see https://elog.legend-exp.org/Cleanroom+Operations/67
+# new detector rod lengths see https://elog.legend-exp.org/Cleanroom+Operations/65
 hpge_string:
   1:
     radius_in_mm: 218
@@ -223,11 +224,13 @@ hpges:
     rodlength_in_mm: 131.0
     baseplate: xlarge
   V10784A:
-    rodlength_in_mm: 130.0 # already included longer rods.
+    # https://elog.legend-exp.org/Cleanroom+Operations/63 (longer rods)
+    rodlength_in_mm: 130.0
     baseplate: xlarge
     has_top_insulators: true
   V10437B:
-    rodlength_in_mm: 130.0 # already included longer rods.
+    # https://elog.legend-exp.org/Cleanroom+Operations/65 (longer rods)
+    rodlength_in_mm: 130.0
     baseplate: xlarge
   V02160B:
     rodlength_in_mm: 77.0
