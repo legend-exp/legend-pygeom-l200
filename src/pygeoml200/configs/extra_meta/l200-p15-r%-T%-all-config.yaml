@@ -67,15 +67,15 @@ hpge_string:
 
 hpges:
   V14654A:
-    rodlength_in_mm: 131.0 # guess
+    rodlength_in_mm: 131.0
     baseplate: xlarge
     has_top_insulators: true
   V14673A:
-    rodlength_in_mm: 131.0 #guess
+    rodlength_in_mm: 124.0
     baseplate: xlarge
     has_top_insulators: true
   V13044A:
-    rodlength_in_mm: 131.0 #guess
+    rodlength_in_mm: 131.0
     baseplate: xlarge
     has_top_insulators: true
   B00032C:
@@ -124,7 +124,7 @@ hpges:
     rodlength_in_mm: 126.5
     baseplate: xlarge
   V09374A:
-    rodlength_in_mm: 126.5 # guess
+    rodlength_in_mm: 103.5
     baseplate: xlarge
   V02160A:
     rodlength_in_mm: 103.5
@@ -145,21 +145,21 @@ hpges:
     rodlength_in_mm: 103.5
     baseplate: large
   V07302B:
-    rodlength_in_mm: 77.0 # fix
+    rodlength_in_mm: 77.0
     baseplate: large
   V05266B:
     rodlength_in_mm: 103.5
     baseplate: large
   V14618A:
-    rodlength_in_mm: 131.0 # guess
+    rodlength_in_mm: 124.0
     baseplate: xlarge
     has_top_insulators: true
   V13049A:
-    rodlength_in_mm: 131.0 # guess
+    rodlength_in_mm: 131.0
     baseplate: xlarge
     has_top_insulators: true
   V13046A:
-    rodlength_in_mm: 131.0 # guess
+    rodlength_in_mm: 131.0
     baseplate: xlarge
     has_top_insulators: true
   B00000C:
@@ -178,7 +178,7 @@ hpges:
     rodlength_in_mm: 53.5
     baseplate: medium
   V06649M:
-    rodlength_in_mm: 122.0 # guess
+    rodlength_in_mm: 122.0
     baseplate: medium
   V01404A:
     rodlength_in_mm: 103.5
@@ -208,7 +208,7 @@ hpges:
     rodlength_in_mm: 122.0
     baseplate: medium
   V00074A:
-    rodlength_in_mm: 122.0 # guess
+    rodlength_in_mm: 103.5
     baseplate: medium
   V08682B:
     rodlength_in_mm: 77.0
@@ -223,11 +223,11 @@ hpges:
     rodlength_in_mm: 131.0
     baseplate: xlarge
   V10784A:
-    rodlength_in_mm: 131.0 # guess, longer rods.
+    rodlength_in_mm: 130.0 # already included longer rods.
     baseplate: xlarge
     has_top_insulators: true
   V10437B:
-    rodlength_in_mm: 131.0 # guess, longer rods.
+    rodlength_in_mm: 130.0 # already included longer rods.
     baseplate: xlarge
   V02160B:
     rodlength_in_mm: 77.0
@@ -245,10 +245,10 @@ hpges:
     rodlength_in_mm: 122.0
     baseplate: large
   V02166B:
-    rodlength_in_mm: 122.0 # guess
+    rodlength_in_mm: 122.0
     baseplate: large
   V05261B:
-    rodlength_in_mm: 122.0 # guess
+    rodlength_in_mm: 122.0
     baseplate: large
   V06659A:
     rodlength_in_mm: 122.0
