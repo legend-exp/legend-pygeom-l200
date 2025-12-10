@@ -1,5 +1,6 @@
 # NMS lengths see https://elog.legend-exp.org/Cleanroom+Operations/67
-# new detector rod lengths see https://elog.legend-exp.org/Cleanroom+Operations/65
+# new detector rod lengths for p15 see https://elog.legend-exp.org/Cleanroom+Operations/65
+# these are not all used verbatim, but adjusted after internal discussion.
 hpge_string:
   1:
     radius_in_mm: 218
