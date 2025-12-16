@@ -14,7 +14,8 @@ have to manually perform the checkout.
 | **p11**     | `20240411T000000Z` | >= v1.0.0       |
 | **p13**     | `20241210T225016Z` | >= v1.0.1       |
 | **p14**     | `20250425T180115Z` | >= v1.0.2       |
-| **p15–**    | `20250716T161517Z` | >= v1.0.2       |
+| **p15–p16** | `20250716T161517Z` | >= v1.0.2       |
+| **p18–**    | `20251108T002705Z` | >= v1.1.0       |
 
 the timestamp can be selected in the config file:
 
