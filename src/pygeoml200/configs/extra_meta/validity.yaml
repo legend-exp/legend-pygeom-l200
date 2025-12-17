@@ -35,4 +35,5 @@
   category:
     - all
   apply:
+    - l200-p15-r%-T%-all-config.yaml
     - l200-p18-r%-T%-all-config.yaml
