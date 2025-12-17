@@ -22,12 +22,12 @@ def test_construct_with_sis(tmp_path):
     }
 
     registry = core.construct(assemblies=["calibration"], config=cfg, public_geometry=public_geom)
-    assert "source_inner_sis1_source1" in registry.physicalVolumeDict
+    assert "calibration_source_inner_sis1_slot1" in registry.physicalVolumeDict
 
     # test single source with Cu cap.
     cfg["sis"][1]["sources"][1] = "Ra+Cu"
     registry = core.construct(assemblies=["calibration"], config=cfg, public_geometry=public_geom)
-    assert "source_inner_sis1_source1" in registry.physicalVolumeDict
+    assert "calibration_source_inner_sis1_slot1" in registry.physicalVolumeDict
 
     # test multiple sources.
     cfg = {
@@ -47,8 +47,8 @@ def test_construct_with_sis(tmp_path):
 
     registry = core.construct(assemblies=["calibration"], config=cfg, public_geometry=public_geom)
     for slot in range(1, 5):
-        assert f"source_inner_sis1_source{slot}" in registry.physicalVolumeDict
-        assert f"source_inner_sis2_source{slot}" in registry.physicalVolumeDict
+        assert f"calibration_source_inner_sis1_slot{slot}" in registry.physicalVolumeDict
+        assert f"calibration_source_inner_sis2_slot{slot}" in registry.physicalVolumeDict
 
     # test offsets
     cfg = {
@@ -64,5 +64,5 @@ def test_construct_with_sis(tmp_path):
     registry = core.construct(assemblies=["calibration"], config=cfg, public_geometry=public_geom)
 
     for slot in range(1, 5):
-        assert f"source_inner_sis1_source{slot}" in registry.physicalVolumeDict
-        assert f"source_inner_sis2_source{slot}" in registry.physicalVolumeDict
+        assert f"calibration_source_inner_sis1_slot{slot}" in registry.physicalVolumeDict
+        assert f"calibration_source_inner_sis2_slot{slot}" in registry.physicalVolumeDict
