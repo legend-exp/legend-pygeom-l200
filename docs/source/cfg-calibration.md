@@ -62,9 +62,9 @@ Different types of sources can be included in the slots:
 The generated geometry does **not contain the requested source material**. The
 decaying isotope has to be configured in the user's Geant4/remage macro file.
 
-The volumes named `source_inner_sis{SIS number}_source{slot}` use the same slot
-numbering and can be used as the confinement volumes in remage (i.e. with a
-regex `^source_inner_.*`, if all sources share an isotope).
+The volumes named `calibration_source_inner_sis{SIS number}_slot{slot}` use the
+same slot numbering and can be used as the confinement volumes in remage (i.e.
+with a regex `^calibration_source_inner_.*`, if all sources share an isotope).
 
 :::
 
@@ -80,8 +80,8 @@ extra_source:
   # "screwed into the top plate" (i.e. z is the coordinate of the top face of the
   # volume the source would normally be screwed into.
   position_in_mm: [0, 0, 700]
-  # to identify in geometry, this produces a volume `source_inner{name}`
-  name: "_central"
+  # to identify in geometry, this produces a volume `calibration_source_inner_{name}`
+  name: "central"
   source: "Th228+Cu"
 ```
 

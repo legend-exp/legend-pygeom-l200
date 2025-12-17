@@ -130,7 +130,7 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
         delta_z = {1: 42 + source_inside_holder, 2: -71, 3: -171, 4: -271}
 
         # always place the Ta absorber, irrespective if it holds a source.
-        _place_ta_absorber(b, f"_sis{i}", sis_xy, pin_top + delta_z[1] - source_inside_holder)
+        _place_ta_absorber(b, i, sis_xy, pin_top + delta_z[1] - source_inside_holder)
 
         for slot, src in sources.items():
             if src is None:
@@ -138,7 +138,7 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
             source_spec = _parse_source_spec(src)
             _place_source(
                 b,
-                f"_sis{i}_source{slot}",
+                f"sis{i}_slot{slot}",
                 sis_xy,
                 pin_top + delta_z[slot] - source_inside_holder,
                 source_type=source_spec["type"],
@@ -204,19 +204,20 @@ def _place_source(
                 2 * math.pi,
                 b.registry,
             )
-        if f"source_outer{suffix}" not in b.registry.logicalVolumeDict:
+        source_outer_name = f"calibration_source_outer_steel_{suffix}"
+        if source_outer_name not in b.registry.logicalVolumeDict:
             geant4.LogicalVolume(
                 b.registry.solidDict["source_outer"],
                 b.materials.metal_steel,
-                f"source_outer{suffix}",
+                source_outer_name,
                 b.registry,
             )
-        source_outer = b.registry.logicalVolumeDict[f"source_outer{suffix}"]
+        source_outer = b.registry.logicalVolumeDict[source_outer_name]
         geant4.PhysicalVolume(
             [0, 0, 0],
             [*xy, source_z],
             source_outer,
-            f"source_outer{suffix}",
+            source_outer_name,
             b.mother_lv,
             b.registry,
         )
@@ -226,9 +227,10 @@ def _place_source(
     if source_type == "Th228":
         inner_dims = (source_th_radius_inner, source_th_height_inner, source_th_top_inner)
 
-    if f"source_inner_{source_type}" not in b.registry.solidDict:
+    source_inner_lv_name = f"calibration_source_inner_{source_type}"
+    if source_inner_lv_name not in b.registry.solidDict:
         source_inner_solid = geant4.solid.Tubs(
-            f"source_inner_{source_type}", 0, *inner_dims[0:2], 0, 2 * math.pi, b.registry
+            source_inner_lv_name, 0, *inner_dims[0:2], 0, 2 * math.pi, b.registry
         )
 
         if source_type == "Th228":
@@ -240,7 +242,7 @@ def _place_source(
             raise ValueError(msg)
 
         source_inner = geant4.LogicalVolume(
-            source_inner_solid, source_material, f"source_inner_{source_type}", b.registry
+            source_inner_solid, source_material, source_inner_lv_name, b.registry
         )
         source_inner.pygeom_color_rgba = (1, 0.843, 0, 1)
 
@@ -248,8 +250,8 @@ def _place_source(
     geant4.PhysicalVolume(
         [0, 0, 0],
         [0, 0, source_inner_z] if not bare else [*xy, source_z + source_inner_z],
-        b.registry.logicalVolumeDict[f"source_inner_{source_type}"],
-        f"source_inner{suffix}",
+        b.registry.logicalVolumeDict[source_inner_lv_name],
+        f"calibration_source_inner_{suffix}",
         source_outer if not bare else b.mother_lv,
         b.registry,
     )
@@ -264,7 +266,7 @@ def _place_source(
             [0, 0, 0],
             [*xy, cu_absorber_z],
             cu_absorber_cu,
-            f"cu_absorber{suffix}",
+            f"calibration_source_absorber_cap_copper_{suffix}",
             b.mother_lv,
             b.registry,
         )
@@ -273,7 +275,7 @@ def _place_source(
                 [0, 0, 0],
                 [*xy, cu_absorber_lar_z],
                 cu_absorber_lar,
-                f"cu_absorber_lar_inactive{suffix}",
+                f"calibration_source_absorber_cap_buffer_liquid_argon_{suffix}",
                 b.mother_lv,
                 b.registry,
             )
@@ -282,10 +284,12 @@ def _place_source(
 def _get_cu_cap(
     b: core.InstrumentationData, dimens: AttrsDict
 ) -> tuple[geant4.LogicalVolume, geant4.LogicalVolume | None]:
-    if "cu_absorber" in b.registry.logicalVolumeDict:
+    cu_absorber_name = "calibration_source_absorber_cap_copper"
+    lar_inactive_name = "calibration_source_absorber_cap_inactive_liquid_argon"
+    if cu_absorber_name in b.registry.logicalVolumeDict:
         return (
-            b.registry.logicalVolumeDict["cu_absorber"],
-            b.registry.logicalVolumeDict.get("cu_absorber_lar_inactive", None),
+            b.registry.logicalVolumeDict[cu_absorber_name],
+            b.registry.logicalVolumeDict.get(lar_inactive_name, None),
         )
 
     if (
@@ -309,7 +313,7 @@ def _get_cu_cap(
         [[0, 0, 0], [0, 0, -(dimens.height - dimens.inner_height) / 2]],
         b.registry,
     )
-    cu_absorber = geant4.LogicalVolume(cu_absorber, b.materials.metal_copper, "cu_absorber", b.registry)
+    cu_absorber = geant4.LogicalVolume(cu_absorber, b.materials.metal_copper, cu_absorber_name, b.registry)
     cu_absorber.pygeom_color_rgba = (0.72, 0.45, 0.2, 0.3)
 
     cu_absorber_lar = None
@@ -340,7 +344,7 @@ def _get_cu_cap(
             b.registry,
         )
         cu_absorber_lar = geant4.LogicalVolume(
-            cu_absorber_lar, b.materials.liquidargon, "cu_absorber_lar_inactive", b.registry
+            cu_absorber_lar, b.materials.liquidargon, lar_inactive_name, b.registry
         )
         cu_absorber_lar.pygeom_color_rgba = (1, 1, 1, 0.0001)
 
@@ -349,7 +353,7 @@ def _get_cu_cap(
 
 def _place_ta_absorber(
     b: core.InstrumentationData,
-    suffix: str,
+    sis_number: int,
     xy,
     delta_z: float,
 ) -> None:
@@ -363,32 +367,39 @@ def _place_ta_absorber(
     ta_absorber_lv = _get_ta_absorber(b)
     ta_absorber_lv.pygeom_color_rgba = (0.5, 0.5, 0.5, 0.9)
     geant4.PhysicalVolume(
-        [0, 0, 0], [*xy, z0], ta_absorber_lv, f"ta_absorber{suffix}", b.mother_lv, b.registry
+        [0, 0, 0],
+        [*xy, z0],
+        ta_absorber_lv,
+        f"calibration_absorber_tantalum_sis{sis_number}",
+        b.mother_lv,
+        b.registry,
     )
 
-    if "peek_holder" not in b.registry.logicalVolumeDict:
+    peek_holder_name = "calibration_absorber_holder_peek"
+    if peek_holder_name not in b.registry.logicalVolumeDict:
         peek_outside = geant4.solid.Box("peek_outside", 33.1, 9, 25, b.registry)
         peek_inside = geant4.solid.Box("peek_inside", 14, 9, 15, b.registry)  # Drawing from S. Schönert
         peek_holder = geant4.solid.Subtraction(
             "peek_holder", peek_outside, peek_inside, [[0, 0, 0], [0, 0, -10 / 2]], b.registry
         )
-        peek_holder = geant4.LogicalVolume(peek_holder, b.materials.peek, "peek_holder", b.registry)
+        peek_holder = geant4.LogicalVolume(peek_holder, b.materials.peek, peek_holder_name, b.registry)
         peek_holder.pygeom_color_rgba = (0.5, 0.32, 0, 1)
 
     peek_holder_z = z0 + ABSORBER_HEIGHT / 2 + 25 / 2 + safety
     geant4.PhysicalVolume(
         [0, 0, 0],
         [*xy, peek_holder_z],
-        b.registry.logicalVolumeDict["peek_holder"],
-        f"peek_holder{suffix}",
+        b.registry.logicalVolumeDict[peek_holder_name],
+        f"{peek_holder_name}_sis{sis_number}",
         b.mother_lv,
         b.registry,
     )
 
 
 def _get_ta_absorber(b: core.InstrumentationData):
-    if "ta_absorber" in b.registry.logicalVolumeDict:
-        return b.registry.logicalVolumeDict["ta_absorber"]
+    ta_absorber_name = "calibration_absorber_tantalum"
+    if ta_absorber_name in b.registry.logicalVolumeDict:
+        return b.registry.logicalVolumeDict[ta_absorber_name]
 
     ta_absorber_outer = geant4.solid.Tubs(
         "ta_absorber_outer",
@@ -415,7 +426,7 @@ def _get_ta_absorber(b: core.InstrumentationData):
         [[0, 0, 0], [0, 0, (ABSORBER_HEIGHT - source_inside_holder) / 2 - safety]],
         b.registry,
     )
-    return geant4.LogicalVolume(ta_absorber, b.materials.metal_tantalum, "ta_absorber", b.registry)
+    return geant4.LogicalVolume(ta_absorber, b.materials.metal_tantalum, ta_absorber_name, b.registry)
 
 
 def _sis_to_pygeoml200(sis_coord: float) -> float:
