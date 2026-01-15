@@ -560,7 +560,12 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
             )
 
     def _cached_tpb_coating_volume(
-        self, tpb_thickness_nm: float, bend: bool = False, delta_length: int = 0
+        self,
+        name: str,
+        mod_name: str,
+        tpb_thickness_nm: float,
+        bend: bool = False,
+        delta_length: int = 0,
     ) -> g4.LogicalVolume:
         """Create and cache a TPB coating layer of the specified thickness.
 
@@ -576,7 +581,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
         fiber_length = self.fiber_length + delta_length
 
         v_suffix = f"{'_bend' if bend else ''}_l{fiber_length:.2f}_tpb{tpb_thickness_nm:}"
-        v_name = f"fiber_coating{v_suffix}"
+        v_name = f"{name}{v_suffix}"
         if v_name in self.b.registry.solidDict:
             return self.b.registry.logicalVolumeDict[v_name]
 
@@ -601,7 +606,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
             [0, 0, 0],
             [0, 0, 0],
             inner_lv,
-            f"fiber_{self.barrel}_barrel_cladding2{v_suffix}",
+            f"fiber_{self.barrel}_barrel_cladding2_{mod_name}{v_suffix}",
             coating_lv,
             self.b.registry,
         )
@@ -617,11 +622,15 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
             msg = f"invalid module number {module_num} for a maximum of {self.number_of_modules}-1 modules."
             raise ValueError(msg)
 
+        name_prefix = f"fiber_{self.barrel}_barrel_coating_tpb_{mod.name}"
+
         self._cached_fiber_volumes()
         self._cached_sipm_volumes()
         if self.bend_radius_mm is not None:
             self._cached_sipm_volumes_bend()
-            coating_lv_bend = self._cached_tpb_coating_volume(mod.tpb_thickness, bend=True)
+            coating_lv_bend = self._cached_tpb_coating_volume(
+                name_prefix, mod.name, mod.tpb_thickness, bend=True
+            )
 
         start_angle = self.start_angle(module_num)
 
@@ -648,7 +657,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                 delta_length = self.ALLOWED_DELTA_LENGTHS[n % len(self.ALLOWED_DELTA_LENGTHS)]
 
             coating_lv = self._cached_tpb_coating_volume(
-                mod.tpb_thickness, bend=False, delta_length=delta_length
+                name_prefix, mod.name, mod.tpb_thickness, bend=False, delta_length=delta_length
             )
 
             th = start_angle + 2 * math.pi / self.number_of_modules / self.fiber_count_per_module * (n + 0.5)
@@ -659,7 +668,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                     [0, 0, -th],
                     [x, y, z_displacement_straight - delta_length / 2],
                     coating_lv,
-                    f"fiber_{self.barrel}_barrel_coating_tpb_{mod.name}_{n}",
+                    f"{name_prefix}_{n}",
                     self.b.mother_lv,
                     self.b.registry,
                 )
@@ -673,7 +682,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                         [math.pi / 2, th, 0],
                         [x2, y2, z_displacement_straight - self.fiber_length / 2 - delta_length],
                         coating_lv_bend,
-                        f"fiber_{self.barrel}_barrel_coating_tpb_{mod.name}_bend_{n}",
+                        f"{name_prefix}_bend_{n}",
                         self.b.mother_lv,
                         self.b.registry,
                     )
