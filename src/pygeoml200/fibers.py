@@ -961,7 +961,9 @@ class ModuleFactorySegment(ModuleFactoryBase):
                 self.b.registry,
             )
 
-    def _cached_tpb_coating_volume(self, name: str, mod_name: str, tpb_thickness_nm: float, bend: bool = False) -> g4.LogicalVolume:
+    def _cached_tpb_coating_volume(
+        self, name: str, mod_name: str, tpb_thickness_nm: float, bend: bool = False
+    ) -> g4.LogicalVolume:
         """Create and cache a TPB coating layer of the specified thickness.
 
         The TPB-Layer is dependent on the module (i.e. the applied thickness varies slightly),
@@ -1011,12 +1013,16 @@ class ModuleFactorySegment(ModuleFactoryBase):
             msg = f"invalid module number {module_num} for a maximum of {self.number_of_modules}-1 modules."
             raise ValueError(msg)
 
+        name_prefix = f"fiber_{self.barrel}_barrel_coating_tpb_{mod.name}"
+
         self._cached_fiber_volumes()
         self._cached_sipm_volumes()
-        coating_lv = self._cached_tpb_coating_volume(mod.tpb_thickness, bend=False)
+        coating_lv = self._cached_tpb_coating_volume(name_prefix, mod.name, mod.tpb_thickness, bend=False)
         if self.bend_radius_mm is not None:
             self._cached_sipm_volumes_bend()
-            coating_lv_bend = self._cached_tpb_coating_volume(mod.tpb_thickness, bend=True)
+            coating_lv_bend = self._cached_tpb_coating_volume(
+                name_prefix, mod.name, mod.tpb_thickness, bend=True
+            )
 
         start_angle = self.start_angle(module_num)
         z_displacement_straight = self.z_displacement - self.fiber_length / 2
