@@ -961,14 +961,14 @@ class ModuleFactorySegment(ModuleFactoryBase):
                 self.b.registry,
             )
 
-    def _cached_tpb_coating_volume(self, tpb_thickness_nm: float, bend: bool = False) -> g4.LogicalVolume:
+    def _cached_tpb_coating_volume(self, name: str, mod_name: str, tpb_thickness_nm: float, bend: bool = False) -> g4.LogicalVolume:
         """Create and cache a TPB coating layer of the specified thickness.
 
         The TPB-Layer is dependent on the module (i.e. the applied thickness varies slightly),
         so we cannot cache it globally on this instance.
         """
         v_suffix = f"{'_bend' if bend else ''}_l{self.fiber_length:.2f}_tpb{tpb_thickness_nm}"
-        v_name = f"fiber_coating{v_suffix}"
+        v_name = f"{name}{v_suffix}"
         if v_name in self.b.registry.solidDict:
             return self.b.registry.logicalVolumeDict[v_name]
 
@@ -995,7 +995,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
             [0, 0, 0],
             [0, 0, 0],
             inner_lv,
-            f"fiber_{self.barrel}_barrel_cladding2{v_suffix}",
+            f"fiber_{self.barrel}_barrel_cladding2_{mod_name}{v_suffix}",
             coating_lv,
             self.b.registry,
         )
