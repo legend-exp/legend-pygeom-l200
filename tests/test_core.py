@@ -46,14 +46,14 @@ def test_detector_count(tmp_path, conctruct_fiber_variants):
 
     # verify that we get the expected channel counts.
     ch_count = Counter([d.detector_type for f, d in detectors.walk_detectors(reg_detailed)])
-    assert ch_count["optical"] == 2 * 9 + 20 * (1 + 81)  # 2*IB + OB*(top+bottom)
+    assert ch_count["optical"] == 2 * 9 + 20 * (1 + 81) + 53  # 2*IB + OB*(top+bottom) + 53 PMTs
     assert ch_count["germanium"] == 101  # from channelmap @ 20230311T235840Z
     det_file_detailed = tmp_path / "det-detailed.mac"
     detectors.generate_detector_macro(reg_detailed, det_file_detailed)
 
     # verify that we get the expected channel counts.
     ch_count = Counter([d.detector_type for f, d in detectors.walk_detectors(reg_segmented)])
-    assert ch_count["optical"] == 2 * (9 + 20)  # 2*(IB+OB)
+    assert ch_count["optical"] == 2 * (9 + 20) + 53  # 2*(IB+OB) + 53 PMTs
     assert ch_count["germanium"] == 101  # from channelmap @ 20230311T235840Z
     det_file_segmented = tmp_path / "det-segmented.mac"
     detectors.generate_detector_macro(reg_segmented, det_file_segmented)
@@ -73,7 +73,7 @@ def test_read_back(tmp_path, conctruct_fiber_variants):
     assert (
         ch_count["germanium"] > 90
     )  # the number of germanium detectors is not constant (public/private geometry).
-    assert ch_count["optical"] == 2 * (9 + 20)  # 2*(IB+OB)
+    assert ch_count["optical"] == 2 * (9 + 20) + 53  # 2*(IB+OB) + 53 PMTs
 
 
 def test_material_store():
