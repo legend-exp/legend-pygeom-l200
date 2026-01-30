@@ -7,8 +7,8 @@ import warnings
 from math import pi
 
 import numpy as np
-import pyg4ometry as pyg4
 import pyg4ometry.geant4 as g4
+from pygeomtools import RemageDetectorInfo
 from scipy.spatial.transform import Rotation
 
 from . import cryo, materials
@@ -68,6 +68,64 @@ pmt_id = np.array(
         "ch05_104",
         "ch07_105",
         "ch09_707",
+    ]
+)
+
+pmt_rawids = np.array(
+    [
+        2003219,
+        2003208,
+        2003206,
+        2003209,
+        2003210,
+        2003211,
+        2003212,
+        2003213,
+        2003207,
+        2003214,
+        2003215,
+        2003216,
+        2003217,
+        2003218,
+        2003205,
+        2003200,
+        2003201,
+        2003202,
+        2003203,
+        2003204,
+        2001605,
+        2001607,
+        2001610,
+        2001612,
+        2004800,
+        2004801,
+        2004802,
+        2004803,
+        2004804,
+        2004805,
+        2004813,
+        2004806,
+        2004807,
+        2004808,
+        2004809,
+        2004810,
+        2004811,
+        2004812,
+        2004814,
+        2004815,
+        2004816,
+        2004817,
+        2004818,
+        2004819,
+        2004820,
+        2004821,
+        2004822,
+        2001604,
+        2001606,
+        2001608,
+        2001609,
+        2001611,
+        2001613,
     ]
 )
 
@@ -581,208 +639,146 @@ def insert_pmts(
     pmt_steel_bottom_lv = g4.LogicalVolume(pmt_steel_bottom, pmt_steel_material, "pmt_steel_bottom_lv", reg)
     g4.SkinSurface("pmt_bottom_optical_surface", pmt_steel_bottom_lv, optical_steel_surface, reg)
 
-    ############################################ PMT positions #########################################
-    num_pmts = 0
-    working_pmts = 0
+    def build_pmt(
+        broken: bool,
+        index: int,
+        xpos: float,
+        ypos: float,
+        zpos: float | None = None,
+        xpos_cone: float | None = None,
+        ypos_cone: float | None = None,  # The wall PMTs need extra stuff
+        xpos_bottom: float | None = None,
+        ypos_bottom: float | None = None,
+        x_rot: float = 0.0,
+        y_rot: float = 0.0,
+        z_rot: float = 0.0,
+    ) -> None:  # Rotations for wall PMTs
+        prefix = "broken_" if broken else ""
 
-    # Bottom outer ring
-    n_pmt_per_ring_bo = 24  # spaces, in total 14 PMTs
+        suffix = f"_{index}" if broken else f"_{pmt_id[index]}"
+
+        name_pmt_acryl_lv = f"{prefix}pmt_acryl_lv{suffix}"
+        name_pmt_acryl = f"{prefix}pmt_acryl{suffix}"
+
+        name_pmt_air_lv = f"{prefix}pmt_air_lv{suffix}"
+        name_pmt_air = f"{prefix}pmt_air{suffix}"
+
+        name_pmt_borosilikat_lv = f"{prefix}pmt_borosilikat_lv{suffix}"
+        name_pmt_borosilikat = f"{prefix}pmt_borosilikat{suffix}"
+
+        namephotocathode_lv = f"{prefix}pmt_cathode_lv{suffix}"
+        namephotocathode = f"{prefix}pmt_cathode{suffix}"
+
+        namesteelcone = f"{prefix}pmt_cone{suffix}"
+        namesteelbottom = f"{prefix}pmt_bottom{suffix}"
+
+        # PMT first has acryl, then air, then borosilikat glass, then photocathode
+        acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
+        # Place at different height depending if this is a wall pmt which specifies a zpos
+        g4.PhysicalVolume(
+            [x_rot, y_rot, z_rot],
+            [xpos, ypos, pmt_cathode_offset if zpos is None else zpos],
+            acryl_lv,
+            name_pmt_acryl,
+            water_lv,
+            reg,
+        )
+
+        pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
+        g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
+
+        borosilikat_lv = g4.LogicalVolume(
+            pmt_borosilikat_glass, borosilicate_material, name_pmt_borosilikat_lv, reg
+        )
+        g4.PhysicalVolume(
+            [0, 0, 0],
+            [0, 0, 0],
+            borosilikat_lv,
+            name_pmt_borosilikat,
+            pmt_air_lv,
+            reg,
+        )
+        photocathode_lv = g4.LogicalVolume(photocathode, cathode_al, namephotocathode_lv, reg)
+        if broken:
+            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], photocathode_lv, namephotocathode, borosilikat_lv, reg)
+        else:
+            photocathode_pv = g4.PhysicalVolume(
+                [0, 0, 0], [0, 0, 0], photocathode_lv, namephotocathode, borosilikat_lv, reg
+            )
+            photocathode_pv.set_pygeom_active_detector(RemageDetectorInfo("optical", pmt_rawids[index]))
+
+        g4.SkinSurface(f"{prefix}pmt_cathode_skin_surface{suffix}", photocathode_lv, optical_pmt_surface, reg)
+
+        # PMT steel cone and bottom
+        # The wall PMTs should specify extra positions for cone and bottom
+        g4.PhysicalVolume(
+            [x_rot, y_rot, z_rot],
+            [
+                xpos if xpos_cone is None else xpos_cone,
+                ypos if ypos_cone is None else ypos_cone,
+                pmt_cone_offset if zpos is None else zpos,
+            ],
+            pmt_steel_cone_lv,
+            namesteelcone,
+            water_lv,
+            reg,
+        )
+        g4.PhysicalVolume(
+            [x_rot, y_rot, z_rot],
+            [
+                xpos if xpos_bottom is None else xpos_bottom,
+                ypos if ypos_bottom is None else ypos_bottom,
+                pmt_bottom_offset if zpos is None else zpos,
+            ],
+            pmt_steel_bottom_lv,
+            namesteelbottom,
+            water_lv,
+            reg,
+        )
+
+    ############################################ PMT positions #########################################
+    num_pmts = 0  # basically just an index
+    working_pmts = 0  #  basically just an index
+
+    # ------------------ Bottom outer ring
+    n_pmt_per_ring_bo = 24  # spaces, in total 14 PMTs are actually placed
     r_pos = 4250.0
     dphi = 2.0 * np.pi / n_pmt_per_ring_bo
-    dphi_c = dphi
 
-    no_pmt_in_outer_bottom_ring = np.array([3, 5, 7, 9, 11, 15, 17, 19, 21, 23])
-    broken_but_inside_pmt_in_outer_bottom_ring_gerda = np.array([])
+    empty_spaces = np.array([3, 5, 7, 9, 11, 15, 17, 19, 21, 23])  # These are empty spots without PMTs
 
-    # PMTs
     for k in range(n_pmt_per_ring_bo):
-        if k in no_pmt_in_outer_bottom_ring:
+        if k in empty_spaces:
             continue
         dphi_c = dphi * k
         xpos = r_pos * np.cos(dphi_c)
         ypos = r_pos * np.sin(dphi_c)
 
-        # get names
-        if k in broken_but_inside_pmt_in_outer_bottom_ring_gerda:
-            namephotocathode_lv = f"gerda_pmt_cathode_lv_{num_pmts}"
-            namephotocathode = f"gerda_pmt_cathode_{num_pmts}"
-            namesteelcone = f"gerda_pmt_cone_{num_pmts}"
-            photocathode_lv = g4.LogicalVolume(photocathode, cathode_al, namephotocathode_lv, reg)
-
-            name_pmt_acryl_lv = f"gerda_pmt_acryl_lv_{num_pmts}"
-            name_pmt_acryl = f"gerda_pmt_acryl_{num_pmts}"
-            acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
-            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], acryl_lv, name_pmt_acryl, water_lv, reg)
-
-            name_pmt_air_lv = f"gerda_pmt_air_lv_{num_pmts}"
-            name_pmt_air = f"gerda_pmt_air_{num_pmts}"
-            pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
-            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
-
-            namesteelbottom = f"gerda_pmt_bottom_{num_pmts}"
-            gerda_pmt_borosilikat_lv_ = f"gerda_pmt_borosilikat_lv_{num_pmts}"
-            name_pmt_borosilikat = f"GERDA_PMTborosilikat_{num_pmts}"
-            borosilikat_lv = g4.LogicalVolume(
-                pmt_borosilikat_glass, borosilicate_material, gerda_pmt_borosilikat_lv_, reg
-            )
-
-            g4.PhysicalVolume(
-                [0, 0, 0],
-                [0, 0, 0],
-                borosilikat_lv,
-                name_pmt_borosilikat,
-                pmt_air_lv,
-                reg,
-            )
-            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], photocathode_lv, namephotocathode, borosilikat_lv, reg)
-        else:
-            namephotocathode_lv = f"pmt_cathode_lv_{pmt_id[working_pmts]}"
-            namephotocathode = f"pmt_cathode_{pmt_id[working_pmts]}"
-            namesteelcone = f"pmt_cone_{pmt_id[working_pmts]}"
-            namesteelbottom = f"pmt_bottom_{pmt_id[working_pmts]}"
-            photocathode_lv = g4.LogicalVolume(photocathode, cathode_al, namephotocathode_lv, reg)
-
-            name_pmt_acryl_lv = f"pmt_acryl_lv_{pmt_id[working_pmts]}"
-            name_pmt_acryl = f"pmt_acryl_{pmt_id[working_pmts]}"
-            acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
-            g4.PhysicalVolume(
-                [0, 0, 0], [xpos, ypos, pmt_cathode_offset], acryl_lv, name_pmt_acryl, water_lv, reg
-            )
-
-            name_pmt_air_lv = f"pmt_air_lv_{pmt_id[working_pmts]}"
-            name_pmt_air = f"pmt_air_{pmt_id[working_pmts]}"
-            pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
-            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
-
-            name_pmt_borosilikat_lv = f"pmt_borosilikat_lv_{pmt_id[working_pmts]}"
-            name_pmt_borosilikat = f"pmt_borosilikat_{pmt_id[working_pmts]}"
-            borosilikat_lv = g4.LogicalVolume(
-                pmt_borosilikat_glass, borosilicate_material, name_pmt_borosilikat_lv, reg
-            )
-            g4.PhysicalVolume(
-                [0, 0, 0],
-                [0, 0, 0],
-                borosilikat_lv,
-                name_pmt_borosilikat,
-                pmt_air_lv,
-                reg,
-            )
-            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], photocathode_lv, namephotocathode, borosilikat_lv, reg)
-            g4.SkinSurface(
-                f"pmt_cathode_skin_surface{pmt_id[working_pmts]}", photocathode_lv, optical_pmt_surface, reg
-            )
-            working_pmts += 1
-
-        g4.PhysicalVolume(
-            [0, 0, 0], [xpos, ypos, pmt_cone_offset], pmt_steel_cone_lv, namesteelcone, water_lv, reg
-        )
-        g4.PhysicalVolume(
-            [0, 0, 0], [xpos, ypos, pmt_bottom_offset], pmt_steel_bottom_lv, namesteelbottom, water_lv, reg
-        )
-
-        dphi_c += dphi
+        # all working
+        build_pmt(False, working_pmts, xpos, ypos)
+        working_pmts += 1
         num_pmts += 1
 
-    # Bottom inner ring
+    # ------------------ Bottom inner ring
     n_pmt_per_ring_bi = 8  # 8 PMTs in inner ring
     r_pos = 2750.0  # radius of PMT positions
     dphi = 2.0 * np.pi / n_pmt_per_ring_bi
-    dphi_c = dphi
 
-    broken_but_inside_pmt_in_inner_bottom_ring_gerda = np.array([4, 7])
-    no_pmt_in_inner_bottom_ring = np.array([])
+    broken_but_inside = np.array(
+        [4, 7]
+    )  # These pmts are inside but already broke during GERDA, so we have no DAQ ids for them
 
     # place PMTs
     for k in range(n_pmt_per_ring_bi):
-        if k in no_pmt_in_inner_bottom_ring:
-            continue
         dphi_c = dphi * k
         xpos = r_pos * np.cos(dphi_c)
         ypos = r_pos * np.sin(dphi_c)
 
-        if k in broken_but_inside_pmt_in_inner_bottom_ring_gerda:
-            if pmt_configuration == "LEGEND200":
-                continue
-            namephotocathode_lv = f"gerda_pmt_cathode_lv_{num_pmts}"
-            namephotocathode = f"gerda_pmt_cathode_{num_pmts}"
-            namesteelcone = f"gerda_pmt_cone_{num_pmts}"
-            photocathode_lv = g4.LogicalVolume(photocathode, cathode_al, namephotocathode_lv, reg)
-
-            name_pmt_acryl_lv = f"gerda_pmt_acryl_lv_{num_pmts}"
-            name_pmt_acryl = f"gerda_pmt_acryl_{num_pmts}"
-            acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
-            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], acryl_lv, name_pmt_acryl, water_lv, reg)
-
-            name_pmt_air_lv = f"gerda_pmt_air_lv_{num_pmts}"
-            name_pmt_air = f"gerda_pmt_air_{num_pmts}"
-            pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
-            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
-
-            namesteelbottom = f"gerda_pmt_bottom_{num_pmts}"
-            gerda_pmt_borosilikat_lv_ = f"gerda_pmt_borosilikat_lv_{num_pmts}"
-            name_pmt_borosilikat = f"GERDA_PMTborosilikat_{num_pmts}"
-            borosilikat_lv = g4.LogicalVolume(
-                pmt_borosilikat_glass, borosilicate_material, gerda_pmt_borosilikat_lv_, reg
-            )
-
-            g4.PhysicalVolume(
-                [0, 0, 0],
-                [0, 0, 0],
-                borosilikat_lv,
-                name_pmt_borosilikat,
-                pmt_air_lv,
-                reg,
-            )
-            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], photocathode_lv, namephotocathode, borosilikat_lv, reg)
-        else:
-            namephotocathode_lv = f"pmt_cathode_lv_{pmt_id[working_pmts]}"
-            namephotocathode = f"pmt_cathode_{pmt_id[working_pmts]}"
-            namesteelcone = f"pmt_cone_{pmt_id[working_pmts]}"
-            namesteelbottom = f"pmt_bottom_{pmt_id[working_pmts]}"
-            photocathode_lv = g4.LogicalVolume(photocathode, cathode_al, namephotocathode_lv, reg)
-
-            name_pmt_acryl_lv = f"pmt_acryl_lv_{pmt_id[working_pmts]}"
-            name_pmt_acryl = f"pmt_acryl_{pmt_id[working_pmts]}"
-            acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
-            g4.PhysicalVolume(
-                [0, 0, 0], [xpos, ypos, pmt_cathode_offset], acryl_lv, name_pmt_acryl, water_lv, reg
-            )
-
-            name_pmt_air_lv = f"pmt_air_lv_{pmt_id[working_pmts]}"
-            name_pmt_air = f"pmt_air_{pmt_id[working_pmts]}"
-            pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
-            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
-
-            name_pmt_borosilikat_lv = f"pmt_borosilikat_lv_{pmt_id[working_pmts]}"
-            name_pmt_borosilikat = f"pmt_borosilikat_{pmt_id[working_pmts]}"
-            borosilikat_lv = g4.LogicalVolume(
-                pmt_borosilikat_glass, borosilicate_material, name_pmt_borosilikat_lv, reg
-            )
-            g4.PhysicalVolume(
-                [0, 0, 0],
-                [0, 0, 0],
-                borosilikat_lv,
-                name_pmt_borosilikat,
-                pmt_air_lv,
-                reg,
-            )
-            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], photocathode_lv, namephotocathode, borosilikat_lv, reg)
-            g4.SkinSurface(
-                f"pmt_cathode_skin_surface{pmt_id[working_pmts]}", photocathode_lv, optical_pmt_surface, reg
-            )
-            working_pmts += 1
-
-        g4.PhysicalVolume(
-            [0, 0, 0], [xpos, ypos, pmt_cone_offset], pmt_steel_cone_lv, namesteelcone, water_lv, reg
-        )
-        g4.PhysicalVolume(
-            [0, 0, 0], [xpos, ypos, pmt_bottom_offset], pmt_steel_bottom_lv, namesteelbottom, water_lv, reg
-        )
-
-        dphi_c += dphi
+        build_pmt(k in broken_but_inside, num_pmts if k in broken_but_inside else working_pmts, xpos, ypos)
+        working_pmts += 0 if k in broken_but_inside else 1
         num_pmts += 1
 
-    # Pillbox Bottom ring
+    # --------------- Pillbox Bottom ring
     n_pmt_per_ring_bpb = 6
     r_pos = (
         shielding_foot_ir
@@ -792,101 +788,23 @@ def insert_pmts(
         - reflective_foil_thickness
     )
     dphi = 2.0 * np.pi / n_pmt_per_ring_bpb
-    dphi_c = dphi
 
-    broken_but_inside_pmt_in_pillbox_bottom_ring = np.array([])
-    no_pmt_in_pillbox_bottom_ring = np.array([0, 3])
+    empty_spaces = np.array([0, 3])  # These positions are empty
 
     # PMTs
     for k in range(n_pmt_per_ring_bpb):
-        if k in no_pmt_in_pillbox_bottom_ring:
+        if k in empty_spaces:
             continue
 
         dphi_c = dphi * k
         xpos = r_pos * np.cos(dphi_c)
         ypos = r_pos * np.sin(dphi_c)
 
-        if k in broken_but_inside_pmt_in_pillbox_bottom_ring:
-            namephotocathode_lv = f"gerda_pmt_cathode_lv_{num_pmts}"
-            namephotocathode = f"gerda_pmt_cathode_{num_pmts}"
-            namesteelcone = f"gerda_pmt_cone_{num_pmts}"
-            photocathode_lv = g4.LogicalVolume(photocathode, cathode_al, namephotocathode_lv, reg)
-
-            name_pmt_acryl_lv = f"gerda_pmt_acryl_lv_{num_pmts}"
-            name_pmt_acryl = f"gerda_pmt_acryl_{num_pmts}"
-            acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
-            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], acryl_lv, name_pmt_acryl, water_lv, reg)
-
-            name_pmt_air_lv = f"gerda_pmt_air_lv_{num_pmts}"
-            name_pmt_air = f"gerda_pmt_air_{num_pmts}"
-            pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
-            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
-
-            namesteelbottom = f"gerda_pmt_bottom_{num_pmts}"
-            gerda_pmt_borosilikat_lv_ = f"gerda_pmt_borosilikat_lv_{num_pmts}"
-            name_pmt_borosilikat = f"GERDA_PMTborosilikat_{num_pmts}"
-            borosilikat_lv = g4.LogicalVolume(
-                pmt_borosilikat_glass, borosilicate_material, gerda_pmt_borosilikat_lv_, reg
-            )
-
-            g4.PhysicalVolume(
-                [0, 0, 0],
-                [0, 0, 0],
-                borosilikat_lv,
-                name_pmt_borosilikat,
-                pmt_air_lv,
-                reg,
-            )
-            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], photocathode_lv, namephotocathode, borosilikat_lv, reg)
-        else:
-            namephotocathode_lv = f"pmt_cathode_lv_{pmt_id[working_pmts]}"
-            namephotocathode = f"pmt_cathode_{pmt_id[working_pmts]}"
-            namesteelcone = f"pmt_cone_{pmt_id[working_pmts]}"
-            namesteelbottom = f"pmt_bottom_{pmt_id[working_pmts]}"
-            photocathode_lv = g4.LogicalVolume(photocathode, cathode_al, namephotocathode_lv, reg)
-
-            name_pmt_acryl_lv = f"pmt_acryl_lv_{pmt_id[working_pmts]}"
-            name_pmt_acryl = f"pmt_acryl_{pmt_id[working_pmts]}"
-            acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
-            g4.PhysicalVolume(
-                [0, 0, 0], [xpos, ypos, pmt_cathode_offset], acryl_lv, name_pmt_acryl, water_lv, reg
-            )
-
-            name_pmt_air_lv = f"pmt_air_lv_{pmt_id[working_pmts]}"
-            name_pmt_air = f"pmt_air_{pmt_id[working_pmts]}"
-            pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
-            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
-
-            name_pmt_borosilikat_lv = f"pmt_borosilikat_lv_{pmt_id[working_pmts]}"
-            name_pmt_borosilikat = f"pmt_borosilikat_{pmt_id[working_pmts]}"
-            borosilikat_lv = g4.LogicalVolume(
-                pmt_borosilikat_glass, borosilicate_material, name_pmt_borosilikat_lv, reg
-            )
-            g4.PhysicalVolume(
-                [0, 0, 0],
-                [0, 0, 0],
-                borosilikat_lv,
-                name_pmt_borosilikat,
-                pmt_air_lv,
-                reg,
-            )
-            g4.PhysicalVolume([0, 0, 0], [0, 0, 0], photocathode_lv, namephotocathode, borosilikat_lv, reg)
-            g4.SkinSurface(
-                f"pmt_cathode_skin_surface{pmt_id[working_pmts]}", photocathode_lv, optical_pmt_surface, reg
-            )
-            working_pmts += 1
-
-        g4.PhysicalVolume(
-            [0, 0, 0], [xpos, ypos, pmt_cone_offset], pmt_steel_cone_lv, namesteelcone, water_lv, reg
-        )
-        g4.PhysicalVolume(
-            [0, 0, 0], [xpos, ypos, pmt_bottom_offset], pmt_steel_bottom_lv, namesteelbottom, water_lv, reg
-        )
-
-        dphi_c += dphi
+        build_pmt(False, working_pmts, xpos, ypos)
+        working_pmts += 1
         num_pmts += 1
 
-    n_pmt_per_ring = 10  # PMTs per ring
+    # --------------------- Wall mounted PMT rings
 
     distancetobottom = 200.0  # distance of pillbox wall PMTs to bottom
     r_pos = (
@@ -897,45 +815,44 @@ def insert_pmts(
         - pmt_steel_bottom_height
         - 2e-9
     )
-    dphi = 2.0 * np.pi / n_pmt_per_ring
 
     for i in [0, 1, 2, 3, 4]:
         if i == 0:
             # PMT row (2m)
             n_pmt_per_ring = 10
             dphi = 2.0 * np.pi / n_pmt_per_ring
-            no_pmt_in_wall_ring = np.array([])
-            broken_but_inside_pmt_in_wall_ring_gerda = np.array([4, 5, 6, 7])
             zpos = -2450.0
-            dphi_c = dphi * 0.5
+
+            empty_spaces = np.array([])
+            broken_but_inside = np.array([4, 5, 6, 7])
+
         elif i == 1:
             # PMT row (3.5 m)
             n_pmt_per_ring = 10
             dphi = 2.0 * np.pi / n_pmt_per_ring
-            no_pmt_in_wall_ring = np.array([])
-            broken_but_inside_pmt_in_wall_ring_gerda = np.array([4, 5])
             zpos = -950.0
-            dphi_c = 0.0
+
+            empty_spaces = np.array([])
+            broken_but_inside = np.array([4, 5])
         elif i == 2:
             # PMT row (5 m)
             n_pmt_per_ring = 10
             dphi = 2.0 * np.pi / n_pmt_per_ring
-            no_pmt_in_wall_ring = np.array([])
-            broken_but_inside_pmt_in_wall_ring_gerda = np.array([0, 3])
             zpos = 550.0
-            # zpos=-2450.0
-            dphi_c = dphi * 0.5
+
+            empty_spaces = np.array([])
+            broken_but_inside = np.array([0, 3])
         elif i == 3:
             # PMT row (6.5 m)
             n_pmt_per_ring = 10
             dphi = 2.0 * np.pi / n_pmt_per_ring
-            no_pmt_in_wall_ring = np.array([0, 2, 3, 4, 5, 6, 7, 8, 9])
             zpos = 2050.0
-            dphi_c = 0.0
+            empty_spaces = np.array([0, 2, 3, 4, 5, 6, 7, 8, 9])
+            broken_but_inside = np.array([])
         elif i == 4:
             # Pillbox wall mounted PMTs
-            no_pmt_in_wall_ring = np.array([])
-            broken_but_inside_pmt_in_wall_ring_gerda = np.array([])
+            empty_spaces = np.array([])
+            broken_but_inside = np.array([])
             n_pmt_per_ring = 6
             r_pos = (
                 shielding_foot_ir
@@ -946,14 +863,13 @@ def insert_pmts(
             )
             zpos = -(water_height / 2.0) + distancetobottom * 3
             dphi = 2 * np.pi / n_pmt_per_ring
-            dphi_c = dphi * 0.5
 
         x_rot_drehvol = 0
         y_rot_drehvol = np.pi / 2.0
 
         # placing of PMTs in ring
         for k in range(n_pmt_per_ring):
-            if k in no_pmt_in_wall_ring:
+            if k in empty_spaces:
                 continue
 
             dphi_c = dphi * k + 0.5 * dphi if i in (0, 2, 4) else dphi * k
@@ -978,112 +894,11 @@ def insert_pmts(
                 euler_angles = combined_rotation.as_euler("xyz", degrees=False)
             x_rot_global, y_rot_global, z_rot_global = euler_angles
 
-            if k in broken_but_inside_pmt_in_wall_ring_gerda:
-                if pmt_configuration == "LEGEND200":
-                    continue
-
-                namephotocathode_lv = f"gerda_pmt_cathode_lv_{num_pmts}"
-                namephotocathode = f"gerda_pmt_cathode_{num_pmts}"
-                namesteelcone = f"gerda_pmt_cone_{num_pmts}"
-                photocathode_lv = g4.LogicalVolume(photocathode, cathode_al, namephotocathode_lv, reg)
-
-                name_pmt_acryl_lv = f"gerda_pmt_acryl_lv_{num_pmts}"
-                name_pmt_acryl = f"gerda_pmt_acryl_{num_pmts}"
-                acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
-                g4.PhysicalVolume(
-                    [x_rot_global, y_rot_global, z_rot_global],
-                    [xpos, ypos, zpos],
-                    acryl_lv,
-                    name_pmt_acryl,
-                    water_lv,
-                    reg,
-                )
-
-                name_pmt_air_lv = f"gerda_pmt_air_lv_{num_pmts}"
-                name_pmt_air = f"gerda_pmt_air_{num_pmts}"
-                pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
-                g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
-
-                namesteelbottom = f"gerda_pmt_bottom_{num_pmts}"
-                gerda_pmt_borosilikat_lv_ = f"gerda_pmt_borosilikat_lv_{num_pmts}"
-                name_pmt_borosilikat = f"GERDA_PMTborosilikat_{num_pmts}"
-                borosilikat_lv = g4.LogicalVolume(
-                    pmt_borosilikat_glass, borosilicate_material, gerda_pmt_borosilikat_lv_, reg
-                )
-                g4.PhysicalVolume(
-                    [0, 0, 0],
-                    [0, 0, 0],
-                    borosilikat_lv,
-                    name_pmt_borosilikat,
-                    pmt_air_lv,
-                    reg,
-                )
-                g4.PhysicalVolume(
-                    [0, 0, 0], [0, 0, 0], photocathode_lv, namephotocathode, borosilikat_lv, reg
-                )
-            else:
-                namephotocathode_lv = f"pmt_cathode_lv_{pmt_id[working_pmts]}"
-                namephotocathode = f"pmt_cathode_{pmt_id[working_pmts]}"
-                namesteelcone = f"pmt_cone_{pmt_id[working_pmts]}"
-                namesteelbottom = f"pmt_bottom_{pmt_id[working_pmts]}"
-                photocathode_lv = g4.LogicalVolume(photocathode, cathode_al, namephotocathode_lv, reg)
-                photocathode_lv.pygeom_color_rgba = [0.545, 0.271, 0.074, 1]
-
-                name_pmt_acryl_lv = f"pmt_acryl_lv_{pmt_id[working_pmts]}"
-                name_pmt_acryl = f"pmt_acryl_{pmt_id[working_pmts]}"
-                acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
-                g4.PhysicalVolume(
-                    [x_rot_global, y_rot_global, z_rot_global],
-                    [xpos, ypos, zpos],
-                    acryl_lv,
-                    name_pmt_acryl,
-                    water_lv,
-                    reg,
-                )
-
-                name_pmt_air_lv = f"pmt_air_lv_{pmt_id[working_pmts]}"
-                name_pmt_air = f"pmt_air_{pmt_id[working_pmts]}"
-                pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
-                g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
-
-                name_pmt_borosilikat_lv = f"pmt_borosilikat_lv_{pmt_id[working_pmts]}"
-                name_pmt_borosilikat = f"pmt_borosilikat_{pmt_id[working_pmts]}"
-                borosilikat_lv = g4.LogicalVolume(
-                    pmt_borosilikat_glass, borosilicate_material, name_pmt_borosilikat_lv, reg
-                )
-                borosilikat_lv.pygeom_color_rgba = [0.9, 0.8, 0.5, 0.5]
-                g4.PhysicalVolume(
-                    [0, 0, 0],
-                    [0, 0, 0],
-                    borosilikat_lv,
-                    name_pmt_borosilikat,
-                    pmt_air_lv,
-                    reg,
-                )
-                g4.PhysicalVolume(
-                    [0, 0, 0], [0, 0, 0], photocathode_lv, namephotocathode, borosilikat_lv, reg
-                )
-                g4.SkinSurface(
-                    f"pmt_cathode_skin_surface{pmt_id[working_pmts]}",
-                    photocathode_lv,
-                    optical_pmt_surface,
-                    reg,
-                )
-                working_pmts += 1
-
-            # PMT cone
+            # PMT cone position
             xpos_cone = (r_pos + pmt_steel_cone_height * 0.25) * np.cos(dphi_c)
             ypos_cone = (r_pos + pmt_steel_cone_height * 0.25) * np.sin(dphi_c)
-            pyg4.geant4.PhysicalVolume(
-                [x_rot_global, y_rot_global, z_rot_global],
-                [xpos_cone, ypos_cone, zpos],
-                pmt_steel_cone_lv,
-                namesteelcone,
-                water_lv,
-                reg,
-            )
 
-            # PMT bottom
+            # PMT bottom position
             xpos_bottom = (r_pos + pmt_steel_cone_height * 0.5 + pmt_steel_bottom_height * 0.5) * np.cos(
                 dphi_c
             )
@@ -1091,16 +906,22 @@ def insert_pmts(
                 dphi_c
             )
 
-            pyg4.geant4.PhysicalVolume(
-                [x_rot_global, y_rot_global, z_rot_global],
-                [xpos_bottom, ypos_bottom, zpos],
-                pmt_steel_bottom_lv,
-                namesteelbottom,
-                water_lv,
-                reg,
+            build_pmt(
+                k in broken_but_inside,
+                index=num_pmts if k in broken_but_inside else working_pmts,
+                xpos=xpos,
+                ypos=ypos,
+                zpos=zpos,
+                xpos_cone=xpos_cone,
+                ypos_cone=ypos_cone,
+                xpos_bottom=xpos_bottom,
+                ypos_bottom=ypos_bottom,
+                x_rot=x_rot_global,
+                y_rot=y_rot_global,
+                z_rot=z_rot_global,
             )
 
-            dphi_c += dphi
+            working_pmts += 0 if k in broken_but_inside else 1
             num_pmts += 1
 
 
