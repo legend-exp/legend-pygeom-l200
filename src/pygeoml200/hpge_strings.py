@@ -47,7 +47,7 @@ def place_hpge_strings(hpge_metadata: TextDB, b: core.InstrumentationData) -> No
 
         log.debug("Building %s", hpge_meta.name)
 
-        hpge = make_hpge(full_meta, b.registry)
+        hpge = make_hpge(full_meta, b.registry, b.runtime_config.get("allow_cylindrical_asymmetry", True))
         strings_to_build[hpge_string_id][hpge_unit_id_in_string] = HPGeDetUnit(
             hpge_meta.name,
             hpge_meta.production.manufacturer,
