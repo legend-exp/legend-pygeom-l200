@@ -518,15 +518,15 @@ def _place_hpge_string(
         _add_nms_surfaces(nms_pv, b.mother_pv, b.materials, b.registry)
 
     support, tristar = _get_support_structure(string_slots[1].baseplate, b)
-    if support is not None:
-        geant4.PhysicalVolume(
-            [0, 0, np.deg2rad(30) + string_rot],
-            [x_pos, y_pos, z0_string + 12],  # this offset of 12 is measured from the CAD file.
-            support,
-            f"hpge_string_support_hanger_copper_string{string_id}",
-            b.mother_lv,
-            b.registry,
-        )
+    # if support is not None:
+    #    geant4.PhysicalVolume(
+    #        [0, 0, np.deg2rad(30) + string_rot],
+    #        [x_pos, y_pos, z0_string + 12],  # this offset of 12 is measured from the CAD file.
+    #        support,
+    #        f"hpge_string_support_hanger_copper_string{string_id}",
+    #        b.mother_lv,
+    #        b.registry,
+    #    )
     if tristar is not None:
         geant4.PhysicalVolume(
             [0, 0, string_rot],
@@ -581,15 +581,15 @@ def _place_empty_string(string_id: int, b: core.InstrumentationData):
     else:
         support_lv = b.registry.logicalVolumeDict["hpge_string_support_hanger_copper_short"]
 
-    if support_lv is not None:
-        geant4.PhysicalVolume(
-            [0, 0, np.deg2rad(30) + string_rot],
-            [x_pos, y_pos, z0_string],
-            support_lv,
-            f"hpge_string_support_hanger_copper_string{string_id}",
-            b.mother_lv,
-            b.registry,
-        )
+    # if support_lv is not None:
+    #    geant4.PhysicalVolume(
+    #        [0, 0, np.deg2rad(30) + string_rot],
+    #        [x_pos, y_pos, z0_string],
+    #        support_lv,
+    #        f"hpge_string_support_hanger_copper_string{string_id}",
+    #        b.mother_lv,
+    #        b.registry,
+    #    )
 
     # add the optional steel counterweight to the empty string.
     string_content = string_meta.get("empty_string_content", [])
