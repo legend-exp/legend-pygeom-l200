@@ -30,6 +30,10 @@ pmt_config: LEGEND200 # or "GERDA"
 
 # If true, build from public testdata only.
 public_geom: false
+
+# if false, replace all asymmetric HPGe detectors with symmetric variants.
+# this might be necessary to have better post-processing support.
+allow_cylindrical_asymmetry: false
 ```
 
 ## Assemblies
