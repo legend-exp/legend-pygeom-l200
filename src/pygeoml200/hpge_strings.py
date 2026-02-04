@@ -454,12 +454,15 @@ def _place_hpge_string(
             "id": string_id,
         }
     )
+    x_pos_glob = x_pos
+    y_pos_glob = y_pos
 
     # offset the height of the string by the length of the string support rod.
     # z0_string is the upper z coordinate of the topmost detector unit.
     # TODO: real measurements (slides of M. Bush on 2024-07-08) show an additional offset -0.6 mm.
     # TODO: this is also still a warm length.
     z0_string = b.top_plate_z_pos - 410.1 - 12  # from CAD model.
+    z0_string_glob = z0_string
 
     # calculate the total copper rod length.
     # deliberately use max and range here. The code does not support sparse strings (i.e. with
@@ -477,6 +480,53 @@ def _place_hpge_string(
 
     mother_lv = b.mother_lv
     mother_pv = b.mother_pv
+    if b.runtime_config.get("segmented_lar", True) and string_meta.minishroud_radius_in_mm is not None:
+        lar_segment_name = f"liquid_argon_segment_string{string_id}"
+        extra_length = 10
+        minishroud_length = (
+            MINISHROUD_LENGTH[0] + string_meta.get("minishroud_delta_length_in_mm", 0) + extra_length
+        )
+        lar_segment_length = minishroud_length
+        lar_segment = geant4.solid.Tubs(
+            lar_segment_name,
+            0,
+            string_meta.minishroud_radius_in_mm + 2,
+            lar_segment_length,
+            0,
+            math.pi * 2,
+            b.registry,
+            "mm",
+        )
+        mother_lv = geant4.LogicalVolume(lar_segment, b.materials.liquidargon, lar_segment_name, b.registry)
+        mother_lv.pygeom_color_rgba = (1, 0, 0, 0.2)
+        z_segment = (
+            z0_string
+            - copper_rod_length_from_z0
+            + minishroud_length / 2
+            - extra_length / 2
+            - MINISHROUD_END_THICKNESS
+            - 0.1
+        )
+        mother_pv = geant4.PhysicalVolume(
+            [0, 0, 0],
+            [x_pos, y_pos, z_segment],
+            mother_lv,
+            lar_segment_name,
+            b.mother_lv,
+            b.registry,
+        )
+
+        x_pos = 0
+        y_pos = 0
+        string_info.x = 0
+        string_info.y = 0
+        z0_string = -(
+            -copper_rod_length_from_z0
+            + minishroud_length / 2
+            - extra_length / 2
+            - MINISHROUD_END_THICKNESS
+            - 0.1
+        )
 
     rod_length_placement = 0
     for hpge_unit_id_in_string in range(1, max_unit_id + 1):
@@ -532,7 +582,7 @@ def _place_hpge_string(
     # if support is not None:
     #    geant4.PhysicalVolume(
     #        [0, 0, np.deg2rad(30) + string_rot],
-    #        [x_pos, y_pos, z0_string + 12],  # this offset of 12 is measured from the CAD file.
+    #        [x_pos_glob, y_pos_glob, z0_string_glob + 12],  # this offset of 12 is measured from the CAD file.
     #        support,
     #        f"hpge_string_support_hanger_copper_string{string_id}",
     #        b.mother_lv,
