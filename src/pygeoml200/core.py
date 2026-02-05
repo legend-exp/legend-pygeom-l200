@@ -186,10 +186,11 @@ def _assign_common_copper_surface(b: InstrumentationData) -> None:
 
     surf = None
     cu_mat = b.materials.metal_copper
+    lar_mat = b.materials.liquidargon
 
     for _, pv in b.registry.physicalVolumeDict.items():
         if (
-            pv.motherVolume != b.mother_lv
+            pv.motherVolume.material != lar_mat
             or not hasattr(pv.logicalVolume, "material")
             or pv.logicalVolume.material != cu_mat
         ):
@@ -199,11 +200,15 @@ def _assign_common_copper_surface(b: InstrumentationData) -> None:
         if surf is None:
             surf = b.materials.surfaces.to_copper
 
-        # check that we do not have another surface already at this boundary.
-        if any(
-            isinstance(s, geant4.BorderSurface) and b.mother_pv == s.physref1 and pv == s.physref2
-            for s in b.registry.surfaceDict.values()
-        ):
-            continue
+        for mother_pv in b.registry.physicalVolumeDict.values():
+            if mother_pv.logicalVolume != pv.motherVolume:
+                continue
 
-        geant4.BorderSurface("bsurface_lar_cu_" + pv.name, b.mother_pv, pv, surf, b.registry)
+            # check that we do not have another surface already at this boundary.
+            if any(
+                isinstance(s, geant4.BorderSurface) and mother_pv == s.physref1 and pv == s.physref2
+                for s in b.registry.surfaceDict.values()
+            ):
+                continue
+
+            geant4.BorderSurface("bsurface_lar_cu_" + pv.name, mother_pv, pv, surf, b.registry)
