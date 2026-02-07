@@ -46,7 +46,7 @@ these are given physical volume names of the **detector name** (i.e. `V99000A`).
 The center shows the detector holder structure. This is divided into several
 parts:
 
-- the pen baseplates for each detector, with physical volume names
+- the PEN baseplates for each detector, with physical volume names
   `hpge_assembly_plate_pen_{NAME}` where `{NAME}` is the detector name.
 - for some detectors there are also top pen rings named
   `hpge_assembly_top_ring_pen_{NAME}`,
@@ -60,6 +60,8 @@ parts:
   names are prefixed with `hpge_assembly_[washer,spring]_[signal,hv]_phbr_`.
 - the copper pins connecting the receptacles to the PEN plates are prefixed with
   `hpge_assembly_clamp_[signal,hv]_pin_copper_`.
+- the LMFE (low-mass front-end) are implemented as a simplified box and prefixed
+  with `hpge_assembly_lmfe_`.
 - cables are implemented in a very simplified manner; their volume names are
   prefixed with `hpge_cable_[signal,hv]_`.
 - nylon minishrouds surrounding each string named
