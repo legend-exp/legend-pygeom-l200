@@ -211,7 +211,6 @@ class OpticalSurfaceRegistry:
         )
 
         pygeomoptics.pmts.pyg4_pmt_attach_steel_reflectivity(_to_pmt_steel, self.g4_registry)
-        pygeomoptics.pmts.pyg4_pmt_attach_steel_efficiency(_to_pmt_steel, self.g4_registry)
 
         return _to_pmt_steel
 
