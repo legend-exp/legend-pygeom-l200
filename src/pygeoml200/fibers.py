@@ -93,6 +93,16 @@ def place_fiber_modules(
         barrel="inner",
     )
 
+    ib_lv, ib_pv = HullFactory(ib_factory).create_segment()
+    ib_factory.mother_lv = ib_lv
+    ib_factory.mother_pv = ib_pv
+    ib_factory.z_displacement = ib_fiber_length_mm / 2
+
+    ob_lv, ob_pv = HullFactory(ob_factory).create_segment()
+    ob_factory.mother_lv = ob_lv
+    ob_factory.mother_pv = ob_pv
+    ob_factory.z_displacement = ob_factory.fiber_length + ob_factory.bend_radius_mm
+
     for mod in modules.values():
         if mod.barrel == "outer":
             ob_factory.create_module(mod)
@@ -100,9 +110,9 @@ def place_fiber_modules(
             ib_factory.create_module(mod)
 
     if any(mod.barrel == "outer" for mod in modules.values()):
-        create_fiber_support_outer(b, b.top_plate_z_pos - 730)
+        create_fiber_support_outer(b, 730 + 60 - 1, ob_lv)
     if any(mod.barrel == "inner" for mod in modules.values()):
-        create_fiber_support_inner(b, b.top_plate_z_pos - 730 - ib_delta_z)
+        create_fiber_support_inner(b, 0, ib_lv)
 
 
 def _module_name_to_num(mod_name: str) -> int:
@@ -188,6 +198,8 @@ class ModuleFactoryBase(ABC):
         self.z_displacement = z_displacement_mm
         self.barrel = barrel
         self.b = b
+        self.mother_lv = b.mother_lv
+        self.mother_pv = b.mother_pv
 
     def _cached_sipm_volumes(self) -> None:
         """Creates (dummy) SiPM volumes for use at the top/bottom of straight fiber sections."""
@@ -306,14 +318,14 @@ class ModuleFactoryBase(ABC):
             [0, 0, z],
             self.sipm_lv,
             sipm_name,
-            self.b.mother_lv,
+            self.mother_lv,
             self.b.registry,
         )
         sipm_pv.set_pygeom_active_detector(RemageDetectorInfo("optical", sipm_detector_id))
         # Add border surface to mother volume.
         g4.BorderSurface(
             f"bsurface_lar_{sipm_name}",
-            self.b.mother_pv,
+            self.mother_pv,
             sipm_pv,
             self.b.materials.surfaces.to_sipm_silicon(
                 self.b.runtime_config,
@@ -327,7 +339,7 @@ class ModuleFactoryBase(ABC):
             [0, 0, z_outer],
             self.sipm_outer_top_lv if is_top else self.sipm_outer_bottom_lv,
             f"larinstr_sipm_wrap_tetratex_{sipm_name}",
-            self.b.mother_lv,
+            self.mother_lv,
             self.b.registry,
         )
 
@@ -336,7 +348,7 @@ class ModuleFactoryBase(ABC):
         for tpb_pv in fiber_pvs:
             g4.BorderSurface(
                 "bsurface_lar_tpb_" + tpb_pv.name,
-                self.b.mother_pv,
+                self.mother_pv,
                 tpb_pv,
                 self.b.materials.surfaces.lar_to_tpb,
                 self.b.registry,
@@ -344,7 +356,7 @@ class ModuleFactoryBase(ABC):
             g4.BorderSurface(
                 "bsurface_tpb_lar_" + tpb_pv.name,
                 tpb_pv,
-                self.b.mother_pv,
+                self.mother_pv,
                 self.b.materials.surfaces.lar_to_tpb,
                 self.b.registry,
             )
@@ -669,7 +681,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                     [x, y, z_displacement_straight - delta_length / 2],
                     coating_lv,
                     f"{name_prefix}_{n}",
-                    self.b.mother_lv,
+                    self.mother_lv,
                     self.b.registry,
                 )
             )
@@ -683,7 +695,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                         [x2, y2, z_displacement_straight - self.fiber_length / 2 - delta_length],
                         coating_lv_bend,
                         f"{name_prefix}_bend_{n}",
-                        self.b.mother_lv,
+                        self.mother_lv,
                         self.b.registry,
                     )
                 )
@@ -699,7 +711,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                     [x2, y2, z],
                     sipm_lv_bend,
                     f"{mod.channel_bottom_name}_{sipm_ben_pv_idx}",
-                    self.b.mother_lv,
+                    self.mother_lv,
                     self.b.registry,
                 )
                 sipm_ben_pv_idx += 1
@@ -715,7 +727,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                 # Add border surface to mother volume.
                 g4.BorderSurface(
                     f"bsurface_lar_{sipm_pv.name}",
-                    self.b.mother_pv,
+                    self.mother_pv,
                     sipm_pv,
                     surface_bend,
                     self.b.registry,
@@ -735,7 +747,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                     [x2, y2, z],
                     self.sipm_outer_bottom_lv_bend,
                     f"larinstr_sipm_wrap_tetratex_{mod.channel_bottom_name}_{n}",
-                    self.b.mother_lv,
+                    self.mother_lv,
                     self.b.registry,
                 )
 
@@ -1036,7 +1048,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
                 [0, 0, z_displacement_straight],
                 coating_lv,
                 f"fiber_{self.barrel}_barrel_coating_tpb_{mod.name}",
-                self.b.mother_lv,
+                self.mother_lv,
                 self.b.registry,
             )
         )
@@ -1047,7 +1059,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
                     [0, 0, z_displacement_straight - self.fiber_length / 2 - self.bend_radius_mm],
                     coating_lv_bend,
                     f"fiber_{self.barrel}_barrel_coating_tpb_{mod.name}_bend",
-                    self.b.mother_lv,
+                    self.mother_lv,
                     self.b.registry,
                 )
             )
@@ -1079,14 +1091,14 @@ class ModuleFactorySegment(ModuleFactoryBase):
                 [0, 0, z],
                 self.sipm_lv_bend,
                 mod.channel_bottom_name,
-                self.b.mother_lv,
+                self.mother_lv,
                 self.b.registry,
             )
             sipm_pv.set_pygeom_active_detector(RemageDetectorInfo("optical", mod.channel_bottom_rawid))
             # Add border surface to mother volume.
             g4.BorderSurface(
                 f"bsurface_lar_{mod.channel_bottom_name}",
-                self.b.mother_pv,
+                self.mother_pv,
                 sipm_pv,
                 self.b.materials.surfaces.to_sipm_silicon(
                     self.b.runtime_config,
@@ -1100,12 +1112,112 @@ class ModuleFactorySegment(ModuleFactoryBase):
                 [0, 0, z],
                 self.sipm_outer_bottom_lv_bend,
                 f"larinstr_sipm_wrap_tetratex_{mod.channel_bottom_name}",
-                self.b.mother_lv,
+                self.mother_lv,
                 self.b.registry,
             )
 
 
-def create_fiber_support_inner(b: core.InstrumentationData, z_pos: float) -> g4.LogicalVolume:
+class HullFactory:
+    def __init__(self, fib_factory: ModuleFactoryBase):
+        """
+        Create a fiber hull factory.
+
+        Parameters
+        ----------
+        radius_mm
+            radius of the fiber barrel
+        fiber_length_mm
+            length of the straight section of this fiber module
+        bend_radius_mm
+            radius of the bottom bend, or None if the fibers are not bent at the bottom end.
+        z_displacement_mm
+            displacement of the top of the fiber barrel, relative to the global zero point.
+        barrel
+            barrel name
+        """
+        self.radius = fib_factory.radius
+        self.fiber_length = fib_factory.fiber_length
+        self.bend_radius_mm = fib_factory.bend_radius_mm
+        self.z_displacement = fib_factory.z_displacement
+        self.barrel = fib_factory.barrel
+        self.b = fib_factory.b
+
+        self.dim_in = 17  # mm
+        self.dim_out = 50  # mm
+
+    def _get_bend_polycone(
+        self, inner_r: float, outer_r: float
+    ) -> tuple[np.typing.ArrayLike, np.typing.ArrayLike]:
+        """In the segmented model, there is no fundamental shape for the fiber bent available, so we
+        use a polycone as a replacement.
+        """
+        delta_r_mm = (outer_r - inner_r) / 2
+        bend_r_outer = self.bend_radius_mm + delta_r_mm
+        bend_r_inner = self.bend_radius_mm - delta_r_mm
+
+        angles = np.linspace(0, np.pi / 2, 100)
+        z1 = bend_r_outer * np.sin(angles)
+        r1 = bend_r_outer * np.cos(angles)
+        z2 = bend_r_inner * np.sin(angles)
+        r2 = bend_r_inner * np.cos(angles)
+
+        z = self.bend_radius_mm - np.concatenate((z1, [z1[-1], z2[-1]], np.flip(z2)))
+        # offset by the radius at the inner end of the bend.
+        r = (outer_r - bend_r_outer) + np.concatenate((r1, 2 * [-outer_r + bend_r_outer], np.flip(r2)))
+
+        z_top = z[0] + self.fiber_length + self.dim_in / 2
+        z = np.array([z_top, *z, z_top])
+        r = np.array([self.radius + self.dim_out / 2, *r, self.radius - self.dim_in / 2])
+
+        return z, r
+
+    def _cached_tpb_coating_volume(self, name: str) -> g4.LogicalVolume:
+        if name in self.b.registry.solidDict:
+            return self.b.registry.logicalVolumeDict[name]
+
+        if self.bend_radius_mm is not None and True:
+            z, r = self._get_bend_polycone(self.radius - self.dim_in / 2, self.radius + self.dim_out / 2)
+            coating = g4.solid.GenericPolycone(f"{name}_bend", 0, 2 * np.pi, r, z, self.b.registry, "mm")
+        else:
+            coating = g4.solid.Tubs(
+                name,
+                self.radius - self.dim_in / 2,
+                self.radius + self.dim_out / 2,
+                self.fiber_length + self.dim_in,
+                0,
+                2 * math.pi,
+                self.b.registry,
+                "mm",
+            )
+
+        coating_lv = g4.LogicalVolume(coating, self.b.materials.tpb_on_fibers, name, self.b.registry)
+        coating_lv.pygeom_color_rgba = [1, 0, 0, 0.2]
+
+        return coating_lv
+
+    def create_segment(self) -> tuple[g4.LogicalVolume, g4.PhysicalVolume]:
+        name = f"liquid_argon_segment_fibers_{self.barrel}"
+
+        lv = self._cached_tpb_coating_volume(name)
+
+        z_displacement = self.z_displacement - self.fiber_length / 2
+        if self.bend_radius_mm is not None:
+            z_displacement += -self.fiber_length / 2 - self.bend_radius_mm
+
+        pv = g4.PhysicalVolume(
+            [0, 0, 0],
+            [0, 0, z_displacement],
+            lv,
+            name,
+            self.b.mother_lv,
+            self.b.registry,
+        )
+        return lv, pv
+
+
+def create_fiber_support_inner(
+    b: core.InstrumentationData, z_pos: float, mother_lv: g4.LogicalVolume
+) -> g4.LogicalVolume:
     inner_radius = 127.5  # mm, from CAD model.
     outer_radius = inner_radius + 6.5  # mm
     ring_thickness = 3  # mm
@@ -1157,12 +1269,14 @@ def create_fiber_support_inner(b: core.InstrumentationData, z_pos: float) -> g4.
             np.array([0, 0, z_pos]) + np.array(tra[1]),
             vol_lv,
             f"larinstr_support_inner_copper_{idx}",
-            b.mother_lv,
+            mother_lv,
             b.registry,
         )
 
 
-def create_fiber_support_outer(b: core.InstrumentationData, z_pos: float) -> g4.LogicalVolume:
+def create_fiber_support_outer(
+    b: core.InstrumentationData, z_pos: float, mother_lv: g4.LogicalVolume
+) -> g4.LogicalVolume:
     vols = []
     tras = []
 
@@ -1251,6 +1365,6 @@ def create_fiber_support_outer(b: core.InstrumentationData, z_pos: float) -> g4.
             np.array([0, 0, z_pos]) + np.array(tra[1]),
             vol_lv,
             f"larinstr_support_outer_copper_{idx}",
-            b.mother_lv,
+            mother_lv,
             b.registry,
         )

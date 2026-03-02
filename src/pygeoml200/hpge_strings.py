@@ -98,6 +98,7 @@ def _place_front_end_and_insulators(
     det_unit: HPGeDetUnit,
     string_info: AttrsDict,
     b: core.InstrumentationData,
+    mother_lv: geant4.LogicalVolume,
     z_pos: dict,
     thickness: dict,
     parts_origin: dict,
@@ -128,7 +129,7 @@ def _place_front_end_and_insulators(
         [x_cable, y_cable, z_pos["clamp"]],
         signal_cable,
         f"hpge_cable_signal_{det_unit.name}",
-        b.mother_lv,
+        mother_lv,
         b.registry,
     )
     geant4.PhysicalVolume(
@@ -136,7 +137,7 @@ def _place_front_end_and_insulators(
         [x_clamp, y_clamp, z_pos["clamp"]],
         signal_clamp,
         f"hpge_assembly_clamp_signal_ultem_{det_unit.name}",
-        b.mother_lv,
+        mother_lv,
         b.registry,
     )
     geant4.PhysicalVolume(
@@ -144,7 +145,7 @@ def _place_front_end_and_insulators(
         [x_lmfe, y_lmfe, z_pos["clamp"]],
         signal_lmfe,
         f"hpge_assembly_lmfe_{det_unit.name}",
-        b.mother_lv,
+        mother_lv,
         b.registry,
     )
     geant4.PhysicalVolume(
@@ -152,7 +153,7 @@ def _place_front_end_and_insulators(
         [x_spring, y_spring, z_pos["clamp"]],
         phbr_spring,
         f"hpge_assembly_spring_signal_phbr_{det_unit.name}",
-        b.mother_lv,
+        mother_lv,
         b.registry,
     )
 
@@ -168,7 +169,7 @@ def _place_front_end_and_insulators(
                 [x_hole, y_hole, z_clamp + z_sign * thickness["pen"] / 2 - z_sign * pin_outside / 2],
                 cu_pin,
                 f"hpge_assembly_clamp_{name}_pin_copper_{det_unit.name}_{hole_idx}",
-                b.mother_lv,
+                mother_lv,
                 b.registry,
             )
             delta_z_washer = (thickness["clamp"] + thickness["washer"]) / 2 + thickness["safety"]
@@ -177,7 +178,7 @@ def _place_front_end_and_insulators(
                 [x_hole, y_hole, z_clamp - z_sign * delta_z_washer],
                 phbr_washer,
                 f"hpge_assembly_washer_{name}_phbr_{det_unit.name}_{hole_idx}",
-                b.mother_lv,
+                mother_lv,
                 b.registry,
             )
 
@@ -214,7 +215,7 @@ def _place_front_end_and_insulators(
         [x_cable, y_cable, hv_z_pos],
         hv_cable,
         f"hpge_cable_hv_{det_unit.name}",
-        b.mother_lv,
+        mother_lv,
         b.registry,
     )
     geant4.PhysicalVolume(
@@ -222,7 +223,7 @@ def _place_front_end_and_insulators(
         [x_clamp, y_clamp, hv_z_pos],
         hv_clamp,
         f"hpge_assembly_clamp_hv_ultem_{det_unit.name}",
-        b.mother_lv,
+        mother_lv,
         b.registry,
     )
     geant4.PhysicalVolume(
@@ -230,7 +231,7 @@ def _place_front_end_and_insulators(
         [x_spring, y_spring, hv_z_pos],
         phbr_spring,
         f"hpge_assembly_spring_hv_phbr{det_unit.name}",
-        b.mother_lv,
+        mother_lv,
         b.registry,
     )
 
@@ -266,7 +267,7 @@ def _place_front_end_and_insulators(
             ],
             weldment,
             f"hpge_string_support_weldment_copper_string{string_info.id}_{det_unit.name}_{i}",
-            b.mother_lv,
+            mother_lv,
             b.registry,
         )
         geant4.PhysicalVolume(
@@ -278,7 +279,7 @@ def _place_front_end_and_insulators(
             ],
             insulator,
             f"hpge_assembly_insulator_ultem_{det_unit.name}_{i}",
-            b.mother_lv,
+            mother_lv,
             b.registry,
         )
         if det_unit.has_top_insulators:
@@ -293,7 +294,7 @@ def _place_front_end_and_insulators(
                 ],
                 insulator,
                 f"hpge_assembly_insulator_ultem_{det_unit.name}_{i + 3}",
-                b.mother_lv,
+                mother_lv,
                 b.registry,
             )
 
@@ -344,6 +345,8 @@ def _place_hpge_unit(
     det_unit: HPGeDetUnit,
     string_info: AttrsDict,
     b: core.InstrumentationData,
+    mother_lv: geant4.LogicalVolume,
+    mother_pv: geant4.PhysicalVolume,
 ):
     thicknesses, z_pos = _hpge_unit_get_z(z_unit_bottom, det_unit)
 
@@ -352,7 +355,7 @@ def _place_hpge_unit(
         [string_info.x, string_info.y, z_pos["det"]],
         det_unit.lv,
         det_unit.name,
-        b.mother_lv,
+        mother_lv,
         b.registry,
     )
     det_pv.pygeom_active_detector = RemageDetectorInfo("germanium", det_unit.rawid, det_unit.meta)
@@ -361,7 +364,7 @@ def _place_hpge_unit(
     # add germanium reflective surface.
     geant4.BorderSurface(
         "bsurface_lar_ge_" + det_pv.name,
-        b.mother_pv,
+        mother_pv,
         det_pv,
         b.materials.surfaces.to_germanium,
         b.registry,
@@ -388,10 +391,10 @@ def _place_hpge_unit(
             [string_info.x, string_info.y, z_pos["pen"]],
             pen_plate,
             f"hpge_assembly_plate_pen_{det_unit.name}",
-            b.mother_lv,
+            mother_lv,
             b.registry,
         )
-        _add_pen_surfaces(pen_pv, b.mother_pv, b.materials, b.registry)
+        _add_pen_surfaces(pen_pv, mother_pv, b.materials, b.registry)
 
     # (Majorana) PPC detectors have a top PEN ring.
     if det_unit.name.startswith("P"):
@@ -405,10 +408,10 @@ def _place_hpge_unit(
                 [string_info.x, string_info.y, z_pos["pen_top"]],
                 pen_plate,
                 f"hpge_assembly_top_ring_pen_{det_unit.name}",
-                b.mother_lv,
+                mother_lv,
                 b.registry,
             )
-            _add_pen_surfaces(pen_pv, b.mother_pv, b.materials, b.registry)
+            _add_pen_surfaces(pen_pv, mother_pv, b.materials, b.registry)
 
     # positions from center of detector to center of volume center
     # note for finding these values: the holes of the HV receptacle have 3 mm distance to the side,
@@ -420,7 +423,7 @@ def _place_hpge_unit(
     elif det_unit.baseplate == "xlarge":
         fe_ins_origins = {"signal": 17.3, "hv": 40.35}
 
-    _place_front_end_and_insulators(det_unit, string_info, b, z_pos, thicknesses, fe_ins_origins)
+    _place_front_end_and_insulators(det_unit, string_info, b, mother_lv, z_pos, thicknesses, fe_ins_origins)
 
 
 def _place_hpge_string(
@@ -451,30 +454,88 @@ def _place_hpge_string(
             "id": string_id,
         }
     )
+    x_pos_glob = x_pos
+    y_pos_glob = y_pos
 
     # offset the height of the string by the length of the string support rod.
     # z0_string is the upper z coordinate of the topmost detector unit.
     # TODO: real measurements (slides of M. Bush on 2024-07-08) show an additional offset -0.6 mm.
     # TODO: this is also still a warm length.
     z0_string = b.top_plate_z_pos - 410.1 - 12  # from CAD model.
+    z0_string_glob = z0_string
 
+    # calculate the total copper rod length.
     # deliberately use max and range here. The code does not support sparse strings (i.e. with
     # unpopulated slots, that are _not_ at the end. In those cases it should produce a KeyError.
     max_unit_id = max(string_slots.keys())
     total_rod_length = 0
     for hpge_unit_id_in_string in range(1, max_unit_id + 1):
-        det_unit = string_slots[hpge_unit_id_in_string]
-
-        total_rod_length += det_unit.rodlength_cold
-        z_unit_bottom = z0_string - total_rod_length
-
-        _place_hpge_unit(z_unit_bottom, det_unit, string_info, b)
+        total_rod_length += string_slots[hpge_unit_id_in_string].rodlength_cold
 
     # the copper rod is slightly longer after the last detector (estimate from CAD model, probably does
     # not match reality).
     copper_rod_length_from_z0 = total_rod_length + 3.5
     copper_rod_length = copper_rod_length_from_z0 + 12
     copper_rod_r = string_meta.rod_radius_in_mm
+
+    mother_lv = b.mother_lv
+    mother_pv = b.mother_pv
+    if b.runtime_config.get("segmented_lar", True) and string_meta.minishroud_radius_in_mm is not None:
+        lar_segment_name = f"liquid_argon_segment_string{string_id}"
+        extra_length = 10
+        minishroud_length = (
+            MINISHROUD_LENGTH[0] + string_meta.get("minishroud_delta_length_in_mm", 0) + extra_length
+        )
+        lar_segment_length = minishroud_length
+        lar_segment = geant4.solid.Tubs(
+            lar_segment_name,
+            0,
+            string_meta.minishroud_radius_in_mm + 2,
+            lar_segment_length,
+            0,
+            math.pi * 2,
+            b.registry,
+            "mm",
+        )
+        mother_lv = geant4.LogicalVolume(lar_segment, b.materials.liquidargon, lar_segment_name, b.registry)
+        mother_lv.pygeom_color_rgba = (1, 0, 0, 0.2)
+        z_segment = (
+            z0_string
+            - copper_rod_length_from_z0
+            + minishroud_length / 2
+            - extra_length / 2
+            - MINISHROUD_END_THICKNESS
+            - 0.1
+        )
+        mother_pv = geant4.PhysicalVolume(
+            [0, 0, 0],
+            [x_pos, y_pos, z_segment],
+            mother_lv,
+            lar_segment_name,
+            b.mother_lv,
+            b.registry,
+        )
+
+        x_pos = 0
+        y_pos = 0
+        string_info.x = 0
+        string_info.y = 0
+        z0_string = -(
+            -copper_rod_length_from_z0
+            + minishroud_length / 2
+            - extra_length / 2
+            - MINISHROUD_END_THICKNESS
+            - 0.1
+        )
+
+    rod_length_placement = 0
+    for hpge_unit_id_in_string in range(1, max_unit_id + 1):
+        det_unit = string_slots[hpge_unit_id_in_string]
+
+        rod_length_placement += det_unit.rodlength_cold
+        z_unit_bottom = z0_string - rod_length_placement
+
+        _place_hpge_unit(z_unit_bottom, det_unit, string_info, b, mother_lv, mother_pv)
 
     if string_meta.minishroud_radius_in_mm is not None:
         minishroud_length = MINISHROUD_LENGTH[0] + string_meta.get("minishroud_delta_length_in_mm", 0)
@@ -494,10 +555,10 @@ def _place_hpge_string(
             [x_pos, y_pos, z_nms],
             nms,
             f"minishroud_tube_string{string_id}",
-            b.mother_lv,
+            mother_lv,
             b.registry,
         )
-        _add_nms_surfaces(nms_pv, b.mother_pv, b.materials, b.registry)
+        _add_nms_surfaces(nms_pv, mother_pv, b.materials, b.registry)
         nms_top = _get_nylon_mini_shroud(
             string_meta.minishroud_radius_in_mm - MINISHROUD_END_THICKNESS,
             MINISHROUD_LENGTH[1],
@@ -512,28 +573,28 @@ def _place_hpge_string(
             [x_pos, y_pos, z0_string + 15 + MINISHROUD_LENGTH[1] / 2],
             nms_top,
             f"minishroud_lid_string{string_id}",
-            b.mother_lv,
+            mother_lv,
             b.registry,
         )
-        _add_nms_surfaces(nms_pv, b.mother_pv, b.materials, b.registry)
+        _add_nms_surfaces(nms_pv, mother_pv, b.materials, b.registry)
 
     support, tristar = _get_support_structure(string_slots[1].baseplate, b)
-    if support is not None:
-        geant4.PhysicalVolume(
-            [0, 0, np.deg2rad(30) + string_rot],
-            [x_pos, y_pos, z0_string + 12],  # this offset of 12 is measured from the CAD file.
-            support,
-            f"hpge_string_support_hanger_copper_string{string_id}",
-            b.mother_lv,
-            b.registry,
-        )
+    # if support is not None:
+    #    geant4.PhysicalVolume(
+    #        [0, 0, np.deg2rad(30) + string_rot],
+    #        [x_pos_glob, y_pos_glob, z0_string_glob + 12],  # this offset of 12 is measured from the CAD file.
+    #        support,
+    #        f"hpge_string_support_hanger_copper_string{string_id}",
+    #        b.mother_lv,
+    #        b.registry,
+    #    )
     if tristar is not None:
         geant4.PhysicalVolume(
             [0, 0, string_rot],
             [x_pos, y_pos, z0_string + 12 - 1e-6],  # this offset of 12 is measured from the CAD file.
             tristar,
             f"hpge_string_support_tristar_copper_string{string_id}",
-            b.mother_lv,
+            mother_lv,
             b.registry,
         )
 
@@ -550,7 +611,7 @@ def _place_hpge_string(
             [x_pos + delta[0], y_pos + delta[1], z0_string + 12 - copper_rod_length / 2],
             copper_rod,
             f"hpge_string_support_rod_copper_string{string_id}_{i}",
-            b.mother_lv,
+            mother_lv,
             b.registry,
         )
 
@@ -581,15 +642,15 @@ def _place_empty_string(string_id: int, b: core.InstrumentationData):
     else:
         support_lv = b.registry.logicalVolumeDict["hpge_string_support_hanger_copper_short"]
 
-    if support_lv is not None:
-        geant4.PhysicalVolume(
-            [0, 0, np.deg2rad(30) + string_rot],
-            [x_pos, y_pos, z0_string],
-            support_lv,
-            f"hpge_string_support_hanger_copper_string{string_id}",
-            b.mother_lv,
-            b.registry,
-        )
+    # if support_lv is not None:
+    #    geant4.PhysicalVolume(
+    #        [0, 0, np.deg2rad(30) + string_rot],
+    #        [x_pos, y_pos, z0_string],
+    #        support_lv,
+    #        f"hpge_string_support_hanger_copper_string{string_id}",
+    #        b.mother_lv,
+    #        b.registry,
+    #    )
 
     # add the optional steel counterweight to the empty string.
     string_content = string_meta.get("empty_string_content", [])
