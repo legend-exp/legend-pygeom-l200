@@ -22,7 +22,7 @@ def place_hpge_strings(hpge_metadata: TextDB, b: core.InstrumentationData) -> No
     # derive the strings from the channelmap.
     mass_total = 0
     ch_map = b.channelmap.map("system", unique=False).get("geds", {}).values()
-    strings_to_build = {}
+    strings_to_build: dict[int, dict] = {}
 
     for ch_meta in ch_map:
         # ch_meta might be a full channelmap entry, i.e. containing the merged hardware meta from
@@ -425,7 +425,7 @@ def _place_hpge_unit(
 
 def _place_hpge_string(
     string_id: int,
-    string_slots: list,
+    string_slots: dict[int, AttrsDict],
     b: core.InstrumentationData,
 ):
     """Place a single HPGe detector string (with at least one detector).

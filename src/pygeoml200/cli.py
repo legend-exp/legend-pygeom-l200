@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import logging
-from collections.abc import Iterable
+from collections.abc import Collection
 from importlib import resources
 
 import jsonschema
@@ -220,7 +220,7 @@ def _parse_cli_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, 
     return args, config
 
 
-def _parse_assemblies(arg: str | Iterable[str] | None) -> set[str]:
+def _parse_assemblies(arg: str | Collection[str] | None) -> set[str]:
     """Parse an argument string into a set of assemblies to build the geometry for.
 
     Parameters

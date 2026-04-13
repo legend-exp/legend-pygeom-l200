@@ -28,7 +28,7 @@ def place_fiber_modules(
     """
     # Unroll the provided metadata into a structure better suited for the next steps.
     # The geometry here is based on physical modules and not on channels.
-    modules = {}
+    modules: dict[str, FiberModuleData] = {}
     ch_map = b.channelmap.map("system", unique=False).get("spms", {})
     for ch in ch_map.values():
         mod = modules.get(ch.location.fiber)
@@ -118,10 +118,10 @@ class FiberModuleData:
     barrel: str
     name: str
     tpb_thickness: float
-    channel_top_name: str | None = None
-    channel_bottom_name: str | None = None
-    channel_top_rawid: str | None = None
-    channel_bottom_rawid: str | None = None
+    channel_top_name: str = None  # type: ignore[assignment]
+    channel_bottom_name: str = None  # type: ignore[assignment]
+    channel_top_rawid: int = None  # type: ignore[assignment]
+    channel_bottom_rawid: int = None  # type: ignore[assignment]
 
 
 class ModuleFactoryBase(ABC):
@@ -179,12 +179,12 @@ class ModuleFactoryBase(ABC):
         barrel
             barrel name
         """
-        self.radius = radius_mm
-        self.fiber_length = fiber_length_mm
-        self.fiber_count_per_module = fiber_count_per_module
-        self.bend_radius_mm = bend_radius_mm
-        self.number_of_modules = number_of_modules
-        self.zero_angle_module = zero_angle_module
+        self.radius: float = radius_mm
+        self.fiber_length: float = fiber_length_mm
+        self.fiber_count_per_module: int = fiber_count_per_module
+        self.bend_radius_mm: float | None = bend_radius_mm
+        self.number_of_modules: int = number_of_modules
+        self.zero_angle_module: int = zero_angle_module
         self.z_displacement = z_displacement_mm
         self.barrel = barrel
         self.b = b
@@ -590,6 +590,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
             coating = g4.solid.Box(v_name, coating_dim, coating_dim, fiber_length, self.b.registry, "mm")
             inner_lv = self.fiber_cl2_lv[fiber_length]
         else:
+            assert self.bend_radius_mm is not None
             coating = g4.solid.Tubs(
                 v_name,
                 self.bend_radius_mm - coating_dim / 2,
@@ -768,6 +769,8 @@ class ModuleFactorySegment(ModuleFactoryBase):
         """In the segmented model, there is no fundamental shape for the fiber bent available, so we
         use a polycone as a replacement.
         """
+        assert self.bend_radius_mm is not None
+
         delta_r_mm = (outer_r - inner_r) / 2
         bend_r_outer = self.bend_radius_mm + delta_r_mm
         bend_r_inner = self.bend_radius_mm - delta_r_mm
@@ -786,6 +789,8 @@ class ModuleFactorySegment(ModuleFactoryBase):
 
     def _cached_sipm_volumes_bend(self) -> None:
         """Creates (dummy) SiPM volumes for use at the bottom of bent fiber sections."""
+        assert self.bend_radius_mm is not None
+
         v_suffix = (
             f"_bend{(self.bend_radius_mm or np.inf):.2f}_r{self.radius:.2f}_nmod{self.number_of_modules}"
         )
@@ -1112,7 +1117,7 @@ def create_fiber_support_inner(b: core.InstrumentationData, z_pos: float) -> g4.
     rod_radius = 2.5  # mm
 
     vols = []
-    tras = []
+    tras: list[tuple[float, list[float]]] = []
 
     # Create the rings
     ring = g4.solid.Tubs(
@@ -1121,7 +1126,7 @@ def create_fiber_support_inner(b: core.InstrumentationData, z_pos: float) -> g4.
     z_ring = (-700, -600, -300, 0, 300, 600, 700)  # mm
     for z in z_ring:
         vols.append(ring)
-        tras.append([0, [0, 0, z]])
+        tras.append((0, [0, 0, z]))
 
     # Create the rods
     radius_rod = (inner_radius + outer_radius) / 2
@@ -1138,7 +1143,7 @@ def create_fiber_support_inner(b: core.InstrumentationData, z_pos: float) -> g4.
 
             vols.append(rod)
             phi = i * 2 * np.pi / 3
-            tras.append([0, [radius_rod * np.cos(phi), radius_rod * np.sin(phi), rings[0] + rod_length / 2]])
+            tras.append((0, [radius_rod * np.cos(phi), radius_rod * np.sin(phi), rings[0] + rod_length / 2]))
             rl += rod_length
         assert rl == 1400
 

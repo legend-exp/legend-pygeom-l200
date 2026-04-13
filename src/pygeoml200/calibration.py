@@ -44,7 +44,6 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
         return
 
     calib_tubes = {}
-    calib_tube_length = []
     calib_tube_xy = np.empty((2, 4))
 
     sis_cfg = b.runtime_config.get("sis", {})
@@ -63,7 +62,6 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
             calib_tubes[tube.length_in_mm] = hpge_strings._get_nylon_mini_shroud(
                 tube.tube_radius_in_mm, tube.length_in_mm, True, b.materials, b.registry
             )
-            calib_tube_length.append(tube.length_in_mm)
 
         # allow for an offset to place properly the sis
         phi = np.deg2rad(tube.angle_in_deg)
@@ -84,11 +82,6 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
             b.registry,
         )
         hpge_strings._add_nms_surfaces(nms_pv, b.mother_pv, b.materials, b.registry)
-
-    # check if we have one shared length of calibration tubes.
-    calib_tube_length = (
-        calib_tube_length[0] if all(length == calib_tube_length[0] for length in calib_tube_length) else None
-    )
 
     # place the actual calibration sources inside.
     if not hasattr(b.runtime_config, "sis"):
@@ -438,12 +431,12 @@ def _sis_to_pygeoml200(sis_coord: float) -> float:
     return sis_coord - sis_top_plate
 
 
-def _parse_source_spec(src: str) -> dict:
-    src = src.split("+")
-    if src[0] not in ("Th228", "Ra"):
-        msg = f"Invalid source type {src[0]} in source spec"
+def _parse_source_spec(source_spec: str) -> dict:
+    parts = source_spec.split("+")
+    if parts[0] not in ("Th228", "Ra"):
+        msg = f"Invalid source type {parts[0]} in source spec"
         raise ValueError(msg)
-    if set(src[1:]) - {"Cu", "_bare"} != set():
-        msg = f"Unknown extra in source spec {src[1:]}"
+    if set(parts[1:]) - {"Cu", "_bare"} != set():
+        msg = f"Unknown extra in source spec {parts[1:]}"
         raise ValueError(msg)
-    return {"type": src[0], "has_cu": "Cu" in src, "bare": "_bare" in src}
+    return {"type": parts[0], "has_cu": "Cu" in parts, "bare": "_bare" in parts}

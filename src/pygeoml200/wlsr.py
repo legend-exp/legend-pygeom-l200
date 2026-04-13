@@ -74,7 +74,7 @@ def place_wlsr(
     b: core.InstrumentationData,
     z_displacement: float,
     reg: g4.Registry,
-) -> tuple[g4.PhysicalVolume]:
+) -> tuple[g4.PhysicalVolume, ...]:
     wlsr_outer_lv, wlsr_ttx_lv, wlsr_tpb_lv = _construct_wlsr(b.materials, b.registry)
 
     wlsr_outer_pv = g4.PhysicalVolume(
@@ -101,7 +101,7 @@ def _add_surfaces_wlsr(
     wlsr_ttx_pv: g4.PhysicalVolume,
     wlsr_tpb_pv: g4.PhysicalVolume,
     b: core.InstrumentationData,
-):
+) -> None:
     mats, reg = b.materials, b.registry
     # between TPB and TTX, only one surface should be enough.
     g4.BorderSurface("bsurface_tpb_ttx", wlsr_tpb_pv, wlsr_ttx_pv, mats.surfaces.to_tetratex, reg)
