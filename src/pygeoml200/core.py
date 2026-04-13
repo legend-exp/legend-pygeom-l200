@@ -88,7 +88,7 @@ def construct(
     reg.setWorld(world_lv)
 
     # TODO: Shift the global coordinate system that z=0 is a reasonable value for defining hit positions.
-    cryo_z_displacement = 0
+    cryo_z_displacement: float = 0
 
     # Create basic structure with argon and cryostat.
     cryostat_lv = cryo.construct_cryostat(mats.metal_steel, reg)
