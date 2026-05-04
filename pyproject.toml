@@ -163,6 +163,7 @@ legend_pygeom_l200 = { path = ".", editable = true }
 
 [tool.pixi.feature.test.dependencies]
 remage = ">=0.18,<0.19"
+legend-pydataobj = "<2"
 
 [tool.pixi.environments]
 default = { solve-group = "default" }
