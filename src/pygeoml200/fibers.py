@@ -1206,7 +1206,7 @@ def create_fiber_support_outer(b: core.InstrumentationData, z_pos: float) -> g4.
         tras.append(
             [
                 [0, 0, fin_angle_tra],
-                [radius_fins * np.cos(), radius_fins * np.sin(fin_angle), fin_z],
+                [radius_fins * np.cos(fin_angle), radius_fins * np.sin(fin_angle), fin_z],
             ]
         )
         vols.append(curvedfin)
