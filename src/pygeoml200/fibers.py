@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 import math
+import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
@@ -9,6 +10,7 @@ import numpy as np
 from dbetto import TextDB
 from pyg4ometry import geant4 as g4
 from pygeomtools import RemageDetectorInfo
+from scipy.spatial.transform import Rotation
 
 from . import core, top
 
@@ -1181,7 +1183,8 @@ def create_fiber_support_outer(b: core.InstrumentationData, z_pos: float) -> g4.
     fin_radius = 155 + 10 + 20
     fin_x = 2
     fin_y = 8
-    fin = g4.solid.Box("fiber_support_outer_fin_box", fin_x, fin_y, 1320, b.registry)
+    fin_box_length = 1320
+    fin = g4.solid.Box("fiber_support_outer_fin_box", fin_x, fin_y, fin_box_length, b.registry)
     curvedfin = g4.solid.Tubs(
         "fiber_support_outer_fin_curved",
         fin_radius - fin_y / 2,
@@ -1192,22 +1195,33 @@ def create_fiber_support_outer(b: core.InstrumentationData, z_pos: float) -> g4.
         b.registry,
     )
 
-    fin = g4.solid.Union(
-        "fiber_support_outer_fin",
-        fin,
-        curvedfin,
-        [[0, np.pi / 2, 0], [0, -fin_radius, -450 - 200 - 10]],
-        b.registry,
-    )
-
-    radius_fins = radius_out + fin_y / 2 + 0.01  # offset, but does not render in pyg4ometry without.
+    radius_fins = radius_out + fin_y / 2 + 0.01  # offset, to avoid overlaps (this is not a union!).
+    radius_cuvedfins = radius_fins - fin_radius
+    fin_z = 55 - 10
     for i in range(20):
         # Each fin needs to be rotated by 18 degrees to make the curved portion radial.
+        fin_angle = i * 2 * np.pi / 20
+        fin_angle_tra = -fin_angle + np.pi / 2
         vols.append(fin)
         tras.append(
             [
-                i * 2 * np.pi / 20 - np.pi / 2,
-                [radius_fins * np.cos(i * 2 * np.pi / 20), radius_fins * np.sin(i * 2 * np.pi / 20), 55 - 10],
+                [0, 0, fin_angle_tra],
+                [radius_fins * np.cos(fin_angle), radius_fins * np.sin(fin_angle), fin_z],
+            ]
+        )
+        vols.append(curvedfin)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            curvedfin_tra = Rotation.from_euler("YZ", [-np.pi / 2, fin_angle_tra]).as_euler("xyz")
+        tras.append(
+            [
+                list(curvedfin_tra),
+                [
+                    radius_cuvedfins * np.cos(fin_angle),
+                    radius_cuvedfins * np.sin(fin_angle),
+                    fin_z - fin_box_length / 2 - 0.001,  # avoid surface overlaps.
+                ],
             ]
         )
 
@@ -1216,10 +1230,10 @@ def create_fiber_support_outer(b: core.InstrumentationData, z_pos: float) -> g4.
     rings_thickness = [2, 2, 2, 2, 2, 2, 3]
     for z, thickness in zip(rings_z, rings_thickness, strict=True):
         vols.append(thinring if thickness == 2 else topring)
-        tras.append([0, [0, 0, z]])
+        tras.append([[0, 0, 0], [0, 0, z]])
 
     vols.append(bottomring)
-    tras.append([0, [0, 0, -600 - fin_radius - 10]])
+    tras.append([[0, 0, 0], [0, 0, -600 - fin_radius - 10]])
 
     # add the three support rods.
     radius_rod = (radius + radius_out) / 2
@@ -1236,7 +1250,10 @@ def create_fiber_support_outer(b: core.InstrumentationData, z_pos: float) -> g4.
             vols.append(rod)
             phi = i * 2 * np.pi / 4
             tras.append(
-                [0, [radius_rod * np.cos(phi), radius_rod * np.sin(phi), rings[0][0] + rod_length / 2]]
+                [
+                    [0, 0, 0],
+                    [radius_rod * np.cos(phi), radius_rod * np.sin(phi), rings[0][0] + rod_length / 2],
+                ]
             )
             rl += rod_length
         assert rl == 1300
@@ -1252,7 +1269,7 @@ def create_fiber_support_outer(b: core.InstrumentationData, z_pos: float) -> g4.
         vol_lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
 
         g4.PhysicalVolume(
-            [0, 0, -tra[0]],
+            tra[0],
             np.array([0, 0, z_pos]) + np.array(tra[1]),
             vol_lv,
             f"larinstr_support_outer_copper_{idx}",
