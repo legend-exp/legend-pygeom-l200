@@ -140,7 +140,7 @@ def construct(
         raise ValueError(msg)
     special_metadata = load_dict_from_config(config, "special_metadata", lambda: configs.on(timestamp))
     if lmeta is None:
-        dummy_geom.update_special_metadata(special_metadata)
+        special_metadata = dummy_geom.update_special_metadata(special_metadata)
 
     channelmap = load_dict_from_config(
         config,

@@ -16,9 +16,11 @@ class PublicMetadataProxy:
         self.diodes = _DiodeProxy(dummy)
         self.fibers = _FiberProxy()
 
-    def update_special_metadata(self, special_metadata) -> None:
+    def update_special_metadata(self, special_metadata: AttrsDict) -> AttrsDict:
         # the string is shorter because of missing special detectors.
+        special_metadata = copy.deepcopy(special_metadata)
         special_metadata.hpge_string[7].minishroud_delta_length_in_mm = -200
+        return special_metadata
 
 
 class _DiodeProxy:
