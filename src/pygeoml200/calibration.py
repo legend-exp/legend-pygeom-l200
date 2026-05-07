@@ -66,12 +66,12 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
         # allow for an offset to place properly the sis
         phi = np.deg2rad(tube.angle_in_deg)
         phi += np.deg2rad(tube_cfg.get("phi_offset", 0))
-        tube.radius_in_mm += tube_cfg.get("r_offset", 0)
+        rad = tube.radius_in_mm + tube_cfg.get("r_offset", 0)
 
         # add a very small z-offset to prevent overlaps if we moved a cal tube
         off = 2 if ("phi_offset" in tube_cfg or "r_offset" in tube_cfg) else 0
 
-        calib_tube_xy[:, idx] = np.array([tube.radius_in_mm * np.cos(phi), -tube.radius_in_mm * np.sin(phi)])
+        calib_tube_xy[:, idx] = np.array([rad * np.cos(phi), -rad * np.sin(phi)])
 
         nms_pv = geant4.PhysicalVolume(
             [0, 0, 0],
