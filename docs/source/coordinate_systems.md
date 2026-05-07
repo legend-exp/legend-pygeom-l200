@@ -8,6 +8,14 @@ conventions, this is a **left handed coordinate system**! It is a cylindrical
 coordinate system with an angle {math}`\phi`, a radius {math}`r` and a {math}`z`
 coordinate.
 
+:::{important}
+
+This coordinate system is only documented here for developers; it is only used
+for internal calculations when placing the array. It does _not_ match the hit
+coordinates stored in output files, especially in the {math}`z` direction.
+
+:::
+
 - {math}`z = 0` denotes the top of the top plate in the ’birds nest‘ The
   positive {math}`z` direction extends upwards (in the same direction as the
   GDML Z-axis)
@@ -36,4 +44,14 @@ coordinate system is used.
 
 ## Global coordinate system
 
-TBD
+The global coordinate system is determined by how much the argon volume is
+translated or rotated against the global frame. Without the watertank assembly,
+there should be no offset to the coordinates inside the liquid argon (this is
+the default).
+
+:::{warning}
+
+With the watertank assembly, an offset of 153 mm is added (this is a technical
+limitation of Geant4!)
+
+:::

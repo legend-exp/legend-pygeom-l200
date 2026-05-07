@@ -167,3 +167,30 @@ def test_special(change_dir, tmp_path):
     assert "counterweight_wrapped" in reg.solidDict
     assert "hpge_string_support_hanger_copper_short" in reg.logicalVolumeDict
     assert "hpge_string_support_hanger_copper" not in reg.logicalVolumeDict
+
+
+def test_coordinates():
+    from revertex.utils import _get_position
+
+    from pygeoml200 import core
+
+    reg_normal = core.construct(
+        use_detailed_fiber_model=False,
+        assemblies=[],
+        public_geometry=True,
+    )
+    reg_water = core.construct(
+        use_detailed_fiber_model=False,
+        assemblies=["watertank"],
+        public_geometry=True,
+    )
+
+    pos_normal = _get_position("liquid_argon", reg_normal)
+    pos_water = _get_position("liquid_argon", reg_water)
+
+    # check that we still have the expected global coordinates.
+    # if we change the values here, we need to inform the users
+    # and change the docs.
+    assert np.all(pos_normal == [0, 0, 0])
+    assert np.allclose(pos_water, [0, 0, -153])
+    assert np.all(pos_normal[:2] == pos_water[:2])

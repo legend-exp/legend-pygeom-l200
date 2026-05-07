@@ -62,3 +62,9 @@ Supported assembly options are:
 - `watertank` (water Čerenkov muon veto, off by default)
 
 The cryostat and LAr volumes are always part of the output.
+
+:::{warning}
+
+Adding the watertank changes the global coordinate system's origin.
+
+:::
