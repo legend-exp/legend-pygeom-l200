@@ -69,6 +69,7 @@ docs = [
 test = [
     "pre-commit",
     "pylegendtestdata",
+    "revertex >=0.3.0",
     "pytest>=6.0",
     "pytest-cov",
 ]
