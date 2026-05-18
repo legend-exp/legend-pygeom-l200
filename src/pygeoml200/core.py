@@ -120,6 +120,8 @@ def construct(
     argon_z_displacement = 0  # center argon in cryostat
     lar_lv, lar_neck_height = cryo.construct_argon(mats.liquidargon, reg)
     lar_pv = cryo.place_argon(lar_lv, cryostat_lv, argon_z_displacement, reg)
+    gar_lv = cryo.construct_ullage_argon(mats.gaseousargon, reg)
+    cryo.place_ullage_argon(gar_lv, cryostat_lv, argon_z_displacement, reg)
 
     array_total_height = 1488  # 1484 to 1490 mm array height (OB bottom to copper plate top).
     top_plate_z_pos_relative_to_neck = (
