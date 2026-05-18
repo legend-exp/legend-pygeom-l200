@@ -90,9 +90,7 @@ def construct(
     # TODO: Shift the global coordinate system that z=0 is a reasonable value for defining hit positions.
     cryo_z_displacement: float = 0
 
-    # Create basic structure with argon and cryostat.
-    cryostat_lv = cryo.construct_cryostat(mats.metal_steel, reg)
-
+    cryo_parent = world_lv
     if "watertank" in assemblies:
         # TODO: Shift the global coordinate system that z=0 is a reasonable value for defining hit positions.
         tank_z_displacement = 0.0
@@ -112,13 +110,17 @@ def construct(
             mats,
             pmt_configuration_mv,
         )
+        cryo_parent = water_lv
 
-        cryo.place_cryostat(cryostat_lv, water_lv, cryo_z_displacement, reg)
-    else:
-        cryo.place_cryostat(cryostat_lv, world_lv, cryo_z_displacement, reg)
+    # Create basic structure with argon and cryostat.
+    cryostat_lv = cryo.construct_cryostat(mats.metal_steel, reg)
+    cryo.place_cryostat(cryostat_lv, cryo_parent, cryo_z_displacement, reg)
+
     argon_z_displacement = 0  # center argon in cryostat
     lar_lv, lar_neck_height = cryo.construct_argon(mats.liquidargon, reg)
     lar_pv = cryo.place_argon(lar_lv, cryostat_lv, argon_z_displacement, reg)
+    gar_lv = cryo.construct_ullage_argon(mats.gaseousargon, reg)
+    cryo.place_ullage_argon(gar_lv, cryostat_lv, argon_z_displacement, reg)
 
     array_total_height = 1488  # 1484 to 1490 mm array height (OB bottom to copper plate top).
     top_plate_z_pos_relative_to_neck = (
