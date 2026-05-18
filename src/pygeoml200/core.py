@@ -202,4 +202,3 @@ def _assign_common_copper_surface(b: InstrumentationData) -> None:
             continue
 
         geant4.BorderSurface("bsurface_lar_cu_" + pv.name, b.mother_pv, pv, surf, b.registry)
-        geant4.BorderSurface("bsurface_cu_lar_" + pv.name, pv, b.mother_pv, surf, b.registry)
