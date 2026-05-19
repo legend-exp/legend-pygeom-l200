@@ -90,9 +90,7 @@ def construct(
     # TODO: Shift the global coordinate system that z=0 is a reasonable value for defining hit positions.
     cryo_z_displacement: float = 0
 
-    # Create basic structure with argon and cryostat.
-    cryostat_lv = cryo.construct_cryostat(mats.metal_steel, reg)
-
+    cryo_parent = world_lv
     if "watertank" in assemblies:
         # TODO: Shift the global coordinate system that z=0 is a reasonable value for defining hit positions.
         tank_z_displacement = 0.0
@@ -112,13 +110,17 @@ def construct(
             mats,
             pmt_configuration_mv,
         )
+        cryo_parent = water_lv
 
-        cryo.place_cryostat(cryostat_lv, water_lv, cryo_z_displacement, reg)
-    else:
-        cryo.place_cryostat(cryostat_lv, world_lv, cryo_z_displacement, reg)
+    # Create basic structure with argon and cryostat.
+    cryostat_lv = cryo.construct_cryostat(mats.metal_steel, reg)
+    cryo.place_cryostat(cryostat_lv, cryo_parent, cryo_z_displacement, reg)
+
     argon_z_displacement = 0  # center argon in cryostat
     lar_lv, lar_neck_height = cryo.construct_argon(mats.liquidargon, reg)
     lar_pv = cryo.place_argon(lar_lv, cryostat_lv, argon_z_displacement, reg)
+    gar_lv = cryo.construct_ullage_argon(mats.gaseousargon, reg)
+    cryo.place_ullage_argon(gar_lv, cryostat_lv, argon_z_displacement, reg)
 
     array_total_height = 1488  # 1484 to 1490 mm array height (OB bottom to copper plate top).
     top_plate_z_pos_relative_to_neck = (
@@ -174,16 +176,31 @@ def construct(
 
 
 def _assign_common_copper_surface(b: InstrumentationData) -> None:
+    """Assign a common copper surface to all copper parts in the LAr volume."""
+    # check that we have a copper part in the geometry.
     if hasattr(b.materials, "_metal_copper") is None:
         return
+
     surf = None
     cu_mat = b.materials.metal_copper
 
     for _, pv in b.registry.physicalVolumeDict.items():
-        if pv.motherVolume != b.mother_lv or pv.logicalVolume.material != cu_mat:
+        if (
+            pv.motherVolume != b.mother_lv
+            or not hasattr(pv.logicalVolume, "material")
+            or pv.logicalVolume.material != cu_mat
+        ):
             continue
+
+        # only lazy-load load the copper surface when we have a copper surface.
         if surf is None:
             surf = b.materials.surfaces.to_copper
 
+        # check that we do not have another surface already at this boundary.
+        if any(
+            isinstance(surf, geant4.BorderSurface) and b.mother_pv == surf.physref1 and pv == surf.physref2
+            for surf in b.registry.surfaceDict.values()
+        ):
+            continue
+
         geant4.BorderSurface("bsurface_lar_cu_" + pv.name, b.mother_pv, pv, surf, b.registry)
-        geant4.BorderSurface("bsurface_cu_lar_" + pv.name, pv, b.mother_pv, surf, b.registry)

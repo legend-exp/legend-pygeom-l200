@@ -25,6 +25,9 @@ cryo_access_wall = 10
 cryo_access_height = 1720
 access_overlap = 200
 
+lar_ullage_height = 800
+lar_ullage_safety = 0.0001  # avoid surface overlaps
+
 
 def construct_cryostat(cryostat_material: g4.Material, reg: g4.Registry) -> g4.LogicalVolume:
     cryo_top = g4.solid.Tubs(
@@ -67,7 +70,7 @@ def construct_cryostat(cryostat_material: g4.Material, reg: g4.Registry) -> g4.L
         cryo_access_tub,
         [
             [0, pi, 0],
-            [0, 0, +cryo_tub_height / 2 + cryo_top_height + cryo_access_height / 2],
+            [0, 0, +cryo_tub_height / 2 + cryo_top_height + cryo_access_height / 2 - access_overlap / 2],
         ],
         reg,
     )
@@ -99,7 +102,7 @@ def construct_argon(lar_material: g4.Material, reg: g4.Registry) -> tuple[g4.Log
         the constructed volume's center (i.e. for children placed at 0,0,0) is not the barycenter of the
         volume, but the center of the central tubular section of the cryostat.
     """
-    lar_access_height = cryo_access_height - 800
+    lar_access_height = cryo_access_height - lar_ullage_height
     lar_top = g4.solid.Ellipsoid(
         "lar_top",
         cryo_radius,
@@ -140,7 +143,7 @@ def construct_argon(lar_material: g4.Material, reg: g4.Registry) -> tuple[g4.Log
         lar_access,
         [
             [0, pi, 0],
-            [0, 0, +cryo_tub_height / 2 + cryo_top_height + lar_access_height / 2],
+            [0, 0, +cryo_tub_height / 2 + cryo_top_height + lar_access_height / 2 - access_overlap / 2],
         ],
         reg,
     )
@@ -149,6 +152,21 @@ def construct_argon(lar_material: g4.Material, reg: g4.Registry) -> tuple[g4.Log
         cryo_tub_height / 2 + cryo_top_height - 20
     )  # offset is below the "virtual" top point of the round segment (see technical drawing)
     return g4.LogicalVolume(lar, lar_material, "liquid_argon", reg), neck_height
+
+
+def construct_ullage_argon(gar_material: g4.Material, reg: g4.Registry) -> g4.LogicalVolume:
+    """Construct the gaseous argon volume above the LAr."""
+    lar_ullage = g4.solid.Tubs(
+        "gaseous_argon",
+        0,
+        cryo_access_radius,
+        lar_ullage_height - 2 * lar_ullage_safety,
+        0,
+        2 * pi,
+        reg,
+        "mm",
+    )
+    return g4.LogicalVolume(lar_ullage, gar_material, "gaseous_argon", reg)
 
 
 def place_argon(
@@ -166,3 +184,20 @@ def place_argon(
     lar_pv.set_pygeom_active_detector(RemageDetectorInfo("scintillator", 0, {}))
 
     return lar_pv
+
+
+def place_ullage_argon(
+    gar_lv: g4.LogicalVolume,
+    cryostat_lv: g4.LogicalVolume,
+    cryostat_displacement_z: float,
+    reg: g4.Registry,
+) -> g4.PhysicalVolume:
+    z_pos = (
+        cryo_tub_height / 2 + cryo_top_height + cryo_access_height - lar_ullage_height / 2 + lar_ullage_safety
+    )
+    gar_pv = g4.PhysicalVolume(
+        [0, 0, 0], [0, 0, z_pos + cryostat_displacement_z], gar_lv, "gaseous_argon", cryostat_lv, reg
+    )
+    gar_lv.pygeom_color_rgba = False
+
+    return gar_pv
