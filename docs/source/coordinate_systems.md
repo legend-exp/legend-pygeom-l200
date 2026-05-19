@@ -51,7 +51,6 @@ the default).
 
 :::{warning}
 
-With the watertank assembly, an offset of 153 mm is added (this is a technical
-limitation of Geant4!)
+With the watertank assembly, in recent version _no_ additional offset is added.
 
 :::

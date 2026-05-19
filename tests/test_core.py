@@ -192,5 +192,5 @@ def test_coordinates():
     # if we change the values here, we need to inform the users
     # and change the docs.
     assert np.all(pos_normal == [0, 0, 0])
-    assert np.allclose(pos_water, [0, 0, -153])
+    assert np.allclose(pos_water, [0, 0, 0])
     assert np.all(pos_normal[:2] == pos_water[:2])

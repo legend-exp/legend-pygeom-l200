@@ -101,6 +101,7 @@ def construct(
             - cryo.access_overlap / 2
             - 1e-9  # safety
         )  # -153
+        tank_z_displacement = -cryo_z_displacement
 
         water_lv, _ = watertank.insert_muon_veto(
             reg,
