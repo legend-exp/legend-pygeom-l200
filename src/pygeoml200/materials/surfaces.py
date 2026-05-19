@@ -61,6 +61,22 @@ class OpticalSurfaceRegistry:
         return _to_copper
 
     @cached_property
+    def to_cryostat_steel(self) -> g4.solid.OpticalSurface:
+        """Optical surface of cryostat steel."""
+        _to_cryostat_steel = g4.solid.OpticalSurface(
+            name="to_cryostat_steel",
+            finish="polished",
+            model="unified",
+            surf_type="dielectric_metal",
+            value=0.3,
+            registry=self.g4_registry,
+        )
+
+        pygeomoptics.steel.pyg4_steel_attach_reflectivity(_to_cryostat_steel, self.g4_registry)
+
+        return _to_cryostat_steel
+
+    @cached_property
     def to_germanium(self) -> g4.solid.OpticalSurface:
         """Reflective surface for germanium detectors."""
         _to_germanium = g4.solid.OpticalSurface(
@@ -200,7 +216,7 @@ class OpticalSurfaceRegistry:
 
     @cached_property
     def to_pmt_steel(self) -> g4.solid.OpticalSurface:
-        """Optical surface of steel."""
+        """Optical surface of PMT steel."""
         _to_pmt_steel = g4.solid.OpticalSurface(
             name="pmt_steel_surface",
             finish="polished",

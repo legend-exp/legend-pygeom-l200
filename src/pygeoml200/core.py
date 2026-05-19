@@ -115,11 +115,13 @@ def construct(
 
     # Create basic structure with argon and cryostat.
     cryostat_lv = cryo.construct_cryostat(mats.metal_steel, reg)
-    cryo.place_cryostat(cryostat_lv, cryo_parent, cryo_z_displacement, reg)
+    cryostat_pv = cryo.place_cryostat(cryostat_lv, cryo_parent, cryo_z_displacement, reg)
 
     argon_z_displacement = 0  # center argon in cryostat
     lar_lv, lar_neck_height = cryo.construct_argon(mats.liquidargon, reg)
-    lar_pv = cryo.place_argon(lar_lv, cryostat_lv, argon_z_displacement, reg)
+    lar_pv = cryo.place_argon(
+        lar_lv, cryostat_lv, cryostat_pv, argon_z_displacement, mats.surfaces.to_cryostat_steel, reg
+    )
     gar_lv = cryo.construct_ullage_argon(mats.gaseousargon, reg)
     cryo.place_ullage_argon(gar_lv, cryostat_lv, argon_z_displacement, reg)
 

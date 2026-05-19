@@ -172,9 +172,14 @@ def construct_ullage_argon(gar_material: g4.Material, reg: g4.Registry) -> g4.Lo
 def place_argon(
     lar_lv: g4.LogicalVolume,
     cryostat_lv: g4.LogicalVolume,
+    cryostat_pv: g4.PhysicalVolume,
     cryostat_displacement_z: float,
+    to_cryostat_steel: g4.solid.OpticalSurface,
     reg: g4.Registry,
 ) -> g4.PhysicalVolume:
+    """Place the liquid argon volume in the cryostat.
+
+    Also adds an optical surface in between and registers the argon as active detector."""
     lar_pv = g4.PhysicalVolume(
         [0, 0, 0], [0, 0, cryostat_displacement_z], lar_lv, "liquid_argon", cryostat_lv, reg
     )
@@ -182,6 +187,9 @@ def place_argon(
 
     # set lar as active with det id 0
     lar_pv.set_pygeom_active_detector(RemageDetectorInfo("scintillator", 0, {}))
+
+    # add surface argon->steel
+    g4.BorderSurface("bsurface_lar_steel", lar_pv, cryostat_pv, to_cryostat_steel, reg)
 
     return lar_pv
 
