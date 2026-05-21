@@ -194,3 +194,9 @@ def test_coordinates():
     assert np.all(pos_normal == [0, 0, 0])
     assert np.allclose(pos_water, [0, 0, -153])
     assert np.all(pos_normal[:2] == pos_water[:2])
+
+
+def test_public_geom():
+    from pygeoml200 import core
+
+    _reg = core.construct(public_geometry=True)

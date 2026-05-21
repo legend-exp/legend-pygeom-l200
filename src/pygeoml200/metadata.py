@@ -20,6 +20,9 @@ class PublicMetadataProxy:
         # the string is shorter because of missing special detectors.
         special_metadata = copy.deepcopy(special_metadata)
         special_metadata.hpge_string[7].minishroud_delta_length_in_mm = -200
+
+        # mark as readonly to match real loaded metadata.
+        special_metadata.__readonly__ = True
         return special_metadata
 
 
@@ -28,9 +31,17 @@ class _DiodeProxy:
         self.dummy_detectors = dummy_detectors
 
     def __getitem__(self, det_name: str) -> AttrsDict:
+        # create the detector from the matching dummy metadata.
         det = self.dummy_detectors[det_name[0] + "99000A"]
-        m = copy.copy(det)
+        m = copy.deepcopy(det)
         m.name = det_name
+
+        # also test the code paths with no enrichment set.
+        if det_name[0] == "P":
+            m.production.enrichment.val = None
+
+        # mark as readonly to match real loaded metadata.
+        m.__readonly__ = True
         return m
 
 
@@ -41,4 +52,5 @@ class _FiberProxy:
             "type": "inner" if det_name.startswith("IB") else "outer",
             "geometry": {"tpb": {"thickness_in_nm": 1000}},
         }
-        return AttrsDict(m)
+        # mark as readonly to match real loaded metadata.
+        return AttrsDict(m, readonly=True)
