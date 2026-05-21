@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import logging
 import math
 from dataclasses import dataclass
@@ -30,12 +31,12 @@ def place_hpge_strings(hpge_metadata: TextDB, b: core.InstrumentationData) -> No
         # data again.
         hpge_meta = hpge_metadata[ch_meta.name]
         assert hpge_meta.name == ch_meta.name
-        full_meta = ch_meta | hpge_meta
+        full_meta = copy.deepcopy(ch_meta | hpge_meta)
 
         # Temporary fix for gedet with null enrichment value
         if hpge_meta.production.enrichment.val is None:
             log.warning("%s has no enrichment in metadata - setting to dummy value 0.9!", hpge_meta.name)
-            hpge_meta.production.enrichment = 0.9
+            full_meta.production.enrichment = 0.9
 
         hpge_string_id = ch_meta.location.string
         hpge_unit_id_in_string = ch_meta.location.position
