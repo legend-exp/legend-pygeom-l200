@@ -93,6 +93,22 @@ class OpticalSurfaceRegistry:
         return _to_germanium
 
     @cached_property
+    def to_tantalum(self) -> g4.solid.OpticalSurface:
+        """Reflective surface for tantalum absorber."""
+        _to_tantalum = g4.solid.OpticalSurface(
+            "surface_to_tantalum",
+            finish="ground",
+            model=self._model,
+            surf_type="dielectric_metal",
+            value=0.3,  # rad. converted from 0.5, probably a GLISUR smoothness parameter, in MaGe.
+            registry=self.g4_registry,
+        )
+
+        pygeomoptics.tantalum.pyg4_tantalum_attach_complex_rindex(_to_tantalum, self.g4_registry)
+
+        return _to_tantalum
+
+    @cached_property
     def to_tetratex(self) -> g4.solid.OpticalSurface:
         """Reflective surface Tetratex diffuse reflector."""
         _to_tetratex = g4.solid.OpticalSurface(

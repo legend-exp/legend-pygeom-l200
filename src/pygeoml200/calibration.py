@@ -419,7 +419,15 @@ def _get_ta_absorber(b: core.InstrumentationData):
         [[0, 0, 0], [0, 0, (ABSORBER_HEIGHT - source_inside_holder) / 2 - safety]],
         b.registry,
     )
-    return geant4.LogicalVolume(ta_absorber, b.materials.metal_tantalum, ta_absorber_name, b.registry)
+    ta_absorber_lv = geant4.LogicalVolume(
+        ta_absorber, b.materials.metal_tantalum, ta_absorber_name, b.registry
+    )
+
+    geant4.SkinSurface(
+        ta_absorber_name + "_skin_surface", ta_absorber_lv, b.materials.surfaces.to_tantalum, b.registry
+    )
+
+    return ta_absorber_lv
 
 
 def _sis_to_pygeoml200(sis_coord: float) -> float:
