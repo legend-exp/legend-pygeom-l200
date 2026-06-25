@@ -23,6 +23,9 @@ DEFINED_ASSEMBLIES = DEFAULT_ASSEMBLIES | {"watertank"}
 
 PMT_CONFIGURATIONS = {"LEGEND200", "GERDA"}
 
+# default metadata timestamp used to select the channel map and special-geometry metadata.
+DEFAULT_METADATA_TIMESTAMP = "20230311T235840Z"
+
 
 class InstrumentationData(NamedTuple):
     mother_lv: geant4.LogicalVolume
@@ -139,7 +142,7 @@ def construct(
         "displacement from cryostat center (positive to top): %f mm", top_plate_z_pos - array_total_height / 2
     )
 
-    timestamp = config.get("metadata_timestamp", "20230311T235840Z")
+    timestamp = config.get("metadata_timestamp", DEFAULT_METADATA_TIMESTAMP)
     if lmeta is None and "metadata_timestamp" in config:
         msg = "metadata_timestamp cannot be specified for public dummy geometry"
         raise ValueError(msg)
