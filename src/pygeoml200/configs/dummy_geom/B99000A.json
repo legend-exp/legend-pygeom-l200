@@ -2,7 +2,8 @@
   "name": "B99000A",
   "type": "bege",
   "production": {
-    "manufacturer": "Test",
+    "manufacturer": "Ortec",
+    "mass_in_g": 860.0,
     "enrichment": {
       "val": 0.75,
       "unc": 0.05

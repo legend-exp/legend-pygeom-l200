@@ -2,7 +2,8 @@
   "name": "V99000A",
   "type": "icpc",
   "production": {
-    "manufacturer": "Test",
+    "manufacturer": "Mirion",
+    "mass_in_g": 1220.0,
     "enrichment": {
       "val": 0.75,
       "unc": 0.05

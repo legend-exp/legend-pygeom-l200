@@ -12,6 +12,7 @@ from pygeomhpges import make_hpge
 from pygeomtools.utils import load_dict_from_config
 
 from .core import DEFAULT_METADATA_TIMESTAMP
+from .metadata import PublicMetadataProxy
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -23,6 +24,7 @@ def plot_hpge_mass_comparison(
     config: dict | None = None,
     *,
     allow_cylindrical_asymmetry: bool = True,
+    public_geometry: bool = False,
     ax: Axes | None = None,
 ) -> Axes:
     """Plot the relative mass difference ``(MC - measured) / measured`` for each HPGe in the geometry.
@@ -33,11 +35,15 @@ def plot_hpge_mass_comparison(
     Parameters
     ----------
     config
-        the geometry configuration dictionary accepted by :func:`pygeoml200.core.construct` (real LEGEND
-        metadata is required).
+        the geometry configuration dictionary accepted by :func:`pygeoml200.core.construct`. If it carries a
+        truthy ``"public_geom"`` flag (or ``public_geometry`` is set), the public testdata metadata is used
+        instead of a real LEGEND metadata checkout.
     allow_cylindrical_asymmetry
         passed to :func:`pygeomhpges.make_hpge`; if ``False``, build detectors with the cylindrically
         symmetric base class, ignoring non-symmetric features.
+    public_geometry
+        force the use of the public testdata metadata, overriding the ``config["public_geom"]``
+        auto-detection. Mirrors the ``public_geometry`` argument of :func:`pygeoml200.core.construct`.
     ax
         a :class:`matplotlib.axes.Axes` to draw into. If ``None``, a new figure and axes are created.
     """
@@ -46,15 +52,23 @@ def plot_hpge_mass_comparison(
     config = config if config is not None else {}
 
     lmeta = None
-    with contextlib.suppress(GitCommandError):
-        lmeta = LegendMetadata(lazy=True)
+    public = public_geometry or bool(config.get("public_geom", False))
+    if not public:
+        with contextlib.suppress(GitCommandError):
+            lmeta = LegendMetadata(lazy=True)
+        if lmeta is None:
+            msg = "real LEGEND metadata is required for the HPGe mass comparison but could not be loaded"
+            raise RuntimeError(msg)
     if lmeta is None:
-        msg = "real LEGEND metadata is required for the HPGe mass comparison but could not be loaded"
-        raise RuntimeError(msg)
+        dummy_geom = PublicMetadataProxy()
 
     timestamp = config.get("metadata_timestamp", DEFAULT_METADATA_TIMESTAMP)
-    channelmap = load_dict_from_config(config, "channelmap", lambda: lmeta.channelmap(timestamp))
-    diodes = lmeta.hardware.detectors.germanium.diodes
+    channelmap = load_dict_from_config(
+        config,
+        "channelmap",
+        lambda: lmeta.channelmap(timestamp) if lmeta is not None else dummy_geom.chmap,
+    )
+    diodes = lmeta.hardware.detectors.germanium.diodes if lmeta is not None else dummy_geom.diodes
 
     # only consider the germanium detectors actually built into the geometry, i.e. the geds channels.
     geds = channelmap.map("system", unique=False).get("geds", {})

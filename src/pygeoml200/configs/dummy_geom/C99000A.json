@@ -2,7 +2,8 @@
   "name": "C99000A",
   "type": "coax",
   "production": {
-    "manufacturer": "Test",
+    "manufacturer": "Mirion",
+    "mass_in_g": 2100.0,
     "enrichment": {
       "val": 0.75,
       "unc": 0.05

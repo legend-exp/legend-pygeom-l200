@@ -2,7 +2,8 @@
   "name": "P99000A",
   "type": "ppc",
   "production": {
-    "manufacturer": "Test",
+    "manufacturer": "Ortec",
+    "mass_in_g": 835.0,
     "enrichment": {
       "val": 0.75,
       "unc": 0.05
