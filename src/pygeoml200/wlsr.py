@@ -85,7 +85,14 @@ def place_wlsr(
         b.mother_lv,
         reg,
     )
-    wlsr_tpb_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], wlsr_tpb_lv, "wlsr_tpb", b.mother_lv, reg)
+    wlsr_tpb_pv = g4.PhysicalVolume(
+        [0, 0, 0],
+        [0, 0, z_displacement - wlsr_height / 2],
+        wlsr_tpb_lv,
+        "wlsr_tpb",
+        b.mother_lv,
+        reg,
+    )
     wlsr_ttx_pv = g4.PhysicalVolume([0, 0, 0], [0, 0, 0], wlsr_ttx_lv, "wlsr_tetratex", wlsr_tpb_lv, reg)
 
     wlsr_ttx_lv.pygeom_color_rgba = [1, 1, 1, 0.2]
