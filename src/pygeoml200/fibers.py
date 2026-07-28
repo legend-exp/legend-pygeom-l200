@@ -548,7 +548,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                 [0, 0, 0],
                 [0, 0, 0],
                 fiber_cl1_bend_lv,
-                f"fiber_{self.barrel}_barrel_cladding1_bend{fiber_name}",
+                f"fiber_{self.barrel}_barrel_cladding1_bend{v_suffix}",
                 self.fiber_cl2_bend_lv,
                 self.b.registry,
             )
@@ -556,7 +556,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                 [0, 0, 0],
                 [0, 0, 0],
                 fiber_core_bend_lv,
-                f"fiber_{self.barrel}_barrel_fibercore_bend{fiber_name}",
+                f"fiber_{self.barrel}_barrel_fibercore_bend{v_suffix}",
                 fiber_cl1_bend_lv,
                 self.b.registry,
             )
@@ -872,7 +872,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
             self.b.registry,
             "mm",
         )
-        dim_cl1 = self.FIBER_DIM - 2 * self.FIBER_THICKNESS_CL1
+        dim_cl1 = self.FIBER_DIM - 2 * self.FIBER_THICKNESS_CL2
         fiber_cl1 = g4.solid.Tubs(
             f"fiber_cl1{v_suffix}",
             self.radius - dim_cl1 / 2,
