@@ -565,7 +565,6 @@ def insert_pmts(
     water_pv: g4.PhysicalVolume,
     acryl_material: g4.Material,
     borosilicate_material: g4.Material,
-    pmt_configuration: str = "LEGEND200",
 ):
     # Photocathode and PMT encapsulation
     acryl = g4.solid.Sphere(
@@ -932,7 +931,6 @@ def insert_muon_veto(
     tank_z_displacement: float,
     cryo_z_displacement: float,
     mats: materials.OpticalMaterialRegistry,
-    pmt_configuration_mv: str = "LEGEND200",
 ):
     water_tank_lv = construct_tank(reg, "G4_STAINLESS-STEEL")
     place_tank(reg, water_tank_lv, world_lv, tank_z_displacement)
@@ -970,6 +968,5 @@ def insert_muon_veto(
         water_pv,
         mats.acryl,
         mats.borosilicate,
-        pmt_configuration_mv,
     )
     return water_lv, water_tank_lv

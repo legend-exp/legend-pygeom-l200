@@ -38,7 +38,6 @@ def dump_gdml_cli(argv: list[str] | None = None) -> None:
 
     registry = core.construct(
         assemblies=args.assemblies,
-        pmt_configuration_mv=args.pmt_config,
         use_detailed_fiber_model=args.fiber_modules == "detailed",
         config=config,
         public_geometry=args.public_geom,
@@ -153,13 +152,6 @@ def _parse_cli_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, 
         choices=("segmented", "detailed"),
         help=f"""Select the fiber shroud model, either coarse segments or single fibers. (default: {fiber_modules_default})""",
     )
-    pmt_config_default = "LEGEND200"
-    geom_opts.add_argument(
-        "--pmt-config",
-        action="store",
-        choices=core.PMT_CONFIGURATIONS,
-        help=f"""Select the PMT configuration of the muon veto. (default: {pmt_config_default})""",
-    )
     geom_opts.add_argument(
         "--public-geom",
         action="store_true",
@@ -202,7 +194,6 @@ def _parse_cli_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, 
     # also load geometry options from config file.
     _config_or_cli_arg(args, config, "assemblies", None)
     _config_or_cli_arg(args, config, "fiber_modules", fiber_modules_default)
-    _config_or_cli_arg(args, config, "pmt_config", pmt_config_default)
     _config_or_cli_arg(args, config, "public_geom", False)
 
     # process assembly list after loading all parameter sources.

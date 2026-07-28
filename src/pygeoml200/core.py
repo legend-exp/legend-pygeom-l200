@@ -21,8 +21,6 @@ configs = TextDB(resources.files("pygeoml200") / "configs" / "extra_meta")
 DEFAULT_ASSEMBLIES = {"wlsr", "strings", "calibration", "fibers", "top"}
 DEFINED_ASSEMBLIES = DEFAULT_ASSEMBLIES | {"watertank"}
 
-PMT_CONFIGURATIONS = {"LEGEND200", "GERDA"}
-
 # default metadata timestamp used to select the channel map and special-geometry metadata.
 DEFAULT_METADATA_TIMESTAMP = "20230311T235840Z"
 
@@ -52,7 +50,6 @@ class InstrumentationData(NamedTuple):
 
 def construct(
     assemblies: list[str] | set[str] = DEFAULT_ASSEMBLIES,
-    pmt_configuration_mv: str = "LEGEND200",
     use_detailed_fiber_model: bool = False,
     config: dict | None = None,
     public_geometry: bool = False,
@@ -60,10 +57,6 @@ def construct(
     """Construct the LEGEND-200 geometry and return the pyg4ometry Registry containing the world volume."""
     if set(assemblies) - set(DEFINED_ASSEMBLIES) != set():
         msg = "invalid geometrical assembly specified"
-        raise ValueError(msg)
-
-    if pmt_configuration_mv not in PMT_CONFIGURATIONS:
-        msg = "invalid pmt configuration specified"
         raise ValueError(msg)
 
     lmeta = None
@@ -112,7 +105,6 @@ def construct(
             tank_z_displacement,
             cryo_z_displacement,
             mats,
-            pmt_configuration_mv,
         )
         cryo_parent = water_lv
 

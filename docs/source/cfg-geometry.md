@@ -25,9 +25,6 @@ assemblies:
 # Select the fiber shroud model, either coarse segments or single fibers.
 fiber_modules: detailed # or "segmented"
 
-# Select the PMT configuration of the muon veto.
-pmt_config: LEGEND200 # or "GERDA"
-
 # If true, build from public testdata only.
 public_geom: false
 
