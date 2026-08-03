@@ -29,7 +29,7 @@ def gdml_file(tmp_path):
 
 def _extract_stats(text):
     pattern = r"average event processing time.*?=\s*([\d.]+)\s*events/second"
-    m = re.search(pattern, text, flags=re.S | re.I)
+    m = re.search(pattern, text, flags=re.DOTALL | re.IGNORECASE)
     assert m is not None
     event_rate = float(m.group(1))
 
@@ -42,7 +42,7 @@ def _extract_stats(text):
     (\d+)\ seconds?
     """
 
-    m = re.search(pattern, text, flags=re.I | re.X)
+    m = re.search(pattern, text, flags=re.IGNORECASE | re.VERBOSE)
     assert m is not None
 
     days, hours, minutes, seconds = map(float, m.groups())
