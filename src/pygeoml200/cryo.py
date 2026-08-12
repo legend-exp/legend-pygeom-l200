@@ -160,7 +160,7 @@ def construct_ullage_argon(gar_material: g4.Material, reg: g4.Registry) -> g4.Lo
         "gaseous_argon",
         0,
         cryo_access_radius,
-        lar_ullage_height - 2 * lar_ullage_safety,
+        lar_ullage_height - 4 * lar_ullage_safety,
         0,
         2 * pi,
         reg,
