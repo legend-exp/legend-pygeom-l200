@@ -533,8 +533,6 @@ def insert_vm2000(
         g4.BorderSurface(name + "_water_border_surface", pv, water_pv, surfaces.vm2000_water_border, reg)
         # water -> VM2000
         g4.BorderSurface("water_" + name + "_border_surface", water_pv, pv, surfaces.vm2000_water_border, reg)
-        # Then the reflection happens at the back of the VM2000 and the WLS happens during transport through the VM2000.
-        g4.SkinSurface(name + "_skin_surface", pv.logicalVolume, surfaces.vm2000_reflective_skin, reg)
 
     _vm2000_surfaces(pillbox_outer_reflection_foil_tube_pv)
     _vm2000_surfaces(pillbox_inner_reflection_foil_tube_pv)
@@ -931,18 +929,18 @@ def insert_muon_veto(
     mats: materials.OpticalMaterialRegistry,
 ):
     water_tank_lv = construct_tank(reg, "G4_STAINLESS-STEEL")
-    place_tank(reg, water_tank_lv, world_lv, tank_z_displacement)
+    water_tank_pv = place_tank(reg, water_tank_lv, world_lv, tank_z_displacement)
 
     water_lv = construct_water(reg, mats.water)
     water_pv = place_water(reg, water_lv, water_tank_lv)
 
-    air_buffer_lv = construct_air_buffer(reg, "G4_AIR")
+    air_buffer_lv = construct_air_buffer(reg, mats.nitrogen_air)
     place_air_buffer(reg, air_buffer_lv, water_lv)
 
     pillbox_lv, manhole_pillbox, manhole_rotation, manhole_offset = construct_pillbox(
         reg, "G4_STAINLESS-STEEL"
     )
-    place_pillbox(reg, pillbox_lv, water_lv)
+    pillbox_pv = place_pillbox(reg, pillbox_lv, water_lv)
 
     insert_vm2000(
         reg,
@@ -956,6 +954,17 @@ def insert_muon_veto(
         cryo_z_displacement,
     )
 
+    # The boundary VM2000 <--> Water is transparent, so we need a skinsurface that reflects
+    # the photons at the water --> steel boundaries
+    # Optical path: Water --> VM2000 --> Water --> Reflection at this surface --> Water --> VM2000 --> Water
+    g4.BorderSurface(
+        "water_tank_surface", water_pv, water_tank_pv, mats.surfaces.vm2000_reflective_border, reg
+    )
+    g4.BorderSurface(
+        "water_pillbox_surface", water_pv, pillbox_pv, mats.surfaces.vm2000_reflective_border, reg
+    )
+    # The water -> Cryo surface has to be in core.py
+
     insert_pmts(
         reg,
         "G4_STAINLESS-STEEL",
@@ -967,4 +976,4 @@ def insert_muon_veto(
         mats.acryl,
         mats.borosilicate,
     )
-    return water_lv, water_tank_lv
+    return water_lv, water_pv, water_tank_lv

@@ -198,9 +198,9 @@ class OpticalSurfaceRegistry:
         return _lar_to_pen
 
     @cached_property
-    def vm2000_reflective_skin(self) -> g4.solid.OpticalSurface:
+    def vm2000_reflective_border(self) -> g4.solid.OpticalSurface:
         """Reflective surface for VM2000."""
-        _vm2000_reflective_skin = g4.solid.OpticalSurface(
+        _vm2000_reflective_border = g4.solid.OpticalSurface(
             name="water_tank_foil_surface",
             finish="polished",
             model="unified",
@@ -209,9 +209,9 @@ class OpticalSurfaceRegistry:
             registry=self.g4_registry,
         )
 
-        pygeomoptics.vm2000.pyg4_vm2000_attach_reflectivity(_vm2000_reflective_skin, self.g4_registry)
+        pygeomoptics.vm2000.pyg4_vm2000_attach_reflectivity(_vm2000_reflective_border, self.g4_registry)
 
-        return _vm2000_reflective_skin
+        return _vm2000_reflective_border
 
     @cached_property
     def vm2000_water_border(self) -> g4.solid.OpticalSurface:

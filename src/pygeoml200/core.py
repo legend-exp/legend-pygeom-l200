@@ -87,7 +87,7 @@ def construct(
         )  # -153
         tank_z_displacement = -cryo_z_displacement
 
-        water_lv, _ = watertank.insert_muon_veto(
+        water_lv, water_pv, _ = watertank.insert_muon_veto(
             reg,
             world_lv,
             tank_z_displacement,
@@ -99,6 +99,11 @@ def construct(
     # Create basic structure with argon and cryostat.
     cryostat_lv = cryo.construct_cryostat(mats.metal_steel, reg)
     cryostat_pv = cryo.place_cryostat(cryostat_lv, cryo_parent, cryo_z_displacement, reg)
+
+    if "watertank" in assemblies:
+        geant4.BorderSurface(
+            "water_cryo_surface", water_pv, cryostat_pv, mats.surfaces.vm2000_reflective_border, reg
+        )
 
     argon_z_displacement = 0  # center argon in cryostat
     lar_lv, lar_neck_height = cryo.construct_argon(mats.liquidargon, reg)
