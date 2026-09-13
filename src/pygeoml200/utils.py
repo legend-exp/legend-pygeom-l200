@@ -11,6 +11,20 @@ from . import core
 
 log = logging.getLogger(__name__)
 
+COLORS = {
+    "steel": (0.5, 0.5, 0.5, 0.05),
+    "water": (0, 0, 1, 0.08),
+    "air": (0.1, 0.1, 0.1, 0.025),
+    "acrylic": (0.9, 0.9, 0.9, 0.05),
+    "vm2000": (0.9, 0.9, 0.9, 0.05),
+    "tetratex": (1, 1, 1, 0.1),
+    # 520 nm. The l200 shroud is far denser than the l1000 curtain, so it needs a lower
+    # alpha than l1000 uses to keep the array behind it visible.
+    "fiber_coating": (0, 1, 0.165, 0.07),
+    "pmt_window": (0.9, 0.8, 0.5, 0.05),
+    "pmt_cathode": (0.545, 0.271, 0.074, 0.05),
+}
+
 
 def _read_model(
     file: str, name: str, material: geant4.Material, b: core.InstrumentationData

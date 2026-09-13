@@ -13,6 +13,7 @@ from pygeomtools import RemageDetectorInfo
 from scipy.spatial.transform import Rotation
 
 from . import core, top
+from .utils import COLORS
 
 
 def place_fiber_modules(
@@ -612,7 +613,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
             self.b.registry,
         )
 
-        coating_lv.pygeom_color_rgba = [0, 1, 0.165, 0.07]  # 520 nm
+        coating_lv.pygeom_color_rgba = COLORS["fiber_coating"]
 
         return coating_lv
 
@@ -1007,7 +1008,7 @@ class ModuleFactorySegment(ModuleFactoryBase):
             self.b.registry,
         )
 
-        coating_lv.pygeom_color_rgba = [0, 1, 0.165, 0.07]  # 520 nm
+        coating_lv.pygeom_color_rgba = COLORS["fiber_coating"]
 
         return coating_lv
 

@@ -14,6 +14,8 @@ from math import pi
 import pyg4ometry.geant4 as g4
 from pygeomtools import RemageDetectorInfo
 
+from .utils import COLORS
+
 cryo_radius = 3976 / 2
 cryo_wall = 12
 cryo_tub_height = 3900
@@ -87,7 +89,7 @@ def place_cryostat(
     cryostat_pv = g4.PhysicalVolume(
         [0, 0, 0], [0, 0, cryostat_displacement_z], cryostat_lv, "cryostat_steel", wl, reg
     )
-    cryostat_lv.pygeom_color_rgba = False
+    cryostat_lv.pygeom_color_rgba = COLORS["steel"]
     return cryostat_pv
 
 

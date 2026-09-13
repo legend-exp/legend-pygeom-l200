@@ -18,6 +18,7 @@ from math import pi
 import pyg4ometry.geant4 as g4
 
 from . import core, materials
+from .utils import COLORS
 
 wlsr_tpb_radius = 1374 / 2
 wlsr_ttx_thickness = 254 * 1e-3  # 254 um Tetratex foil
@@ -96,7 +97,7 @@ def place_wlsr(
         [0, 0, 0], [0, 0, 0], wlsr_ttx_lv, "wlsr_tetratex", wlsr_tpb_lv, b.registry
     )
 
-    wlsr_ttx_lv.pygeom_color_rgba = [1, 1, 1, 0.2]
+    wlsr_ttx_lv.pygeom_color_rgba = COLORS["tetratex"]
     wlsr_tpb_lv.pygeom_color_rgba = False
     wlsr_outer_lv.pygeom_color_rgba = False
 
