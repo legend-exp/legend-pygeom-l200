@@ -12,6 +12,7 @@ from pygeomtools import RemageDetectorInfo
 from scipy.spatial.transform import Rotation
 
 from . import cryo, materials
+from .utils import COLORS
 
 pmt_id = np.array(
     [
@@ -244,7 +245,7 @@ def construct_tank(reg: g4.Registry, tank_material: g4.Material) -> g4.LogicalVo
     )
 
     tank_lv = g4.LogicalVolume(water_tank_wall, tank_material, "water_tank_lv", reg)
-    tank_lv.pygeom_color_rgba = False
+    tank_lv.pygeom_color_rgba = COLORS["steel"]
     return tank_lv
 
 
@@ -260,7 +261,7 @@ def place_tank(
 def construct_water(reg: g4.Registry, water_material: g4.Material) -> g4.LogicalVolume:
     water_solid = g4.solid.Tubs("water_solid", inner_radius, water_radius, water_height, 0, 2 * pi, reg)
     water_lv = g4.LogicalVolume(water_solid, water_material, "water_lv", reg)
-    water_lv.pygeom_color_rgba = [0, 0, 1, 0.2]
+    water_lv.pygeom_color_rgba = COLORS["water"]
     return water_lv
 
 
@@ -278,7 +279,9 @@ def construct_air_buffer(reg: g4.Registry, air_material: g4.Material) -> g4.Logi
         2 * pi,
         reg,
     )
-    return g4.LogicalVolume(air_buffer, air_material, "air_buffer_lv", reg)
+    air_buffer_lv = g4.LogicalVolume(air_buffer, air_material, "air_buffer_lv", reg)
+    air_buffer_lv.pygeom_color_rgba = COLORS["air"]
+    return air_buffer_lv
 
 
 def place_air_buffer(
@@ -349,6 +352,7 @@ def construct_pillbox(reg: g4.Registry, pillbox_material: g4.Material | str) -> 
         reg,
     )
     pillbox_lv = g4.LogicalVolume(pillbox, pillbox_material, "pillbox_lv", reg)
+    pillbox_lv.pygeom_color_rgba = COLORS["steel"]
 
     return pillbox_lv, manhole_pillbox, manhole_rotation, man_hole_offset
 
@@ -383,6 +387,7 @@ def insert_vm2000(
     water_tank_reflection_foil_tube_lv = g4.LogicalVolume(
         water_tank_reflection_foil_tube, vm2000_material, "water_tank_reflection_foil_tube_lv", reg
     )
+    water_tank_reflection_foil_tube_lv.pygeom_color_rgba = COLORS["vm2000"]
     water_tank_reflection_foil_tube_pv = g4.PhysicalVolume(
         [0, 0, 0],
         [0, 0, 0],
@@ -405,6 +410,7 @@ def insert_vm2000(
     water_tank_reflection_foil_bottom_lv = g4.LogicalVolume(
         water_tank_reflection_foil_bottom, vm2000_material, "water_tank_reflection_foil_bottom_lv", reg
     )
+    water_tank_reflection_foil_bottom_lv.pygeom_color_rgba = COLORS["vm2000"]
     water_tank_reflection_foil_bottom_pv = g4.PhysicalVolume(
         [0, 0, 0],
         [0, 0, bottom_foil_offset],
@@ -435,6 +441,7 @@ def insert_vm2000(
     pillbox_outer_reflection_foil_tube_lv = g4.LogicalVolume(
         pillbox_outer_reflection_foil_tube, vm2000_material, "pillbox_outer_reflection_foil_tube_lv", reg
     )
+    pillbox_outer_reflection_foil_tube_lv.pygeom_color_rgba = COLORS["vm2000"]
     pillbox_outer_reflection_foil_tube_pv = g4.PhysicalVolume(
         [0, 0, 0],
         [0, 0, pillbox_offset],
@@ -464,6 +471,7 @@ def insert_vm2000(
     pillbox_inner_reflection_foil_tube_lv = g4.LogicalVolume(
         pillbox_inner_reflection_foil_tube, vm2000_material, "pillbox_inner_reflection_foil_tube_lv", reg
     )
+    pillbox_inner_reflection_foil_tube_lv.pygeom_color_rgba = COLORS["vm2000"]
     pillbox_inner_reflection_foil_tube_pv = g4.PhysicalVolume(
         [0, 0, 0],
         [0, 0, pillbox_offset + 1e-9],
@@ -486,6 +494,7 @@ def insert_vm2000(
     pillbox_reflection_foil_top_lv = g4.LogicalVolume(
         pillbox_reflection_foil_top, vm2000_material, "pillbox_reflection_foil_top_lv", reg
     )
+    pillbox_reflection_foil_top_lv.pygeom_color_rgba = COLORS["vm2000"]
     pillbox_reflection_foil_top_pv = g4.PhysicalVolume(
         [0, 0, 0],
         [0, 0, bottom_foil_offset + cryo_bottom_height - reflective_foil_thickness],
@@ -517,6 +526,7 @@ def insert_vm2000(
     cryo_reflection_foil_lv = g4.LogicalVolume(
         cryo_reflection_foil, vm2000_material, "cryo_reflection_foil_lv", reg
     )
+    cryo_reflection_foil_lv.pygeom_color_rgba = COLORS["vm2000"]
     cryo_reflection_foil_pv = g4.PhysicalVolume(
         [0, 0, 0],
         [0, 0, cryo_displacement_z],
@@ -621,6 +631,7 @@ def insert_pmts(
         reg,
     )
     pmt_steel_cone_lv = g4.LogicalVolume(pmt_steel_cone, pmt_steel_material, "pmt_steel_cone_lv", reg)
+    pmt_steel_cone_lv.pygeom_color_rgba = COLORS["steel"]
     g4.SkinSurface("pmt_cone_optical_surface", pmt_steel_cone_lv, optical_steel_surface, reg)
 
     # PMT encapsulation bottom for Cherenkov veto
@@ -634,6 +645,7 @@ def insert_pmts(
         reg,
     )
     pmt_steel_bottom_lv = g4.LogicalVolume(pmt_steel_bottom, pmt_steel_material, "pmt_steel_bottom_lv", reg)
+    pmt_steel_bottom_lv.pygeom_color_rgba = COLORS["steel"]
     g4.SkinSurface("pmt_bottom_optical_surface", pmt_steel_bottom_lv, optical_steel_surface, reg)
 
     def build_pmt(
@@ -671,6 +683,7 @@ def insert_pmts(
 
         # PMT first has acryl, then air, then borosilikat glass, then photocathode
         acryl_lv = g4.LogicalVolume(acryl, acryl_material, name_pmt_acryl_lv, reg)
+        acryl_lv.pygeom_color_rgba = COLORS["acrylic"]
         # Place at different height depending if this is a wall pmt which specifies a zpos
         g4.PhysicalVolume(
             [x_rot, y_rot, z_rot],
@@ -682,11 +695,14 @@ def insert_pmts(
         )
 
         pmt_air_lv = g4.LogicalVolume(pmt_air, pmt_air_material, name_pmt_air_lv, reg)
+        # the air would fill the PMT no matter how transparent the glass around it is
+        pmt_air_lv.pygeom_color_rgba = False
         g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pmt_air_lv, name_pmt_air, acryl_lv, reg)
 
         borosilikat_lv = g4.LogicalVolume(
             pmt_borosilikat_glass, borosilicate_material, name_pmt_borosilikat_lv, reg
         )
+        borosilikat_lv.pygeom_color_rgba = COLORS["pmt_window"]
         g4.PhysicalVolume(
             [0, 0, 0],
             [0, 0, 0],
@@ -696,6 +712,7 @@ def insert_pmts(
             reg,
         )
         photocathode_lv = g4.LogicalVolume(photocathode, cathode_al, namephotocathode_lv, reg)
+        photocathode_lv.pygeom_color_rgba = COLORS["pmt_cathode"]
         if broken:
             g4.PhysicalVolume([0, 0, 0], [0, 0, 0], photocathode_lv, namephotocathode, borosilikat_lv, reg)
         else:

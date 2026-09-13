@@ -72,7 +72,8 @@ def export_image(fn: str, extra: dict) -> None:
     vis_scene = {
         "window_size": extra.get("window_size", [400, 700]),
         "default": vis_default,
-        "color_overrides": {"lar": False, **extra.get("overrides", {})},
+        # none of these renderings show the cryostat, which now carries a (faint) color of its own
+        "color_overrides": {"lar": False, "cryostat_steel": False, **extra.get("overrides", {})},
         "export_scale": 1,
         "export_and_exit": f"source/images/{fn}.png",
     }
