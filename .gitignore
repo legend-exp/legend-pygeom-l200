@@ -168,3 +168,4 @@ cython_debug/
 # pixi environments
 .pixi/*
 !.pixi/config.toml
+pixi.lock
