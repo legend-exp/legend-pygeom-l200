@@ -161,10 +161,15 @@ def test_special(change_dir, tmp_path):
     assert ch_count["germanium"] == 0  # no germanium in channelmap.
     assert ch_count["optical"] == 2 * 9 + 20 * (1 + 81)  # 2*IB + OB*(top+bottom)
 
-    # we should have only short hangers and wrapped counterweights.
+    # we should have only short hangers and wrapped counterweights. string 2 has no detectors and is not
+    # marked as empty, so it gets a short hanger too.
     assert "counterweight_wrapped" in reg.solidDict
     assert "hpge_string_support_hanger_copper_short" in reg.logicalVolumeDict
     assert "hpge_string_support_hanger_copper" not in reg.logicalVolumeDict
+    hangers = [
+        name for name in reg.physicalVolumeDict if name.startswith("hpge_string_support_hanger_copper_string")
+    ]
+    assert len(hangers) == 12
 
 
 def test_coordinates():
