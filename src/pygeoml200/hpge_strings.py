@@ -65,23 +65,19 @@ def place_hpge_strings(hpge_metadata: TextDB, b: core.InstrumentationData) -> No
 
     log.info("Total HPGe mass %.2f kg", mass_total)
 
-    for string_id, string_meta in b.special_metadata.hpge_string.items():
-        if string_meta.get("empty_string_content") is None:
-            continue
-        if string_id in strings_to_build:
-            msg = f"string {string_id} has empty_string_content and detectors"
-            raise RuntimeError(msg)
-        _place_empty_string(string_id, b)
-
-    # now, build all strings.
-    for string_id, string in strings_to_build.items():
-        _place_hpge_string(string_id, string, b)
-
     # every string position has a holder. a string without detectors that is not marked as empty gets
     # the short hanger of an empty string.
     for string_id, string_meta in b.special_metadata.hpge_string.items():
-        if string_id not in strings_to_build and string_meta.get("empty_string_content") is None:
-            _place_empty_string(string_id, b)
+        if string_id in strings_to_build:
+            if string_meta.get("empty_string_content") is not None:
+                msg = f"string {string_id} has empty_string_content and detectors"
+                raise RuntimeError(msg)
+            continue
+        _place_empty_string(string_id, b)
+
+    # now, build all strings with detectors.
+    for string_id, string in strings_to_build.items():
+        _place_hpge_string(string_id, string, b)
 
     # solid copper slabs for the front-end electronics below the top plate. lengths in mm. a string at
     # angle a and radius r sits at x = r cos(a), y = -r sin(a).
