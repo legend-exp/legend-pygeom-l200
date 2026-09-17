@@ -12,7 +12,7 @@ from pygeomhpges import make_hpge
 from pygeomtools import RemageDetectorInfo
 from scipy.spatial.transform import Rotation
 
-from . import core, materials
+from . import core, materials, top
 from .metadata import fixup_enrichment
 from .utils import _read_model
 
@@ -65,17 +65,71 @@ def place_hpge_strings(hpge_metadata: TextDB, b: core.InstrumentationData) -> No
 
     log.info("Total HPGe mass %.2f kg", mass_total)
 
+    # every string position has a holder. a string without detectors that is not marked as empty gets
+    # the short hanger of an empty string.
     for string_id, string_meta in b.special_metadata.hpge_string.items():
-        if string_meta.get("empty_string_content") is None:
-            continue
         if string_id in strings_to_build:
-            msg = f"string {string_id} has empty_string_content and detectors"
-            raise RuntimeError(msg)
+            if string_meta.get("empty_string_content") is not None:
+                msg = f"string {string_id} has empty_string_content and detectors"
+                raise RuntimeError(msg)
+            continue
         _place_empty_string(string_id, b)
 
-    # now, build all strings.
+    # now, build all strings with detectors.
     for string_id, string in strings_to_build.items():
         _place_hpge_string(string_id, string, b)
+
+    # add electronics boards to the strings: solid copper slabs below the top plate.
+    # HV boards: 85 radial x 8 tangential x 80 high
+    hv_board_height = 80
+    hv_board = geant4.solid.Box("hpge_string_hv_board_copper", 85, 8, hv_board_height, b.registry)
+    hv_board = geant4.LogicalVolume(
+        hv_board, b.materials.metal_copper, "hpge_string_hv_board_copper", b.registry
+    )
+    hv_board.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
+
+    # the board touches the hanger rod, which extends 2 + 2 sqrt(3) from the string axis towards the board
+    # in this z range.
+    hv_offset = 2 + 2 * math.sqrt(3) + 8 / 2 + 1e-6  # the extra 1e-6 avoids a shared surface.
+    hv_board_top = b.top_plate_z_pos - 104.47  # from CAD
+    hv_angles = {}
+    for string_id, string_meta in b.special_metadata.hpge_string.items():
+        angle = math.pi * string_meta.angle_in_deg / 180
+        hv_angles[string_id] = angle - math.atan2(hv_offset, string_meta.radius_in_mm)
+        # the tangential unit vector points towards smaller angles.
+        radial = np.array([math.cos(angle), -math.sin(angle)])
+        tangential = np.array([math.sin(angle), math.cos(angle)])
+        x_pos, y_pos = string_meta.radius_in_mm * radial + hv_offset * tangential
+        # the rotation acts on the mother frame. it turns the board length to the radial direction.
+        geant4.PhysicalVolume(
+            [0, 0, angle],
+            [x_pos, y_pos, hv_board_top - hv_board_height / 2],
+            hv_board,
+            f"hpge_string_hv_board_copper_string{string_id}",
+            b.mother_lv,
+            b.registry,
+        )
+
+    # CC4 boards: 100 radial x 25 tangential x 62.5 high. they hang from the top plate, halfway between
+    # the HV boards of neighbouring strings, with the outer end at r = 282. the extra 1e-6 avoids a
+    # surface shared with the top plate.
+    z_top = b.top_plate_z_pos - top.TOP_PLATE_THICKNESS - 1e-6
+    cc4_board = geant4.solid.Box("hpge_string_cc4_board_copper", 100, 25, 62.5, b.registry)
+    cc4_board = geant4.LogicalVolume(
+        cc4_board, b.materials.metal_copper, "hpge_string_cc4_board_copper", b.registry
+    )
+    cc4_board.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
+    order = sorted(hv_angles, key=lambda s: hv_angles[s] % (2 * math.pi))
+    for s1, s2 in zip(order, order[1:] + order[:1], strict=True):
+        angle = hv_angles[s1] + ((hv_angles[s2] - hv_angles[s1]) % (2 * math.pi)) / 2
+        geant4.PhysicalVolume(
+            [0, 0, angle],
+            [(282 - 100 / 2) * math.cos(angle), -(282 - 100 / 2) * math.sin(angle), z_top - 62.5 / 2],
+            cc4_board,
+            f"hpge_string_cc4_board_copper_string{s1}_{s2}",
+            b.mother_lv,
+            b.registry,
+        )
 
 
 @dataclass
@@ -592,7 +646,7 @@ def _place_empty_string(string_id: int, b: core.InstrumentationData):
         )
 
     # add the optional steel counterweight to the empty string.
-    string_content = string_meta.get("empty_string_content", [])
+    string_content = string_meta.get("empty_string_content") or []
     if len(string_content) == 0:
         return
     if len(string_content) != 1 or string_content[0] not in ("counterweight", "counterweight_ttx"):
