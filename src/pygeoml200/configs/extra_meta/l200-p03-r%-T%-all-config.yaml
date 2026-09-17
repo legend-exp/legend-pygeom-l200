@@ -14,7 +14,7 @@ hpge_string:
     angle_in_deg: 120
     minishroud_radius_in_mm: 44.0
     # cut to make room for the HV board. the cut length is an estimate.
-    minishroud_delta_length_in_mm: -75
+    minishroud_delta_length_in_mm: -120
     rod_radius_in_mm: 39.5
   4:
     radius_in_mm: 222
