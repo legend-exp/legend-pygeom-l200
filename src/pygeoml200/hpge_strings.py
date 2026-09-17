@@ -79,20 +79,19 @@ def place_hpge_strings(hpge_metadata: TextDB, b: core.InstrumentationData) -> No
     for string_id, string in strings_to_build.items():
         _place_hpge_string(string_id, string, b)
 
-    # solid copper slabs for the front-end electronics below the top plate. lengths in mm. a string at
-    # angle a and radius r sits at x = r cos(a), y = -r sin(a).
-    #
-    # HV boards: 85 radial x 8 tangential x 80 high, one per string. the lower end is 270 above the top
-    # face of the tristar, which is at top_plate - 410.1. the board touches the hanger rod, which extends
-    # 2 + 2 sqrt(3) from the string axis towards the board in this z range. the extra 1e-6 avoids a
-    # shared surface.
-    hv_offset = 2 + 2 * math.sqrt(3) + 8 / 2 + 1e-6
-    hv_bottom = b.top_plate_z_pos - 410.1 + 270
-    hv_board = geant4.solid.Box("hpge_string_hv_board_copper", 85, 8, 80, b.registry)
+    # add electronics boards to the strings: solid copper slabs below the top plate.
+    # HV boards: 85 radial x 8 tangential x 80 high
+    hv_board_height = 80
+    hv_board = geant4.solid.Box("hpge_string_hv_board_copper", 85, 8, hv_board_height, b.registry)
     hv_board = geant4.LogicalVolume(
         hv_board, b.materials.metal_copper, "hpge_string_hv_board_copper", b.registry
     )
     hv_board.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
+
+    # the board touches the hanger rod, which extends 2 + 2 sqrt(3) from the string axis towards the board
+    # in this z range.
+    hv_offset = 2 + 2 * math.sqrt(3) + 8 / 2 + 1e-6  # the extra 1e-6 avoids a shared surface.
+    hv_board_top = b.top_plate_z_pos - 104.47  # from CAD
     hv_angles = {}
     for string_id, string_meta in b.special_metadata.hpge_string.items():
         angle = math.pi * string_meta.angle_in_deg / 180
@@ -104,7 +103,7 @@ def place_hpge_strings(hpge_metadata: TextDB, b: core.InstrumentationData) -> No
         # the rotation acts on the mother frame. it turns the board length to the radial direction.
         geant4.PhysicalVolume(
             [0, 0, angle],
-            [x_pos, y_pos, hv_bottom + 80 / 2],
+            [x_pos, y_pos, hv_board_top - hv_board_height / 2],
             hv_board,
             f"hpge_string_hv_board_copper_string{string_id}",
             b.mother_lv,
