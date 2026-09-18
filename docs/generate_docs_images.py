@@ -73,7 +73,12 @@ def export_image(fn: str, extra: dict) -> None:
         "window_size": extra.get("window_size", [400, 700]),
         "default": vis_default,
         # none of these renderings show the cryostat, which now carries a (faint) color of its own
-        "color_overrides": {"lar": False, "cryostat_steel": False, **extra.get("overrides", {})},
+        "color_overrides": {
+            "lar": False,
+            "cryostat_outer_wall": False,
+            "cryostat_inner_wall": False,
+            **extra.get("overrides", {}),
+        },
         "export_scale": 1,
         "export_and_exit": f"source/images/{fn}.png",
     }
