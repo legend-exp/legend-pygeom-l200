@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 import warnings
-from math import pi
+from math import pi, sqrt
 
 import numpy as np
 import pyg4ometry.geant4 as g4
@@ -135,43 +135,55 @@ pmt_rawids = np.array(
 water_tank_thickness = 7.0
 inner_tank_height = 8900.0
 inner_radius = 0.0
-water_radius = 5000.0
-water_height = inner_tank_height - 2 * water_tank_thickness
 
 # Reflective foil
 reflective_foil_thickness = 0.04
 
-# Pillbox
-shielding_foot_or = 2000.0
-shielding_foot_thickness = 1.2
-shielding_foot_ir = shielding_foot_or - shielding_foot_thickness
+# The tank cavity is lined with VM2000, and the water sits inside that liner.
+water_tank_inner_radius = 5000.0
+water_tank_inner_height = inner_tank_height - 2 * water_tank_thickness
+water_radius = water_tank_inner_radius - reflective_foil_thickness
+water_height = water_tank_inner_height - 2 * reflective_foil_thickness
 
-# Get the distance between Water bottom and cryo bottom
+# Pillbox: the cylindrical skirt the cryostat stands on. [Knoepfle2022]_ gives "12 mm thick
+# stainless steel [holding] the cryostat 1280 mm above floor", the drawing "ø4200 x 12".
+shielding_foot_or = cryo.cryo_outer_radius
+shielding_foot_thickness = 12.0
+shielding_foot_ir = shielding_foot_or - shielding_foot_thickness
+manhole_outer_radius = 400.0
+cryo_clearance = 1280.0  # water floor to the lowest point of the cryostat
+
+# The skirt is welded to the outer vessel where its cylindrical shell ends, and the bottom head
+# then curves away *inside* it. Stop it just below
+# the point where the head, foil included, has narrowed clear of the skirt's inner surface.
+pillbox_head_clearance = 0.5  # radial play between the skirt and the bottom head.
+_head_clear_radius = (
+    shielding_foot_ir - 2 * reflective_foil_thickness - pillbox_head_clearance
+)  # skirt bore, its own liner, the cryostat's foil, and the play in between
 cryo_bottom_height = (
-    (water_height / 2)  # The distance from bottom to the center (0,0,0) of the water
-    + (
-        water_height / 2  # This is the cryo z-displacement. The cryo center is shifted this much up/down
-        - cryo.cryo_access_height
-        - (cryo.cryo_tub_height / 2 + cryo.cryo_top_height)
-        - cryo.access_overlap / 2
-    )
-    - (
-        cryo.cryo_tub_height / 2
-    )  # The lower part of the cryo is shifted this much down compared to the center
-    - (cryo.cryo_bottom_height + cryo.cryo_wall)  # This is the (half)-height of the cryo bottom
-    - 1e-8
+    cryo_clearance
+    + cryo.cryo_outer_bottom_height
+    - cryo.cryo_outer_bottom_height * sqrt(1 - (_head_clear_radius / cryo.cryo_outer_radius) ** 2)
+    - reflective_foil_thickness  # the skirt's wrapper reaches one foil thickness higher
 )
-pillbox_offset = -water_height / 2 + 0.5 * cryo_bottom_height + 1e-9
+
+# This is what fixes the water tank in the world
+cryo_z_displacement = (
+    -water_height / 2 + cryo_clearance + reflective_foil_thickness - cryo.cryo_outer_bottom_z
+)
+# centre of the pillbox's VM2000 wrapper, which stands on the water floor and is one foil
+# thickness taller than the skirt at each end (the skirt sits inside it).
+pillbox_foil_height = cryo_bottom_height + 2 * reflective_foil_thickness
+pillbox_offset = -water_height / 2 + 0.5 * pillbox_foil_height + 1e-9
 
 # Air buffer
 outer_water_tank_radius = water_radius + water_tank_thickness
-air_buffer_radius = water_radius - reflective_foil_thickness - 1e-9
+air_buffer_radius = water_radius - 1e-9
 air_buffer_height = 486.0
 
 
 # z-axis Offsets
 air_buffer_offset = 0.5 * (water_height - air_buffer_height)
-bottom_foil_offset = -0.5 * water_height + 0.5 * reflective_foil_thickness + 1e-9
 
 
 # PMTs
@@ -258,6 +270,28 @@ def place_tank(
     return g4.PhysicalVolume([0, 0, 0], [0, 0, tank_offset], water_tank_lv, "water_tank", world_lv, reg)
 
 
+def construct_tank_foil(reg: g4.Registry, vm2000_material: g4.Material) -> g4.LogicalVolume:
+    """VM2000 lining the whole tank cavity; the water is placed inside it."""
+    foil = g4.solid.Tubs(
+        "water_tank_reflection_foil",
+        inner_radius,
+        water_tank_inner_radius,
+        water_tank_inner_height,
+        0,
+        2 * pi,
+        reg,
+    )
+    foil_lv = g4.LogicalVolume(foil, vm2000_material, "water_tank_reflection_foil_lv", reg)
+    foil_lv.pygeom_color_rgba = COLORS["vm2000"]
+    return foil_lv
+
+
+def place_tank_foil(
+    reg: g4.Registry, foil_lv: g4.LogicalVolume, tank_lv: g4.LogicalVolume
+) -> g4.PhysicalVolume:
+    return g4.PhysicalVolume([0, 0, 0], [0, 0, 0], foil_lv, "water_tank_reflection_foil_pv", tank_lv, reg)
+
+
 def construct_water(reg: g4.Registry, water_material: g4.Material) -> g4.LogicalVolume:
     water_solid = g4.solid.Tubs("water_solid", inner_radius, water_radius, water_height, 0, 2 * pi, reg)
     water_lv = g4.LogicalVolume(water_solid, water_material, "water_lv", reg)
@@ -265,14 +299,16 @@ def construct_water(reg: g4.Registry, water_material: g4.Material) -> g4.Logical
     return water_lv
 
 
-def place_water(reg: g4.Registry, water_lv: g4.LogicalVolume, tank_lv: g4.LogicalVolume) -> g4.PhysicalVolume:
-    return g4.PhysicalVolume([0, 0, 0], [0, 0, 0], water_lv, "water_pv", tank_lv, reg)
+def place_water(
+    reg: g4.Registry, water_lv: g4.LogicalVolume, tank_foil_lv: g4.LogicalVolume
+) -> g4.PhysicalVolume:
+    return g4.PhysicalVolume([0, 0, 0], [0, 0, 0], water_lv, "water_pv", tank_foil_lv, reg)
 
 
 def construct_air_buffer(reg: g4.Registry, air_material: g4.Material) -> g4.LogicalVolume:
     air_buffer = g4.solid.Tubs(
         "air_buffer",
-        cryo.cryo_access_radius + cryo.cryo_access_wall + 1e-9,
+        cryo.cryo_access_outer_radius + reflective_foil_thickness + 1e-9,
         air_buffer_radius,
         air_buffer_height,
         0,
@@ -292,8 +328,18 @@ def place_air_buffer(
     )
 
 
-def construct_pillbox(reg: g4.Registry, pillbox_material: g4.Material | str) -> g4.LogicalVolume:
-    manhole_outer_radius = 400.0
+def _manhole_solid(name: str, radius: float, reg: g4.Registry) -> g4.solid.Union:
+    """The arch-shaped manhole cut-out: a half-cylinder on a rectangle."""
+    # Make the subtractions slightly deeper than the pillbox depth for sanity
+    height = 2 * (shielding_foot_or + reflective_foil_thickness + 1)
+    arc = g4.solid.Tubs(name + "_arc", 0, radius, height, 0, 2 * math.pi, reg)
+    box = g4.solid.Box(name + "_box", 2 * radius, radius, height, reg)
+    return g4.solid.Union(name, arc, box, [[0, 0, 0], [0, -0.5 * radius, 0]], reg)
+
+
+def construct_pillbox(
+    reg: g4.Registry, pillbox_material: g4.Material | str
+) -> tuple[g4.LogicalVolume, list, float]:
     x_rot_drehvol = 0
     y_rot_drehvol = np.pi / 2.0
     z_rot_drehvol = np.pi / 2.0
@@ -321,26 +367,8 @@ def construct_pillbox(reg: g4.Registry, pillbox_material: g4.Material | str) -> 
         reg,
     )  # outer steel cylinder
 
-    # Define parameters for the semi-cylinder (half-tube) for the manhole
-    manhole_inner_radius = 0  # No inner radius for the manhole
-    manhole_height = 2 * (shielding_foot_or + reflective_foil_thickness)
-    manhole_angle = math.pi  # Half-circle (180 degrees), 360 degrees for safety
-
-    # Create the half-tube (semi-cylinder) for the manhole
-    manhole_pillbox_arc = g4.solid.Tubs(
-        "manhole_pillbox", manhole_inner_radius, manhole_outer_radius, manhole_height, 0, manhole_angle, reg
-    )
-    manholepillbox_box = g4.solid.Box(
-        "manholepillbox_box", 2 * manhole_outer_radius, manhole_outer_radius, manhole_height, reg
-    )
-
-    # Position the manhole (half-tube) along the x-axis
-    # Rotate the manhole to align it with the x-axis (rotating by 90 degrees around the y-axis)
     manhole_rotation = [x_rot_global, y_rot_global, z_rot_global]
-    union_transform = [[0, 0, 0], [0, -0.5 * manhole_outer_radius, 0]]
-    manhole_pillbox = g4.solid.Union(
-        "manhole_union", manhole_pillbox_arc, manholepillbox_box, union_transform, reg
-    )
+    manhole_pillbox = _manhole_solid("manhole_union", manhole_outer_radius, reg)
 
     # Subtract the manhole (half-tube) from the pillbox
     man_hole_offset = 0.5 * cryo_bottom_height - manhole_outer_radius
@@ -354,13 +382,14 @@ def construct_pillbox(reg: g4.Registry, pillbox_material: g4.Material | str) -> 
     pillbox_lv = g4.LogicalVolume(pillbox, pillbox_material, "pillbox_lv", reg)
     pillbox_lv.pygeom_color_rgba = COLORS["steel"]
 
-    return pillbox_lv, manhole_pillbox, manhole_rotation, man_hole_offset
+    return pillbox_lv, manhole_rotation, man_hole_offset
 
 
 def place_pillbox(
-    reg: g4.Registry, pillbox_lv: g4.LogicalVolume, water_lv: g4.LogicalVolume
+    reg: g4.Registry, pillbox_lv: g4.LogicalVolume, pillbox_foil_lv: g4.LogicalVolume
 ) -> g4.PhysicalVolume:
-    return g4.PhysicalVolume([0, 0, 0], [0, 0, pillbox_offset], pillbox_lv, "pillbox_pv", water_lv, reg)
+    """The skirt sits inside its VM2000 wrapper, which is already at ``pillbox_offset``."""
+    return g4.PhysicalVolume([0, 0, 0], [0, 0, 0], pillbox_lv, "pillbox_pv", pillbox_foil_lv, reg)
 
 
 def insert_vm2000(
@@ -369,159 +398,56 @@ def insert_vm2000(
     surfaces: materials.surfaces.OpticalSurfaceRegistry,
     water_lv: g4.LogicalVolume,
     water_pv: g4.PhysicalVolume,
-    manhole_pillbox: g4.solid.Union,
     manhole_rotation: list,
     man_hole_offset: float,
     cryo_displacement_z: float,
 ) -> tuple[g4.PhysicalVolume, ...]:
-    # VM2000 at inside of water tank tube
-    water_tank_reflection_foil_tube = g4.solid.Tubs(
-        "water_tank_reflection_foil_tube",
-        water_radius - reflective_foil_thickness,
-        water_radius - 1e-9,
-        water_height - 2e-9,
-        0,
-        2 * pi,
-        reg,
-    )
-    water_tank_reflection_foil_tube_lv = g4.LogicalVolume(
-        water_tank_reflection_foil_tube, vm2000_material, "water_tank_reflection_foil_tube_lv", reg
-    )
-    water_tank_reflection_foil_tube_lv.pygeom_color_rgba = COLORS["vm2000"]
-    water_tank_reflection_foil_tube_pv = g4.PhysicalVolume(
-        [0, 0, 0],
-        [0, 0, 0],
-        water_tank_reflection_foil_tube_lv,
-        "water_tank_reflection_foil_tube_pv",
-        water_lv,
-        reg,
-    )
-
-    # VM2000 at bottom of water tank tube
-    water_tank_reflection_foil_bottom = g4.solid.Tubs(
-        "water_tank_reflection_foil_bottom",
-        shielding_foot_or + reflective_foil_thickness + 1e-9,
-        water_radius - reflective_foil_thickness - 1e-9,
-        reflective_foil_thickness,
-        0,
-        2 * pi,
-        reg,
-    )
-    water_tank_reflection_foil_bottom_lv = g4.LogicalVolume(
-        water_tank_reflection_foil_bottom, vm2000_material, "water_tank_reflection_foil_bottom_lv", reg
-    )
-    water_tank_reflection_foil_bottom_lv.pygeom_color_rgba = COLORS["vm2000"]
-    water_tank_reflection_foil_bottom_pv = g4.PhysicalVolume(
-        [0, 0, 0],
-        [0, 0, bottom_foil_offset],
-        water_tank_reflection_foil_bottom_lv,
-        "water_tank_reflection_foil_bottom_pv",
-        water_lv,
-        reg,
-    )
-
-    # Pillbox
-    # VM2000 at outside of Pillbox
-    pillbox_outer_reflection_foil_tube_subtraction1 = g4.solid.Tubs(
-        "pillbox_outer_reflection_foil_tube_subtraction1",
-        shielding_foot_or + 1e-9,
+    # Pillbox: one VM2000 wrapper with the skirt placed inside it (see place_pillbox). The
+    # manhole cut in the foil is one foil thickness smaller, so the foil wraps around the
+    # opening's edge instead of sharing a face with the steel.
+    pillbox_reflection_foil_tube = g4.solid.Tubs(
+        "pillbox_reflection_foil_tube",
+        shielding_foot_ir - reflective_foil_thickness,
         shielding_foot_or + reflective_foil_thickness,
-        cryo_bottom_height,
+        pillbox_foil_height,
         0,
         2 * pi,
         reg,
     )
-    pillbox_outer_reflection_foil_tube = g4.solid.Subtraction(
-        "pillbox_outer_reflection_foil_tube",
-        pillbox_outer_reflection_foil_tube_subtraction1,
-        manhole_pillbox,
+    pillbox_reflection_foil = g4.solid.Subtraction(
+        "pillbox_reflection_foil",
+        pillbox_reflection_foil_tube,
+        _manhole_solid("manhole_foil", manhole_outer_radius - reflective_foil_thickness, reg),
         [manhole_rotation, [0, 0, 0 - man_hole_offset]],
         reg,
     )
-    pillbox_outer_reflection_foil_tube_lv = g4.LogicalVolume(
-        pillbox_outer_reflection_foil_tube, vm2000_material, "pillbox_outer_reflection_foil_tube_lv", reg
+    pillbox_reflection_foil_lv = g4.LogicalVolume(
+        pillbox_reflection_foil, vm2000_material, "pillbox_reflection_foil_lv", reg
     )
-    pillbox_outer_reflection_foil_tube_lv.pygeom_color_rgba = COLORS["vm2000"]
-    pillbox_outer_reflection_foil_tube_pv = g4.PhysicalVolume(
+    pillbox_reflection_foil_lv.pygeom_color_rgba = COLORS["vm2000"]
+    pillbox_reflection_foil_pv = g4.PhysicalVolume(
         [0, 0, 0],
         [0, 0, pillbox_offset],
-        pillbox_outer_reflection_foil_tube_lv,
-        "pillbox_outer_reflection_foil_tube_pv",
+        pillbox_reflection_foil_lv,
+        "pillbox_reflection_foil_pv",
         water_lv,
         reg,
     )
 
-    # VM2000 at inside of Pillbox
-    pillbox_inner_reflection_foil_tube_subtraction1 = g4.solid.Tubs(
-        "pillbox_inner_reflection_foil_tube_subtraction1",
-        shielding_foot_ir - reflective_foil_thickness,
-        shielding_foot_ir - 1e-9,
-        cryo_bottom_height - shielding_foot_thickness - 2e-9,
-        0,
-        2 * pi,
-        reg,
-    )
-    pillbox_inner_reflection_foil_tube = g4.solid.Subtraction(
-        "pillbox_inner_reflection_foil_tube",
-        pillbox_inner_reflection_foil_tube_subtraction1,
-        manhole_pillbox,
-        [manhole_rotation, [0, 0, 0 - man_hole_offset]],
-        reg,
-    )
-    pillbox_inner_reflection_foil_tube_lv = g4.LogicalVolume(
-        pillbox_inner_reflection_foil_tube, vm2000_material, "pillbox_inner_reflection_foil_tube_lv", reg
-    )
-    pillbox_inner_reflection_foil_tube_lv.pygeom_color_rgba = COLORS["vm2000"]
-    pillbox_inner_reflection_foil_tube_pv = g4.PhysicalVolume(
-        [0, 0, 0],
-        [0, 0, pillbox_offset + 1e-9],
-        pillbox_inner_reflection_foil_tube_lv,
-        "pillbox_inner_reflection_foil_tube_pv",
-        water_lv,
-        reg,
-    )
-
-    # VM2000 at top of pillbox
-    pillbox_reflection_foil_top = g4.solid.Tubs(
-        "pillbox_reflection_foil_top",
-        inner_radius,
-        shielding_foot_ir - 2e-9,
-        reflective_foil_thickness,
-        0,
-        2 * pi,
-        reg,
-    )
-    pillbox_reflection_foil_top_lv = g4.LogicalVolume(
-        pillbox_reflection_foil_top, vm2000_material, "pillbox_reflection_foil_top_lv", reg
-    )
-    pillbox_reflection_foil_top_lv.pygeom_color_rgba = COLORS["vm2000"]
-    pillbox_reflection_foil_top_pv = g4.PhysicalVolume(
-        [0, 0, 0],
-        [0, 0, bottom_foil_offset + cryo_bottom_height - reflective_foil_thickness],
-        pillbox_reflection_foil_top_lv,
-        "pillbox_reflection_foil_top_pv",
-        water_lv,
-        reg,
-    )
-
-    # VM2000 at bottom of pillbox
-    pillbox_reflection_foil_bottom_pv = g4.PhysicalVolume(
-        [0, 0, 0],
-        [0, 0, bottom_foil_offset],
-        pillbox_reflection_foil_top_lv,
-        "pillbox_reflection_foil_bottom_pv",
-        water_lv,
-        reg,
-    )
-
-    cryo_reflection_foil = g4.solid.Tubs(
+    # VM2000 wrapped onto the cryostat: a copy of the cryostat grown by the foil thickness.
+    # The cryostat itself is placed inside it (see core.py), so the VM2000 fills exactly the
+    # 0.04 mm skin and there is no water in between.
+    cryo_reflection_foil = cryo.cryostat_shell(
         "cryo_reflection_foil",
-        cryo.cryo_radius + cryo.cryo_wall + 1e-9,
-        cryo.cryo_radius + cryo.cryo_wall + reflective_foil_thickness,
-        cryo.cryo_tub_height + cryo.cryo_top_height + cryo.cryo_bottom_height + 2 * cryo.cryo_wall,
-        0,
-        2 * pi,
         reg,
+        r=cryo.cryo_outer_radius + reflective_foil_thickness,
+        h_cyl=cryo.cryo_outer_tub_height,
+        h_top=cryo.cryo_outer_top_height + reflective_foil_thickness,
+        h_bot=cryo.cryo_outer_bottom_height + reflective_foil_thickness,
+        r_neck=cryo.cryo_access_outer_radius + reflective_foil_thickness,
+        # the neck is cut off at the water surface: end the foil above the cryostat so that the
+        # two do not share a face and the wrapper really does enclose the cryostat.
+        z_neck=cryo.cryo_neck_top + reflective_foil_thickness,
     )
     cryo_reflection_foil_lv = g4.LogicalVolume(
         cryo_reflection_foil, vm2000_material, "cryo_reflection_foil_lv", reg
@@ -544,21 +470,14 @@ def insert_vm2000(
         # water -> VM2000
         g4.BorderSurface("water_" + name + "_border_surface", water_pv, pv, surfaces.vm2000_water_border, reg)
 
-    _vm2000_surfaces(pillbox_outer_reflection_foil_tube_pv)
-    _vm2000_surfaces(pillbox_inner_reflection_foil_tube_pv)
-    _vm2000_surfaces(pillbox_reflection_foil_bottom_pv)
-    _vm2000_surfaces(pillbox_reflection_foil_top_pv)
-    _vm2000_surfaces(water_tank_reflection_foil_tube_pv)
-    _vm2000_surfaces(water_tank_reflection_foil_bottom_pv)
+    _vm2000_surfaces(pillbox_reflection_foil_pv)
     _vm2000_surfaces(cryo_reflection_foil_pv)
 
     return (
-        water_tank_reflection_foil_tube_pv,
-        water_tank_reflection_foil_bottom_pv,
-        pillbox_outer_reflection_foil_tube_pv,
-        pillbox_inner_reflection_foil_tube_pv,
-        pillbox_reflection_foil_top_pv,
-        pillbox_reflection_foil_bottom_pv,
+        pillbox_reflection_foil_lv,
+        pillbox_reflection_foil_pv,
+        cryo_reflection_foil_lv,
+        cryo_reflection_foil_pv,
     )
 
 
@@ -939,48 +858,64 @@ def insert_pmts(
 
 
 def insert_muon_veto(
-    reg: g4.Registry,
-    world_lv: g4.LogicalVolume,
-    tank_z_displacement: float,
-    cryo_z_displacement: float,
-    mats: materials.OpticalMaterialRegistry,
-):
+    reg: g4.Registry, world_lv: g4.LogicalVolume, mats: materials.OpticalMaterialRegistry
+) -> tuple[g4.LogicalVolume, g4.PhysicalVolume]:
+    """Build the water tank, its VM2000 liner, the pillbox and the PMTs.
+
+    Returns the cryostat's VM2000 wrapper, into which the cryostat itself is placed. The tank is
+    offset by ``-cryo_z_displacement`` so that the cryostat ends up at the global origin.
+    """
     water_tank_lv = construct_tank(reg, "G4_STAINLESS-STEEL")
-    water_tank_pv = place_tank(reg, water_tank_lv, world_lv, tank_z_displacement)
+    water_tank_pv = place_tank(reg, water_tank_lv, world_lv, -cryo_z_displacement)
+
+    # tank steel -> VM2000 liner -> water
+    water_tank_foil_lv = construct_tank_foil(reg, mats.vm2000)
+    water_tank_foil_pv = place_tank_foil(reg, water_tank_foil_lv, water_tank_lv)
 
     water_lv = construct_water(reg, mats.water)
-    water_pv = place_water(reg, water_lv, water_tank_lv)
+    water_pv = place_water(reg, water_lv, water_tank_foil_lv)
 
     air_buffer_lv = construct_air_buffer(reg, mats.nitrogen_air)
     place_air_buffer(reg, air_buffer_lv, water_lv)
 
-    pillbox_lv, manhole_pillbox, manhole_rotation, manhole_offset = construct_pillbox(
-        reg, "G4_STAINLESS-STEEL"
-    )
-    pillbox_pv = place_pillbox(reg, pillbox_lv, water_lv)
+    pillbox_lv, manhole_rotation, manhole_offset = construct_pillbox(reg, "G4_STAINLESS-STEEL")
 
-    insert_vm2000(
+    pillbox_foil_lv, pillbox_foil_pv, cryo_reflection_foil_lv, cryo_reflection_foil_pv = insert_vm2000(
         reg,
         mats.vm2000,
         mats.surfaces,
         water_lv,
         water_pv,
-        manhole_pillbox,
         manhole_rotation,
         manhole_offset,
         cryo_z_displacement,
     )
+    pillbox_pv = place_pillbox(reg, pillbox_lv, pillbox_foil_lv)
 
-    # The boundary VM2000 <--> Water is transparent, so we need a skinsurface that reflects
-    # the photons at the water --> steel boundaries
-    # Optical path: Water --> VM2000 --> Water --> Reflection at this surface --> Water --> VM2000 --> Water
+    # The VM2000 <--> water boundary is transparent, so photons cross the foil and are then
+    # reflected where the foil meets steel.
+    # Optical path: Water --> VM2000 --> Water_tank (reflection at this surface)
     g4.BorderSurface(
-        "water_tank_surface", water_pv, water_tank_pv, mats.surfaces.vm2000_reflective_border, reg
+        "water_tank_surface", water_tank_foil_pv, water_tank_pv, mats.surfaces.vm2000_reflective_border, reg
     )
     g4.BorderSurface(
-        "water_pillbox_surface", water_pv, pillbox_pv, mats.surfaces.vm2000_reflective_border, reg
+        "water_pillbox_surface", pillbox_foil_pv, pillbox_pv, mats.surfaces.vm2000_reflective_border, reg
     )
-    # The water -> Cryo surface has to be in core.py
+    g4.BorderSurface(
+        "water_tank_foil_water_border_surface",
+        water_tank_foil_pv,
+        water_pv,
+        mats.surfaces.vm2000_water_border,
+        reg,
+    )
+    g4.BorderSurface(
+        "water_water_tank_foil_border_surface",
+        water_pv,
+        water_tank_foil_pv,
+        mats.surfaces.vm2000_water_border,
+        reg,
+    )
+    # The VM2000 -> Cryo surface has to be in core.py, where the cryostat is placed.
 
     insert_pmts(
         reg,
@@ -993,4 +928,4 @@ def insert_muon_veto(
         mats.acryl,
         mats.borosilicate,
     )
-    return water_lv, water_pv, water_tank_lv
+    return cryo_reflection_foil_lv, cryo_reflection_foil_pv
