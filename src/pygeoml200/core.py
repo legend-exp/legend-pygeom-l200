@@ -73,9 +73,11 @@ def construct(
 
     cryo_parent = world_lv
     if "watertank" in assemblies:
+        # some (testing) configurations want to skip pmts.
+        skip_pmts = config.get("watertank_no_pmts", False)
         # the cryostat sits inside its VM2000 wrapper, which already carries the displacement
         # that puts the cryostat (and everything in it) at the global origin.
-        cryo_parent, cryo_foil_pv = watertank.insert_muon_veto(reg, world_lv, mats)
+        cryo_parent, cryo_foil_pv = watertank.insert_muon_veto(reg, world_lv, mats, skip_pmts)
 
     # Create basic structure with argon and cryostat.
     cryostat_lv = cryo.construct_cryostat(mats.metal_steel, mats.vacuum, reg)
