@@ -27,6 +27,24 @@ def gdml_file(tmp_path):
     return gdml_file
 
 
+@pytest.fixture
+def gdml_file_for_surface_check(tmp_path):
+    from pygeoml200 import core
+
+    registry = core.construct(
+        assemblies=core.DEFINED_ASSEMBLIES - {"fibers"},
+        config={
+            "watertank_no_pmts": True,
+        },
+        public_geometry=public_geom,
+    )
+
+    gdml_file = tmp_path / "l200-surface-overlap-check.gdml"
+    pygeomtools.write_pygeom(registry, gdml_file)
+
+    return gdml_file
+
+
 def _extract_stats(text):
     pattern = r"average event processing time.*?=\s*([\d.]+)\s*events/second"
     m = re.search(pattern, text, flags=re.DOTALL | re.IGNORECASE)
@@ -114,3 +132,31 @@ def test_overlaps(gdml_file):
     ]
 
     remage_run(macro, gdml_files=str(gdml_file), raise_on_error=True, raise_on_warning=True)
+
+
+def test_surface_overlaps(gdml_file_for_surface_check):
+    from remage import remage_run
+
+    macro = [
+        "/RMG/Output/ActivateOutputScheme GeometryCheck",
+        "/run/initialize",
+        "/RMG/Generator/Confine Volume",
+        "/RMG/Generator/Confinement/SampleOnSurface",
+        "/RMG/Generator/Confinement/FirstSamplingVolume Geometrical",
+        "/RMG/Generator/Confinement/Geometrical/AddSolid Box",
+        "/RMG/Generator/Confinement/Geometrical/CenterPositionX 0 m",
+        "/RMG/Generator/Confinement/Geometrical/CenterPositionY 0 m",
+        "/RMG/Generator/Confinement/Geometrical/CenterPositionZ 0 m",
+        "/RMG/Generator/Confinement/Geometrical/Box/XLength 10 m",
+        "/RMG/Generator/Confinement/Geometrical/Box/YLength 10 m",
+        "/RMG/Generator/Confinement/Geometrical/Box/ZLength 10 m",
+        "/RMG/Generator/Select GPS",
+        "/gps/particle     geantino",
+        "/gps/energy       1 MeV",
+        "/gps/ang/type     iso",
+        "/run/beamOn       100000",
+    ]
+
+    remage_run(
+        macro, gdml_files=str(gdml_file_for_surface_check), raise_on_error=True, raise_on_warning=False
+    )
