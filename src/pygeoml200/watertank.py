@@ -142,6 +142,7 @@ reflective_foil_thickness = 0.04
 # The tank cavity is lined with VM2000, and the water sits inside that liner.
 water_tank_inner_radius = 5000.0
 water_tank_inner_height = inner_tank_height - 2 * water_tank_thickness
+outer_water_tank_radius = water_tank_inner_radius + water_tank_thickness
 water_radius = water_tank_inner_radius - reflective_foil_thickness
 water_height = water_tank_inner_height - 2 * reflective_foil_thickness
 
@@ -177,7 +178,6 @@ pillbox_foil_height = cryo_bottom_height + 2 * reflective_foil_thickness
 pillbox_offset = -water_height / 2 + 0.5 * pillbox_foil_height + 1e-9
 
 # Air buffer
-outer_water_tank_radius = water_radius + water_tank_thickness
 air_buffer_radius = water_radius - 1e-9
 air_buffer_height = 486.0
 
@@ -445,8 +445,8 @@ def insert_vm2000(
         h_top=cryo.cryo_outer_top_height + reflective_foil_thickness,
         h_bot=cryo.cryo_outer_bottom_height + reflective_foil_thickness,
         r_neck=cryo.cryo_access_outer_radius + reflective_foil_thickness,
-        # the neck is cut off at the water surface: end the foil above the cryostat so that the
-        # two do not share a face and the wrapper really does enclose the cryostat.
+        # end the foil above the cryostat rather than flush with it: a shared top face lets the
+        # navigator step straight from the neck out into the water, past the wrapper.
         z_neck=cryo.cryo_neck_top + reflective_foil_thickness,
     )
     cryo_reflection_foil_lv = g4.LogicalVolume(

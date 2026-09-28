@@ -45,6 +45,8 @@ cryo_access_wall = 10
 cryo_access_gap = (964 - 809) / 2  # inner neck outer wall -> outer neck bore
 cryo_access_outer_wall = (1000 - 964) / 2
 cryo_access_height = 1720
+# the water tank leaves 145.24 mm above the flange, so this uses all but a fraction of a millimetre of that.
+cryo_access_extension = 145.24 - 0.01
 access_overlap = 200
 
 # Outer envelope of the cryostat, i.e. the surfaces in contact with the water. These are
@@ -56,7 +58,7 @@ cryo_outer_bottom_height: float = cryo_gap_bottom_height + cryo_outer_wall
 cryo_access_outer_radius: float = (
     cryo_access_radius + cryo_access_wall + cryo_access_gap + cryo_access_outer_wall
 )
-cryo_neck_top: float = cryo_tub_height / 2 + cryo_top_height + cryo_access_height
+cryo_neck_top: float = cryo_tub_height / 2 + cryo_top_height + cryo_access_height + cryo_access_extension
 # lowest point of the cryostat, relative to the centre of the inner vessel.
 cryo_outer_bottom_z: float = -(cryo_outer_tub_height / 2 + cryo_outer_bottom_height)
 
@@ -193,7 +195,7 @@ def construct_ullage_argon(gar_material: g4.Material, reg: g4.Registry) -> g4.Lo
         "gaseous_argon",
         0,
         cryo_access_radius,
-        lar_ullage_height - 4 * lar_ullage_safety,
+        lar_ullage_height + cryo_access_extension - 4 * lar_ullage_safety,
         0,
         2 * pi,
         reg,
@@ -233,9 +235,8 @@ def place_ullage_argon(
     cryostat_displacement_z: float,
     reg: g4.Registry,
 ) -> g4.PhysicalVolume:
-    z_pos = (
-        cryo_tub_height / 2 + cryo_top_height + cryo_access_height - lar_ullage_height / 2 + lar_ullage_safety
-    )
+    # the ullage hangs from the top of the neck, so the liquid surface stays put.
+    z_pos = cryo_neck_top - (lar_ullage_height + cryo_access_extension) / 2 + lar_ullage_safety
     inner_lv, _ = cryostat_lv.pygeom_cryostat_inner
     gar_pv = g4.PhysicalVolume(
         [0, 0, 0], [0, 0, z_pos + cryostat_displacement_z], gar_lv, "gaseous_argon", inner_lv, reg
