@@ -858,7 +858,10 @@ def insert_pmts(
 
 
 def insert_muon_veto(
-    reg: g4.Registry, world_lv: g4.LogicalVolume, mats: materials.OpticalMaterialRegistry
+    reg: g4.Registry,
+    world_lv: g4.LogicalVolume,
+    mats: materials.OpticalMaterialRegistry,
+    skip_pmts: bool = False,
 ) -> tuple[g4.LogicalVolume, g4.PhysicalVolume]:
     """Build the water tank, its VM2000 liner, the pillbox and the PMTs.
 
@@ -917,15 +920,17 @@ def insert_muon_veto(
     )
     # The VM2000 -> Cryo surface has to be in core.py, where the cryostat is placed.
 
-    insert_pmts(
-        reg,
-        "G4_STAINLESS-STEEL",
-        "G4_Al",
-        mats.pmt_air,
-        mats.surfaces,
-        water_lv,
-        water_pv,
-        mats.acryl,
-        mats.borosilicate,
-    )
+    if not skip_pmts:
+        insert_pmts(
+            reg,
+            "G4_STAINLESS-STEEL",
+            "G4_Al",
+            mats.pmt_air,
+            mats.surfaces,
+            water_lv,
+            water_pv,
+            mats.acryl,
+            mats.borosilicate,
+        )
+
     return cryo_reflection_foil_lv, cryo_reflection_foil_pv
