@@ -71,45 +71,26 @@ def construct(
     world_lv = geant4.LogicalVolume(world, world_material, "world", reg)
     reg.setWorld(world_lv)
 
-    # TODO: Shift the global coordinate system that z=0 is a reasonable value for defining hit positions.
-    cryo_z_displacement: float = 0
-
     cryo_parent = world_lv
     if "watertank" in assemblies:
-        # TODO: Shift the global coordinate system that z=0 is a reasonable value for defining hit positions.
-        tank_z_displacement = 0.0
-        cryo_z_displacement = (
-            watertank.water_height / 2
-            - cryo.cryo_access_height
-            - (cryo.cryo_tub_height / 2 + cryo.cryo_top_height)
-            - cryo.access_overlap / 2
-            - 1e-9  # safety
-        )  # -153
-        tank_z_displacement = -cryo_z_displacement
-
-        water_lv, water_pv, _ = watertank.insert_muon_veto(
-            reg,
-            world_lv,
-            tank_z_displacement,
-            cryo_z_displacement,
-            mats,
-        )
-        cryo_parent = water_lv
+        # the cryostat sits inside its VM2000 wrapper, which already carries the displacement
+        # that puts the cryostat (and everything in it) at the global origin.
+        cryo_parent, cryo_foil_pv = watertank.insert_muon_veto(reg, world_lv, mats)
 
     # Create basic structure with argon and cryostat.
-    cryostat_lv = cryo.construct_cryostat(mats.metal_steel, reg)
-    cryostat_pv = cryo.place_cryostat(cryostat_lv, cryo_parent, cryo_z_displacement, reg)
+    cryostat_lv = cryo.construct_cryostat(mats.metal_steel, mats.vacuum, reg)
+    cryostat_pv = cryo.place_cryostat(cryostat_lv, cryo_parent, reg)
 
     if "watertank" in assemblies:
+        # The VM2000 <-> water boundary is transparent; photons cross the foil and are
+        # reflected here, at the foil <-> cryostat steel boundary.
         geant4.BorderSurface(
-            "water_cryo_surface", water_pv, cryostat_pv, mats.surfaces.vm2000_reflective_border, reg
+            "cryo_foil_surface", cryo_foil_pv, cryostat_pv, mats.surfaces.vm2000_reflective_border, reg
         )
 
     argon_z_displacement = 0  # center argon in cryostat
     lar_lv, lar_neck_height = cryo.construct_argon(mats.liquidargon, reg)
-    lar_pv = cryo.place_argon(
-        lar_lv, cryostat_lv, cryostat_pv, argon_z_displacement, mats.surfaces.to_cryostat_steel, reg
-    )
+    lar_pv = cryo.place_argon(lar_lv, cryostat_lv, argon_z_displacement, mats.surfaces.to_cryostat_steel, reg)
     gar_lv = cryo.construct_ullage_argon(mats.gaseousargon, reg)
     cryo.place_ullage_argon(gar_lv, cryostat_lv, argon_z_displacement, reg)
 
