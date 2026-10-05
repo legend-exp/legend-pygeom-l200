@@ -69,22 +69,22 @@ calibration:
     radius_in_mm: 155
     angle_in_deg: 158.57
     tube_radius_in_mm: 19
-    length_in_mm: 1450
+    length_in_mm: 1500
 
   2:
     radius_in_mm: 155
     angle_in_deg: 261.43
     tube_radius_in_mm: 19
-    length_in_mm: 1450
+    length_in_mm: 1500
 
   3:
     radius_in_mm: 155
     angle_in_deg: 338.57
     tube_radius_in_mm: 19
-    length_in_mm: 1450
+    length_in_mm: 1500
 
   4:
     radius_in_mm: 155
     angle_in_deg: 81.43
     tube_radius_in_mm: 19
-    length_in_mm: 1450
+    length_in_mm: 1500
