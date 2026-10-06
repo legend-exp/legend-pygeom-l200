@@ -61,8 +61,8 @@ hpge_string:
     angle_in_deg: 30
     empty_string_content: []
 
-#  the length is from the recent updates in fall 2024, the radius is from slides of A.
-#  Lubashevskiy. all positions from CAD model.
+# the length is from L-Note 24-015, the radius is from slides of A. Lubashevskiy.
+# all positions from CAD model.
 
 calibration:
   1:
