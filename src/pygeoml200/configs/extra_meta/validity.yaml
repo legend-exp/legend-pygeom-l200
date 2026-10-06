@@ -9,7 +9,6 @@
   category: all
   mode: reset
   apply:
-    - l200-p03-r%-T%-all-config.yaml
     - l200-p11-r%-T%-all-config.yaml
 
 - valid_from: 20241202T150000Z # p13-r000
