@@ -170,11 +170,11 @@ def _place_front_end_and_insulators(
     angle_signal = math.pi * 1 / 2.0 - string_info.rot
     d_cable = parts_origin["signal"] + 7.5 / 2 + 0.1
     z_end = 3.08 + det_unit.rodlength_cold - 1
-    gap = None
+    lid = None
     if is_top:
         z_end = string_info.cable_z_end.signal - z_pos["clamp"]
-        if string_info.cable_gap is not None:
-            gap = (string_info.cable_gap[0] - z_pos["clamp"], string_info.cable_gap[1] - z_pos["clamp"])
+        if string_info.cable_lid is not None:
+            lid = (*(z - z_pos["clamp"] for z in string_info.cable_lid[:3]), string_info.cable_lid[3])
     signal_cable = _get_signal_cable(
         f"cable_signal_{det_unit.name}",
         thickness["cable"],
@@ -182,7 +182,7 @@ def _place_front_end_and_insulators(
         -d_cable,
         string_info.cable_r_max,
         z_end,
-        gap,
+        lid,
         b,
     )
     signal_clamp, signal_lmfe, signal_holes = _get_signal_clamp_and_lmfe(thickness["clamp"], b)
@@ -281,11 +281,11 @@ def _place_front_end_and_insulators(
 
     # the HV cable, as the signal cable; on the topmost detector it runs up to the HV board.
     z_end = z_pos["clamp"] + 3.08 + det_unit.rodlength_cold - 1 - hv_z_pos
-    gap = None
+    lid = None
     if is_top:
         z_end = string_info.cable_z_end.hv - hv_z_pos
-        if string_info.cable_gap is not None:
-            gap = (string_info.cable_gap[0] - hv_z_pos, string_info.cable_gap[1] - hv_z_pos)
+        if string_info.cable_lid is not None:
+            lid = (*(z - hv_z_pos for z in string_info.cable_lid[:3]), string_info.cable_lid[3])
     ppc = None
     if det_unit.name.startswith("P"):
         # PPC top contact: the vertical part runs on the line of the other HV cables (direction in cable frame).
@@ -298,7 +298,7 @@ def _place_front_end_and_insulators(
         -d_cable,
         string_info.cable_r_max,
         z_end,
-        gap,
+        lid,
         b,
         ppc,
     )
@@ -567,10 +567,15 @@ def _place_hpge_string(
     string_info["cable_r_max"] = (
         (string_meta.minishroud_radius_in_mm or math.inf) - MINISHROUD_THICKNESS - 0.001
     )
-    # the top bundle stops 1 mm below the minishroud lid and starts again 1 mm above it.
-    string_info["cable_gap"] = None
+    # minishroud lid, crossed by the top bundles: bottom z, top z of its bottom plate, top z, inner wall radius.
+    string_info["cable_lid"] = None
     if string_meta.minishroud_radius_in_mm is not None:
-        string_info.cable_gap = (z0_string + 15 - 1, z0_string + 15 + MINISHROUD_LENGTH[1] + 1)
+        string_info.cable_lid = (
+            z0_string + 15,
+            z0_string + 15 + MINISHROUD_END_THICKNESS,
+            z0_string + 15 + MINISHROUD_LENGTH[1],
+            string_meta.minishroud_radius_in_mm - MINISHROUD_END_THICKNESS - MINISHROUD_THICKNESS,
+        )
 
     total_rod_length = 0
     for hpge_unit_id_in_string in range(1, max_unit_id + 1):
@@ -863,7 +868,7 @@ def _get_hv_cable(
     axis_x: float,
     r_max: float,
     z_end: float,
-    gap: tuple | None,
+    lid: tuple | None,
     b: core.InstrumentationData,
     ppc: tuple | None = None,
 ):
@@ -872,7 +877,11 @@ def _get_hv_cable(
     The vertical part carries the cables of `n_cables` detectors, so it is `n_cables` cables thick. It
     starts at the end of the bend and grows away from the string axis, which is at (`axis_x`, 0). If it
     would reach beyond the distance `r_max` from the axis, it is made thinner and wider, with the same
-    cross section. It is left out between the two heights in `gap` (the minishroud lid).
+    cross section.
+
+    The vertical part is left out where it crosses the minishroud lid, ``lid = (z_bottom, z_plate_top, z_top,
+    r_wall)``: across the bottom plate of the lid if it stays inside the inner radius `r_wall` of the lid
+    wall, else across the whole lid.
 
     All lengths are in mm. x points away from the string axis, z up from the clamp center.
 
@@ -904,7 +913,10 @@ def _get_hv_cable(
     thick = min(n_cables * t, r_max - d_line - 0.05)
     width = 2.0 * n_cables * t / thick
     line_xy = np.array([axis_x, 0]) + (d_line + thick / 2) * np.array([math.cos(angle), math.sin(angle)])
-    segments = [(z_start, z_end)] if gap is None else [(z_start, gap[0]), (gap[1], z_end)]
+    segments = [(z_start, z_end)]
+    if lid is not None:
+        z_above = lid[1] if math.hypot(d_line + thick, width / 2) < lid[3] - 0.001 else lid[2]
+        segments = [(z_start, lid[0] - 0.001), (z_above + 0.001, z_end)]
     for i, (z0, z1) in enumerate(segments):
         parts.append(
             (
@@ -950,7 +962,7 @@ def _get_signal_cable(
     axis_x: float,
     r_max: float,
     z_end: float,
-    gap: tuple | None,
+    lid: tuple | None,
     b: core.InstrumentationData,
 ):
     """Flat signal cable: from the LMFE end (x = 16 mm) out to a bend, then a vertical part up to `z_end`.
@@ -958,7 +970,11 @@ def _get_signal_cable(
     The vertical part carries the cables of `n_cables` detectors, so it is `n_cables` cables thick. It
     starts at the end of the bend and grows away from the string axis, which is at (`axis_x`, 0). If it
     would reach beyond the distance `r_max` from the axis, it is made thinner and wider, with the same
-    cross section. It is left out between the two heights in `gap` (the minishroud lid).
+    cross section.
+
+    The vertical part is left out where it crosses the minishroud lid, ``lid = (z_bottom, z_plate_top, z_top,
+    r_wall)``: across the bottom plate of the lid if it stays inside the inner radius `r_wall` of the lid
+    wall, else across the whole lid.
 
     All lengths are in mm. x points away from the string axis. Heights are given above the clamp center;
     the solid is placed upside down, so up is -z here.
@@ -978,7 +994,10 @@ def _get_signal_cable(
     x_line = 16 + 23.25 / 3 + r
     thick = min(n_cables * t, r_max - (x_line - axis_x) - 0.05)
     width = 2.0 * n_cables * t / thick
-    segments = [(r, z_end)] if gap is None else [(r, gap[0]), (gap[1], z_end)]
+    segments = [(r, z_end)]
+    if lid is not None:
+        z_above = lid[1] if math.hypot(x_line - axis_x + thick, width / 2) < lid[3] - 0.001 else lid[2]
+        segments = [(r, lid[0] - 0.001), (z_above + 0.001, z_end)]
     for i, (z0, z1) in enumerate(segments):
         parts.append(
             (

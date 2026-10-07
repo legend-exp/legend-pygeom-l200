@@ -69,9 +69,10 @@ parts:
   times 0.076 mm (as in legend-pygeom-l1000). If this does not fit inside the
   minishroud, it is thinner and wider, with the same cross section. On the
   topmost detector, the vertical part runs up to 1 mm below the electronics
-  boards (CC4 boards for signal, HV boards for HV cables). It is left out from 1
-  mm below to 1 mm above the minishroud lid. PPC top-contact HV cables run along
-  an arc to the line of the other HV cables.
+  boards (CC4 boards for signal, HV boards for HV cables). It is left out where
+  it crosses the minishroud lid: across the 0.25 mm bottom plate of the lid, or
+  across the whole lid (20 mm) if the cable reaches the lid wall. PPC
+  top-contact HV cables run along an arc to the line of the other HV cables.
 - nylon minishrouds surrounding each string named
   `minishroud_[tube,lid]_string{STRING}`, and calibration tubes which have names
   `calibration_tube_nylon_sis{IDX}` where `{IDX}` is the index of the SIS (see
