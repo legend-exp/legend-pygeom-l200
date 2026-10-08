@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import sys
 
 from pyg4ometry import config as meshconfig
 from pygeomtools import viewer, write_pygeom
@@ -17,30 +18,35 @@ images = {
     "holders": {
         "assemblies": ["strings"],
         "overrides": {
-            ".*_minishroud_.*": False,
+            "minishroud_.*": False,
             "[BVPC].*": False,
-            ".*_pen_.*": [0, 0, 1, 1],
         },
     },
     "hpge_strings": {
         "assemblies": ["strings"],
         "overrides": {
-            ".*_pen_.*": False,
-            ".*_minishroud_.*": False,
-            "hpge_string_support_.*_copper_.*": False,
-            ".*_cable.*": False,
-            ".*_ultem_.*": False,
-            ".*_lmfe_.*": False,
+            "pen_.*": False,
+            "minishroud_.*": False,
+            "hpge_(string_)?support_(.*_)?copper.*": False,
+            "hpge_string_.*_board_copper.*": False,
+            "hpge_du_pin_.*": False,
+            "cable.*": False,
+            "(^|.*_)ultem_.*": False,
+            "(^|.*_)phbr_.*": False,
+            "lmfe": False,
         },
     },
     "nylon": {
         "assemblies": ["strings", "calibration"],
         "overrides": {
-            ".*_pen_.*": False,
-            "hpge_string_support_.*_copper_.*": False,
-            ".*_cable.*": False,
-            ".*_ultem_.*": False,
-            ".*_lmfe_.*": False,
+            "pen_.*": False,
+            "hpge_(string_)?support_(.*_)?copper.*": False,
+            "hpge_string_.*_board_copper.*": False,
+            "hpge_du_pin_.*": False,
+            "cable.*": False,
+            "(^|.*_)ultem_.*": False,
+            "(^|.*_)phbr_.*": False,
+            "lmfe": False,
             "[BVPC].*": False,
         },
     },
@@ -74,12 +80,12 @@ def export_image(fn: str, extra: dict) -> None:
         "default": vis_default,
         # none of these renderings show the cryostat, which now carries a (faint) color of its own
         "color_overrides": {
-            "lar": False,
+            "liquid_argon": False,
             "cryostat_outer_wall": False,
             "cryostat_inner_wall": False,
             **extra.get("overrides", {}),
         },
-        "export_scale": 1,
+        "export_scale": 2,
         "export_and_exit": f"source/images/{fn}.png",
     }
 
@@ -93,4 +99,6 @@ def export_image(fn: str, extra: dict) -> None:
 
 
 for fn, extra in images.items():
+    if len(sys.argv) > 1 and fn not in sys.argv[1:]:
+        continue
     export_image(fn, extra)

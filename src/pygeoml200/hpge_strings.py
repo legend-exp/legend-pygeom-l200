@@ -799,7 +799,7 @@ def _get_support_structure(
     else:
         support_lv = b.registry.logicalVolumeDict["hpge_string_support_hanger_copper"]
 
-    tristar_lv_name = f"hpge_support_copper_tristar_{size}"
+    tristar_lv_name = f"hpge_string_support_tristar_copper_{size}"
     if tristar_lv_name not in b.registry.logicalVolumeDict:
         tristar_lv = _read_model(f"TriStar_{size}.stl", tristar_lv_name, b.materials.metal_copper, b)
         if tristar_lv is not None:
