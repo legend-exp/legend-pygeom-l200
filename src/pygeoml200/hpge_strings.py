@@ -950,7 +950,11 @@ def _get_hv_cable(
     g = CABLE_PARTS_GAP
     parts = [
         (
-            geant4.solid.Tubs(f"{name}_curve", r, r + t, 2.0, 0, math.pi / 2.0, b.registry),
+            _cable_part_lv(
+                "cable_hv_curve",
+                lambda n: geant4.solid.Tubs(n, r, r + t, 2.0, 0, math.pi / 2.0, b.registry),
+                b,
+            ),
             [[-np.pi / 2, 0, 0], [HV_CABLE_BEND_X, 0, r + t / 2]],
         ),
     ]
@@ -968,8 +972,12 @@ def _get_hv_cable(
         z_arc = r + t / 2 + g
         parts.append(
             (
-                geant4.solid.Tubs(
-                    f"{name}_arc", d_line, d_line + t, 2.0, min(0, arc_angle), abs(arc_angle), b.registry
+                _cable_part_lv(
+                    f"{name}_arc",
+                    lambda n: geant4.solid.Tubs(
+                        n, d_line, d_line + t, 2.0, min(0, arc_angle), abs(arc_angle), b.registry
+                    ),
+                    b,
                 ),
                 [[0, 0, 0], [axis_x, 0, z_arc + 1]],
             )
@@ -982,12 +990,16 @@ def _get_hv_cable(
         xy = line_xy + thick / 2 * np.array([math.cos(angle), math.sin(angle)])
         parts.append(
             (
-                geant4.solid.Box(f"{name}_along_string_{i}", thick, width, z1 - z0, b.registry),
+                _cable_part_lv(
+                    f"{name}_along_string_{i}",
+                    lambda n, dims=(thick, width, z1 - z0): geant4.solid.Box(n, *dims, b.registry),
+                    b,
+                ),
                 [[0, 0, angle], [*xy, (z0 + z1) / 2]],
             )
         )
 
-    return _cable_parts_lvs(parts, b)
+    return [part[0] for part in parts], [part[1] for part in parts]
 
 
 def _get_hv_clamp(clamp_thickness: float, b: core.InstrumentationData):
@@ -1033,30 +1045,46 @@ def _get_signal_cable(
     thick, width = bundle
     parts = [
         (
-            geant4.solid.Box(f"{name}_clamp_to_curve", SIGNAL_CABLE_BEND_X - g - 16, 2, t, b.registry),
+            _cable_part_lv(
+                "cable_signal_clamp_to_curve",
+                lambda n: geant4.solid.Box(n, SIGNAL_CABLE_BEND_X - g - 16, 2, t, b.registry),
+                b,
+            ),
             [[0, 0, 0], [(16 + SIGNAL_CABLE_BEND_X - g) / 2, 0, 0]],
         ),
         (
-            geant4.solid.Tubs(f"{name}_curve", r, r + t, 2.0, 0, math.pi / 2.0, b.registry),
+            _cable_part_lv(
+                "cable_signal_curve",
+                lambda n: geant4.solid.Tubs(n, r, r + t, 2.0, 0, math.pi / 2.0, b.registry),
+                b,
+            ),
             [[+np.pi / 2, 0, 0], [SIGNAL_CABLE_BEND_X, 0, -r - t / 2]],
         ),
         (
             # the lower end of the curve is at z = -(r + t/2).
-            geant4.solid.Box(f"{name}_along_string", thick, width, z_end - r - t / 2 - g, b.registry),
+            _cable_part_lv(
+                f"{name}_along_string",
+                lambda n: geant4.solid.Box(n, thick, width, z_end - r - t / 2 - g, b.registry),
+                b,
+            ),
             [[0, 0, 0], [SIGNAL_CABLE_LINE_X + thick / 2, 0, -(r + t / 2 + g + z_end) / 2]],
         ),
     ]
-    return _cable_parts_lvs(parts, b)
+    return [part[0] for part in parts], [part[1] for part in parts]
 
 
-def _cable_parts_lvs(parts: list, b: core.InstrumentationData) -> tuple[list[geant4.LogicalVolume], list]:
-    """Create the logical volumes for the disjoint parts of a cable, as ``(lvs, transformations)``."""
-    lvs = []
-    for solid, _ in parts:
-        lv = geant4.LogicalVolume(solid, b.materials.metal_copper, solid.name, b.registry)
-        lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
-        lvs.append(lv)
-    return lvs, [part[1] for part in parts]
+def _cable_part_lv(name: str, make_solid, b: core.InstrumentationData) -> geant4.LogicalVolume:
+    """Get the (cached) copper logical volume named ``name`` for a part of a cable.
+
+    The solid is only created with ``make_solid(name)`` if no logical volume with this name exists yet, so
+    parts that are identical for all detectors share a single logical volume.
+    """
+    if name in b.registry.logicalVolumeDict:
+        return b.registry.logicalVolumeDict[name]
+
+    lv = geant4.LogicalVolume(make_solid(name), b.materials.metal_copper, name, b.registry)
+    lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
+    return lv
 
 
 def _get_signal_clamp_and_lmfe(
