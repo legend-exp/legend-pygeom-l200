@@ -73,7 +73,9 @@ parts:
   the lid, as a separate volume
   `hpge_cable_[signal,hv]_above_lid_string{STRING}`, up to 1 mm below the
   electronics boards (CC4 boards for signal, HV boards for HV cables). PPC
-  top-contact HV cables run along an arc to the line of the other HV cables.
+  top-contact HV cables run along an arc to the line of the other HV cables. The
+  cable of each detector is built from several separate physical volumes, named
+  `hpge_cable_[signal,hv]_{NAME}_.*`.
 - nylon minishrouds surrounding each string named
   `minishroud_[tube,lid]_string{STRING}`, and calibration tubes which have names
   `calibration_tube_nylon_sis{IDX}` where `{IDX}` is the index of the SIS (see

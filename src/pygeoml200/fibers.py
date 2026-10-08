@@ -13,7 +13,7 @@ from pygeomtools import RemageDetectorInfo
 from scipy.spatial.transform import Rotation
 
 from . import core, top
-from .utils import COLORS
+from .utils import COLORS, place_disjoint_union
 
 
 def place_fiber_modules(
@@ -645,7 +645,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
             sipm_lv_bend = g4.LogicalVolume(
                 self.sipm_bend, self.b.materials.metal_silicon, mod.channel_bottom_name, self.b.registry
             )
-            sipm_ben_pv_idx = 0
+            sipm_bend_pv_idx = 0
 
         fibers = []
         for n in range(self.fiber_count_per_module):
@@ -700,11 +700,11 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                     [0, 0, -th],
                     [x2, y2, z],
                     sipm_lv_bend,
-                    f"{mod.channel_bottom_name}_{sipm_ben_pv_idx}",
+                    f"{mod.channel_bottom_name}_{sipm_bend_pv_idx}",
                     self.b.mother_lv,
                     self.b.registry,
                 )
-                sipm_ben_pv_idx += 1
+                sipm_bend_pv_idx += 1
                 sipm_pv.set_pygeom_active_detector(
                     RemageDetectorInfo(
                         "optical",
@@ -1121,7 +1121,7 @@ def _support_lv(b: core.InstrumentationData, solid: g4.solid.SolidBase, name: st
     return vol_lv
 
 
-def create_fiber_support_inner(b: core.InstrumentationData, z_pos: float) -> g4.LogicalVolume:
+def create_fiber_support_inner(b: core.InstrumentationData, z_pos: float) -> None:
     inner_radius = 127.5  # mm, from CAD model.
     outer_radius = inner_radius + 6.5  # mm
     ring_thickness = 3  # mm
@@ -1129,7 +1129,7 @@ def create_fiber_support_inner(b: core.InstrumentationData, z_pos: float) -> g4.
 
     # each entry is the solid to place and the name of its (shared) logical volume.
     vols: list[tuple[g4.solid.SolidBase, str]] = []
-    tras: list[tuple[float, list[float]]] = []
+    tras: list[list[list[float]]] = []
 
     # Create the rings
     ring = g4.solid.Tubs(
@@ -1138,7 +1138,7 @@ def create_fiber_support_inner(b: core.InstrumentationData, z_pos: float) -> g4.
     z_ring = (-700, -600, -300, 0, 300, 600, 700)  # mm
     for z in z_ring:
         vols.append((ring, "larinstr_support_inner_copper_ring"))
-        tras.append((0, [0, 0, z]))
+        tras.append([[0, 0, 0], [0, 0, z]])
 
     # Create the rods
     radius_rod = (inner_radius + outer_radius) / 2
@@ -1155,28 +1155,27 @@ def create_fiber_support_inner(b: core.InstrumentationData, z_pos: float) -> g4.
 
             vols.append((rod, f"larinstr_support_inner_copper_rod_{rod_length}"))
             phi = i * 2 * np.pi / 3
-            tras.append((0, [radius_rod * np.cos(phi), radius_rod * np.sin(phi), rings[0] + rod_length / 2]))
+            tras.append(
+                [[0, 0, 0], [radius_rod * np.cos(phi), radius_rod * np.sin(phi), rings[0] + rod_length / 2]]
+            )
             rl += rod_length
         assert rl == 1400
 
     # Combine rings and rods
-    for idx, ((vol, lv_name), tra) in enumerate(zip(vols, tras, strict=True)):
-        vol_lv = _support_lv(b, vol, lv_name)
-
-        g4.PhysicalVolume(
-            [0, 0, -tra[0]],
-            np.array([0, 0, z_pos]) + np.array(tra[1]),
-            vol_lv,
-            f"larinstr_support_inner_copper_{idx}",
-            b.mother_lv,
-            b.registry,
-        )
+    place_disjoint_union(
+        "larinstr_support_inner_copper",
+        [_support_lv(b, vol, lv_name) for vol, lv_name in vols],
+        tras,
+        b.mother_lv,
+        b.registry,
+        position=[0, 0, z_pos],
+    )
 
 
-def create_fiber_support_outer(b: core.InstrumentationData, z_pos: float) -> g4.LogicalVolume:
+def create_fiber_support_outer(b: core.InstrumentationData, z_pos: float) -> None:
     # each entry is the solid to place and the name of its (shared) logical volume.
     vols: list[tuple[g4.solid.SolidBase, str]] = []
-    tras = []
+    tras: list[list[list[float]]] = []
 
     radius = 283 + 2  # mm. in CAD model 283 mm, enlarged to avoid fiber overlaps.
     radius_out = radius + 7
@@ -1206,7 +1205,7 @@ def create_fiber_support_outer(b: core.InstrumentationData, z_pos: float) -> g4.
     for i in range(20):
         # Each fin needs to be rotated by 18 degrees to make the curved portion radial.
         fin_angle = i * 2 * np.pi / 20
-        fin_angle_tra = -fin_angle + np.pi / 2
+        fin_angle_tra = fin_angle - np.pi / 2
         vols.append((fin, "larinstr_support_outer_copper_fin"))
         tras.append(
             [
@@ -1217,7 +1216,7 @@ def create_fiber_support_outer(b: core.InstrumentationData, z_pos: float) -> g4.
         vols.append((curvedfin, "larinstr_support_outer_copper_fin_curved"))
 
         with warnings.catch_warnings(action="ignore"):
-            curvedfin_tra = Rotation.from_euler("YZ", [-np.pi / 2, fin_angle_tra]).as_euler("xyz")
+            curvedfin_tra = Rotation.from_euler("ZY", [fin_angle_tra, np.pi / 2]).as_euler("xyz")
         tras.append(
             [
                 list(curvedfin_tra),
@@ -1267,14 +1266,11 @@ def create_fiber_support_outer(b: core.InstrumentationData, z_pos: float) -> g4.
         assert rl == 1300
 
     # Combine rings and rods
-    for idx, ((vol, lv_name), tra) in enumerate(zip(vols, tras, strict=True)):
-        vol_lv = _support_lv(b, vol, lv_name)
-
-        g4.PhysicalVolume(
-            tra[0],
-            np.array([0, 0, z_pos]) + np.array(tra[1]),
-            vol_lv,
-            f"larinstr_support_outer_copper_{idx}",
-            b.mother_lv,
-            b.registry,
-        )
+    place_disjoint_union(
+        "larinstr_support_outer_copper",
+        [_support_lv(b, vol, lv_name) for vol, lv_name in vols],
+        tras,
+        b.mother_lv,
+        b.registry,
+        position=[0, 0, z_pos],
+    )

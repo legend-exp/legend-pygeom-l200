@@ -15,7 +15,7 @@ from scipy.spatial.transform import Rotation
 
 from . import core, materials, top
 from .metadata import fixup_enrichment
-from .utils import _read_model
+from .utils import _read_model, place_disjoint_union
 
 log = logging.getLogger(__name__)
 
@@ -177,7 +177,7 @@ def _place_front_end_and_insulators(
     z_end = z_pos["clamp"] + CABLE_BEND_R + det_unit.rodlength_cold - 1
     if is_top:
         z_end = string_info.cable_z_end.signal if lid is None else lid[0] - 0.001
-    signal_cable = _get_signal_cable(
+    signal_cable_lvs, signal_cable_tras = _get_signal_cable(
         f"cable_signal_{det_unit.name}", thickness["cable"], bundle, z_end - z_pos["clamp"], b
     )
     if lid is not None:
@@ -192,7 +192,6 @@ def _place_front_end_and_insulators(
             b,
         )
     signal_clamp, signal_lmfe, signal_holes = _get_signal_clamp_and_lmfe(thickness["clamp"], b)
-    signal_cable.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     signal_clamp.pygeom_color_rgba = (0.64, 0.54, 0.31, 1)
     signal_lmfe.pygeom_color_rgba = (0.64, 0.54, 0.31, 0.5)
 
@@ -202,13 +201,14 @@ def _place_front_end_and_insulators(
     lmfe_origin = parts_origin["signal"] + (7.5 + 16 + 0.1) / 2
     x_lmfe, y_lmfe = string_pos_v + lmfe_origin * string_rot_v
 
-    geant4.PhysicalVolume(
-        [math.pi, 0, angle_signal],
-        [x_cable, y_cable, z_pos["clamp"]],
-        signal_cable,
+    place_disjoint_union(
         f"hpge_cable_signal_{det_unit.name}",
+        signal_cable_lvs,
+        signal_cable_tras,
         b.mother_lv,
         b.registry,
+        rotation=[math.pi, 0, angle_signal],
+        position=[x_cable, y_cable, z_pos["clamp"]],
     )
     geant4.PhysicalVolume(
         [math.pi, 0, angle_signal],
@@ -302,22 +302,22 @@ def _place_front_end_and_insulators(
             z_pos["clamp"] + CABLE_BEND_R - hv_z_pos,
             below,
         )
-    hv_cable = _get_hv_cable(
+    hv_cable_lvs, hv_cable_tras = _get_hv_cable(
         f"cable_hv_{det_unit.name}", thickness["cable"], bundle, z_end - hv_z_pos, b, ppc
     )
     if lid is not None:
         _place_cable_above_lid(
             "hv", -string_rot_v, d_line, bundle, lid[1] + 0.001, string_info.cable_z_end.hv, string_info, b
         )
-    hv_cable.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
 
-    geant4.PhysicalVolume(
-        [0, 0, angle_hv],
-        [x_cable, y_cable, hv_z_pos],
-        hv_cable,
+    place_disjoint_union(
         f"hpge_cable_hv_{det_unit.name}",
+        hv_cable_lvs,
+        hv_cable_tras,
         b.mother_lv,
         b.registry,
+        rotation=[0, 0, angle_hv],
+        position=[x_cable, y_cable, hv_z_pos],
     )
     geant4.PhysicalVolume(
         [0, 0, angle_hv],
@@ -872,6 +872,8 @@ HV_CABLE_BEND_X = 9.5
 HV_CABLE_LINE_X = HV_CABLE_BEND_X + CABLE_BEND_R
 SIGNAL_CABLE_BEND_X = 16 + 23.25 / 3
 SIGNAL_CABLE_LINE_X = SIGNAL_CABLE_BEND_X + CABLE_BEND_R
+# gap between the separately placed parts of a cable, to avoid overlaps and touching surfaces.
+CABLE_PARTS_GAP = 0.001
 
 
 def _cable_bundle_size(n_cables: int, cable_thickness: float, d_line: float, r_max: float) -> tuple:
@@ -940,32 +942,41 @@ def _get_hv_cable(
     For the top contact of PPCs, ``ppc = (axis_x, angle, z_start, bundle_below)``: after the bend, the cable
     runs along a 2 mm high arc around the string axis at (`axis_x`, 0) to the line of the other HV cables,
     in the direction `angle` (in rad, from the x axis). The vertical part runs on that line from `z_start`.
-    Below the arc, it is `bundle_below`, without the cable of this detector (None if no cable is below).
+    Up to the top of the arc, it is `bundle_below`, without the cable of this detector (None if no cable is
+    below); the arc ends at the side of that bundle.
     """
     t = cable_thickness
     r = CABLE_BEND_R
+    g = CABLE_PARTS_GAP
     parts = [
         (
             geant4.solid.Tubs(f"{name}_curve", r, r + t, 2.0, 0, math.pi / 2.0, b.registry),
             [[-np.pi / 2, 0, 0], [HV_CABLE_BEND_X, 0, r + t / 2]],
         ),
     ]
+    # the upper end of the curve is at z = r + t/2.
     line_xy, angle = np.array([HV_CABLE_LINE_X, 0]), 0.0
-    segments = [(r, z_end, bundle)]
+    segments = [(r + t / 2 + g, z_end, bundle)]
     if ppc is not None:
         axis_x, angle, z_start, below = ppc
         d_line = HV_CABLE_LINE_X - axis_x
         line_xy = np.array([axis_x, 0]) + d_line * np.array([math.cos(angle), math.sin(angle)])
+        # end the arc at the side of the bundle below, if there is one.
+        arc_angle = angle
+        if below is not None:
+            arc_angle -= math.copysign(math.asin((below[1] / 2 + g) / d_line), angle)
+        z_arc = r + t / 2 + g
         parts.append(
             (
                 geant4.solid.Tubs(
-                    f"{name}_arc", d_line, d_line + t, 2.0, min(0, angle), abs(angle), b.registry
+                    f"{name}_arc", d_line, d_line + t, 2.0, min(0, arc_angle), abs(arc_angle), b.registry
                 ),
-                [[0, 0, 0], [axis_x, 0, r + 1]],
+                [[0, 0, 0], [axis_x, 0, z_arc + 1]],
             )
         )
+        segments = [(z_arc + 2 + g, z_end, bundle)]
         if below is not None:
-            segments.insert(0, (z_start, r, below))
+            segments.insert(0, (z_start, z_arc + 2, below))
 
     for i, (z0, z1, (thick, width)) in enumerate(segments):
         xy = line_xy + thick / 2 * np.array([math.cos(angle), math.sin(angle)])
@@ -976,10 +987,7 @@ def _get_hv_cable(
             )
         )
 
-    hv_cable = geant4.solid.MultiUnion(
-        name, [part[0] for part in parts], [part[1] for part in parts], b.registry
-    )
-    return geant4.LogicalVolume(hv_cable, b.materials.metal_copper, name, b.registry)
+    return _cable_parts_lvs(parts, b)
 
 
 def _get_hv_clamp(clamp_thickness: float, b: core.InstrumentationData):
@@ -1021,25 +1029,34 @@ def _get_signal_cable(
     """
     t = cable_thickness
     r = CABLE_BEND_R
+    g = CABLE_PARTS_GAP
     thick, width = bundle
     parts = [
         (
-            geant4.solid.Box(f"{name}_clamp_to_curve", SIGNAL_CABLE_BEND_X - 16, 2, t, b.registry),
-            [[0, 0, 0], [(16 + SIGNAL_CABLE_BEND_X) / 2, 0, 0]],
+            geant4.solid.Box(f"{name}_clamp_to_curve", SIGNAL_CABLE_BEND_X - g - 16, 2, t, b.registry),
+            [[0, 0, 0], [(16 + SIGNAL_CABLE_BEND_X - g) / 2, 0, 0]],
         ),
         (
             geant4.solid.Tubs(f"{name}_curve", r, r + t, 2.0, 0, math.pi / 2.0, b.registry),
             [[+np.pi / 2, 0, 0], [SIGNAL_CABLE_BEND_X, 0, -r - t / 2]],
         ),
         (
-            geant4.solid.Box(f"{name}_along_string", thick, width, z_end - r, b.registry),
-            [[0, 0, 0], [SIGNAL_CABLE_LINE_X + thick / 2, 0, -(r + z_end) / 2]],
+            # the lower end of the curve is at z = -(r + t/2).
+            geant4.solid.Box(f"{name}_along_string", thick, width, z_end - r - t / 2 - g, b.registry),
+            [[0, 0, 0], [SIGNAL_CABLE_LINE_X + thick / 2, 0, -(r + t / 2 + g + z_end) / 2]],
         ),
     ]
-    signal_cable = geant4.solid.MultiUnion(
-        name, [part[0] for part in parts], [part[1] for part in parts], b.registry
-    )
-    return geant4.LogicalVolume(signal_cable, b.materials.metal_copper, name, b.registry)
+    return _cable_parts_lvs(parts, b)
+
+
+def _cable_parts_lvs(parts: list, b: core.InstrumentationData) -> tuple[list[geant4.LogicalVolume], list]:
+    """Create the logical volumes for the disjoint parts of a cable, as ``(lvs, transformations)``."""
+    lvs = []
+    for solid, _ in parts:
+        lv = geant4.LogicalVolume(solid, b.materials.metal_copper, solid.name, b.registry)
+        lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
+        lvs.append(lv)
+    return lvs, [part[1] for part in parts]
 
 
 def _get_signal_clamp_and_lmfe(
