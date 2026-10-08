@@ -167,24 +167,30 @@ def _place_front_end_and_insulators(
     # add cable and clamp; the cable carries this and all lower detectors, the top one up to the CC4 board.
     n_cables = string_info.n_units + 1 - det_unit.meta.location.position
     is_top = n_cables == string_info.n_units
+    # the top bundles pass the bottom plate of the minishroud lid, so they stay inside the lid wall.
+    lid = string_info.cable_lid if is_top else None
+    r_max = string_info.cable_r_max if lid is None else min(string_info.cable_r_max, lid[2])
     angle_signal = math.pi * 1 / 2.0 - string_info.rot
     d_cable = parts_origin["signal"] + 7.5 / 2 + 0.1
-    z_end = 3.08 + det_unit.rodlength_cold - 1
-    lid = None
+    d_line = d_cable + 16 + 23.25 / 3 + 3.08
+    bundle = _cable_bundle_size(n_cables, thickness["cable"], d_line, r_max)
+    z_end = z_pos["clamp"] + 3.08 + det_unit.rodlength_cold - 1
     if is_top:
-        z_end = string_info.cable_z_end.signal - z_pos["clamp"]
-        if string_info.cable_lid is not None:
-            lid = (*(z - z_pos["clamp"] for z in string_info.cable_lid[:3]), string_info.cable_lid[3])
+        z_end = string_info.cable_z_end.signal if lid is None else lid[0] - 0.001
     signal_cable = _get_signal_cable(
-        f"cable_signal_{det_unit.name}",
-        thickness["cable"],
-        n_cables,
-        -d_cable,
-        string_info.cable_r_max,
-        z_end,
-        lid,
-        b,
+        f"cable_signal_{det_unit.name}", thickness["cable"], bundle, z_end - z_pos["clamp"], b
     )
+    if lid is not None:
+        _place_cable_above_lid(
+            "signal",
+            string_rot_v,
+            d_line,
+            bundle,
+            lid[1] + 0.001,
+            string_info.cable_z_end.signal,
+            string_info,
+            b,
+        )
     signal_clamp, signal_lmfe, signal_holes = _get_signal_clamp_and_lmfe(thickness["clamp"], b)
     signal_cable.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
     signal_clamp.pygeom_color_rgba = (0.64, 0.54, 0.31, 1)
@@ -280,28 +286,24 @@ def _place_front_end_and_insulators(
     x_spring, y_spring = string_pos_v - (parts_origin["hv"] - 3 + 2e-9) * hv_rot_v
 
     # the HV cable, as the signal cable; on the topmost detector it runs up to the HV board.
-    z_end = z_pos["clamp"] + 3.08 + det_unit.rodlength_cold - 1 - hv_z_pos
-    lid = None
+    d_line = d_cable + 9.5 + 3.08
+    bundle = _cable_bundle_size(n_cables, thickness["cable"], d_line, r_max)
+    z_end = z_pos["clamp"] + 3.08 + det_unit.rodlength_cold - 1
     if is_top:
-        z_end = string_info.cable_z_end.hv - hv_z_pos
-        if string_info.cable_lid is not None:
-            lid = (*(z - hv_z_pos for z in string_info.cable_lid[:3]), string_info.cable_lid[3])
+        z_end = string_info.cable_z_end.hv if lid is None else lid[0] - 0.001
     ppc = None
     if det_unit.name.startswith("P"):
         # PPC top contact: the vertical part runs on the line of the other HV cables (direction in cable frame).
         line_dir = (tbxyz2matrix([0, 0, angle_hv]) @ [*-string_rot_v, 0])[:2]
-        ppc = (math.atan2(line_dir[1], line_dir[0]), z_pos["clamp"] + 3.08 - hv_z_pos)
+        below = _cable_bundle_size(n_cables - 1, thickness["cable"], d_line, r_max) if n_cables > 1 else None
+        ppc = (-d_cable, math.atan2(line_dir[1], line_dir[0]), z_pos["clamp"] + 3.08 - hv_z_pos, below)
     hv_cable = _get_hv_cable(
-        f"cable_hv_{det_unit.name}",
-        thickness["cable"],
-        n_cables,
-        -d_cable,
-        string_info.cable_r_max,
-        z_end,
-        lid,
-        b,
-        ppc,
+        f"cable_hv_{det_unit.name}", thickness["cable"], bundle, z_end - hv_z_pos, b, ppc
     )
+    if lid is not None:
+        _place_cable_above_lid(
+            "hv", -string_rot_v, d_line, bundle, lid[1] + 0.001, string_info.cable_z_end.hv, string_info, b
+        )
     hv_cable.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
 
     geant4.PhysicalVolume(
@@ -567,15 +569,12 @@ def _place_hpge_string(
     string_info["cable_r_max"] = (
         (string_meta.minishroud_radius_in_mm or math.inf) - MINISHROUD_THICKNESS - 0.001
     )
-    # minishroud lid, crossed by the top bundles: bottom z, top z of its bottom plate, top z, inner wall radius.
+    # minishroud lid, crossed by the top bundles: bottom z, top z of its bottom plate, inner radius of its wall.
     string_info["cable_lid"] = None
     if string_meta.minishroud_radius_in_mm is not None:
-        string_info.cable_lid = (
-            z0_string + 15,
-            z0_string + 15 + MINISHROUD_END_THICKNESS,
-            z0_string + 15 + MINISHROUD_LENGTH[1],
-            string_meta.minishroud_radius_in_mm - MINISHROUD_END_THICKNESS - MINISHROUD_THICKNESS,
-        )
+        lid_z = z0_string + 15
+        lid_r = string_meta.minishroud_radius_in_mm - MINISHROUD_END_THICKNESS
+        string_info.cable_lid = (lid_z, lid_z + MINISHROUD_END_THICKNESS, lid_r - MINISHROUD_THICKNESS)
 
     total_rod_length = 0
     for hpge_unit_id_in_string in range(1, max_unit_id + 1):
@@ -614,7 +613,7 @@ def _place_hpge_string(
         )
         _add_nms_surfaces(nms_pv, b.mother_pv, b.materials, b.registry)
         nms_top = _get_nylon_mini_shroud(
-            string_meta.minishroud_radius_in_mm - MINISHROUD_END_THICKNESS,
+            lid_r,
             MINISHROUD_LENGTH[1],
             b.materials,
             b.registry,
@@ -623,7 +622,7 @@ def _place_hpge_string(
         )
         nms_pv = geant4.PhysicalVolume(
             [0, 0, 0],
-            [x_pos, y_pos, z0_string + 15 + MINISHROUD_LENGTH[1] / 2],
+            [x_pos, y_pos, lid_z + MINISHROUD_LENGTH[1] / 2],
             nms_top,
             f"minishroud_lid_string{string_id}",
             b.mother_lv,
@@ -861,46 +860,88 @@ def _add_nms_surfaces(
     geant4.BorderSurface("bsurface_nms_lar_" + nms_pv.name, nms_pv, mother_pv, mats.surfaces.lar_to_tpb, reg)
 
 
+def _cable_bundle_size(n_cables: int, cable_thickness: float, d_line: float, r_max: float) -> tuple:
+    """Thickness and width (mm) of a bundle of `n_cables` flat cables, 2 mm wide.
+
+    The bundle starts at the distance `d_line` (mm) from the string axis and grows away from it. If it would
+    reach beyond the distance `r_max`, it is made thinner and wider, with the same cross section.
+    """
+    thick = n_cables * cable_thickness
+    while math.hypot(d_line + thick, max(1.0, n_cables * cable_thickness / thick)) > r_max - 0.001:
+        thick -= 0.001
+        assert thick >= cable_thickness, (
+            f"cables at {d_line:.2f} mm from the string axis exceed {r_max:.2f} mm"
+        )
+    return thick, 2.0 * n_cables * cable_thickness / thick
+
+
+def _place_cable_above_lid(
+    kind: str,
+    direction: np.ndarray,
+    d_line: float,
+    bundle: tuple,
+    z_start: float,
+    z_end: float,
+    string_info: AttrsDict,
+    b: core.InstrumentationData,
+) -> None:
+    """Top cable bundle of a string above the minishroud lid, from `z_start` to `z_end` (mm).
+
+    The bundle (thickness, width) starts at the distance `d_line` (mm) from the string axis, in the
+    horizontal `direction` (unit vector).
+    """
+    thick, width = bundle
+    name = f"cable_{kind}_above_lid_string{string_info.id}"
+    lv = geant4.LogicalVolume(
+        geant4.solid.Box(name, thick, width, z_end - z_start, b.registry),
+        b.materials.metal_copper,
+        name,
+        b.registry,
+    )
+    lv.pygeom_color_rgba = (0.72, 0.45, 0.2, 1)
+    x, y = np.array([string_info.x, string_info.y]) + (d_line + thick / 2) * direction
+    geant4.PhysicalVolume(
+        [0, 0, math.atan2(-direction[1], direction[0])],
+        [x, y, (z_start + z_end) / 2],
+        lv,
+        f"hpge_{name}",
+        b.mother_lv,
+        b.registry,
+    )
+
+
 def _get_hv_cable(
     name: str,
     cable_thickness: float,
-    n_cables: int,
-    axis_x: float,
-    r_max: float,
+    bundle: tuple,
     z_end: float,
-    lid: tuple | None,
     b: core.InstrumentationData,
     ppc: tuple | None = None,
 ):
-    """Flat HV cable: a bend at the clamp edge (x = 9.5 mm), then a vertical part up to `z_end`.
-
-    The vertical part carries the cables of `n_cables` detectors, so it is `n_cables` cables thick. It
-    starts at the end of the bend and grows away from the string axis, which is at (`axis_x`, 0). If it
-    would reach beyond the distance `r_max` from the axis, it is made thinner and wider, with the same
-    cross section.
-
-    The vertical part is left out where it crosses the minishroud lid, ``lid = (z_bottom, z_plate_top, z_top,
-    r_wall)``: across the bottom plate of the lid if it stays inside the inner radius `r_wall` of the lid
-    wall, else across the whole lid.
+    """Flat HV cable: a bend at the clamp edge (x = 9.5 mm), then a vertical part up to `z_end`. The vertical
+    part is a bundle of cables with ``bundle = (thickness, width)``.
 
     All lengths are in mm. x points away from the string axis, z up from the clamp center.
 
-    For the top contact of PPCs, ``ppc = (angle, z_start)``: after the bend, the cable runs along a 2 mm high
-    arc around the string axis to the line of the other HV cables, in the direction `angle` (in rad, from
-    the x axis). The vertical part runs on that line, from `z_start` to `z_end`.
+    For the top contact of PPCs, ``ppc = (axis_x, angle, z_start, bundle_below)``: after the bend, the cable
+    runs along a 2 mm high arc around the string axis at (`axis_x`, 0) to the line of the other HV cables,
+    in the direction `angle` (in rad, from the x axis). The vertical part runs on that line from `z_start`.
+    Below the arc, it is `bundle_below`, without the cable of this detector (None if no cable is below).
     """
     t = cable_thickness
     r = 3.08
-    d_line = 9.5 + r - axis_x
     parts = [
         (
             geant4.solid.Tubs(f"{name}_curve", r, r + t, 2.0, 0, math.pi / 2.0, b.registry),
             [[-np.pi / 2, 0, 0], [9.5, 0, r + t / 2]],
         ),
     ]
-    angle, z_start = 0.0, r
+    line_xy, angle = np.array([9.5 + r, 0]), 0.0
+    segments = [(r, z_end, bundle)]
     if ppc is not None:
-        angle, z_start = ppc
+        axis_x, angle, z_start, below = ppc
+        d_line = 9.5 + r - axis_x
+        line_xy = np.array([axis_x, 0]) + d_line * np.array([math.cos(angle), math.sin(angle)])
         parts.append(
             (
                 geant4.solid.Tubs(
@@ -909,19 +950,15 @@ def _get_hv_cable(
                 [[0, 0, 0], [axis_x, 0, r + 1]],
             )
         )
+        if below is not None:
+            segments.insert(0, (z_start, r, below))
 
-    thick = min(n_cables * t, r_max - d_line - 0.05)
-    width = 2.0 * n_cables * t / thick
-    line_xy = np.array([axis_x, 0]) + (d_line + thick / 2) * np.array([math.cos(angle), math.sin(angle)])
-    segments = [(z_start, z_end)]
-    if lid is not None:
-        z_above = lid[1] if math.hypot(d_line + thick, width / 2) < lid[3] - 0.001 else lid[2]
-        segments = [(z_start, lid[0] - 0.001), (z_above + 0.001, z_end)]
-    for i, (z0, z1) in enumerate(segments):
+    for i, (z0, z1, (thick, width)) in enumerate(segments):
+        xy = line_xy + thick / 2 * np.array([math.cos(angle), math.sin(angle)])
         parts.append(
             (
                 geant4.solid.Box(f"{name}_along_string_{i}", thick, width, z1 - z0, b.registry),
-                [[0, 0, angle], [*line_xy, (z0 + z1) / 2]],
+                [[0, 0, angle], [*xy, (z0 + z1) / 2]],
             )
         )
 
@@ -958,29 +995,20 @@ def _get_hv_clamp(clamp_thickness: float, b: core.InstrumentationData):
 def _get_signal_cable(
     name: str,
     cable_thickness: float,
-    n_cables: int,
-    axis_x: float,
-    r_max: float,
+    bundle: tuple,
     z_end: float,
-    lid: tuple | None,
     b: core.InstrumentationData,
 ):
     """Flat signal cable: from the LMFE end (x = 16 mm) out to a bend, then a vertical part up to `z_end`.
-
-    The vertical part carries the cables of `n_cables` detectors, so it is `n_cables` cables thick. It
-    starts at the end of the bend and grows away from the string axis, which is at (`axis_x`, 0). If it
-    would reach beyond the distance `r_max` from the axis, it is made thinner and wider, with the same
-    cross section.
-
-    The vertical part is left out where it crosses the minishroud lid, ``lid = (z_bottom, z_plate_top, z_top,
-    r_wall)``: across the bottom plate of the lid if it stays inside the inner radius `r_wall` of the lid
-    wall, else across the whole lid.
+    The vertical part is a bundle of cables with ``bundle = (thickness, width)``.
 
     All lengths are in mm. x points away from the string axis. Heights are given above the clamp center;
     the solid is placed upside down, so up is -z here.
     """
     t = cable_thickness
     r = 3.08
+    thick, width = bundle
+    x_line = 16 + 23.25 / 3 + r
     parts = [
         (
             geant4.solid.Box(f"{name}_clamp_to_curve", 23.25 / 3, 2, t, b.registry),
@@ -990,22 +1018,11 @@ def _get_signal_cable(
             geant4.solid.Tubs(f"{name}_curve", r, r + t, 2.0, 0, math.pi / 2.0, b.registry),
             [[+np.pi / 2, 0, 0], [16 + 23.25 / 3, 0, -r - t / 2]],
         ),
+        (
+            geant4.solid.Box(f"{name}_along_string", thick, width, z_end - r, b.registry),
+            [[0, 0, 0], [x_line + thick / 2, 0, -(r + z_end) / 2]],
+        ),
     ]
-    x_line = 16 + 23.25 / 3 + r
-    thick = min(n_cables * t, r_max - (x_line - axis_x) - 0.05)
-    width = 2.0 * n_cables * t / thick
-    segments = [(r, z_end)]
-    if lid is not None:
-        z_above = lid[1] if math.hypot(x_line - axis_x + thick, width / 2) < lid[3] - 0.001 else lid[2]
-        segments = [(r, lid[0] - 0.001), (z_above + 0.001, z_end)]
-    for i, (z0, z1) in enumerate(segments):
-        parts.append(
-            (
-                geant4.solid.Box(f"{name}_along_string_{i}", thick, width, z1 - z0, b.registry),
-                [[0, 0, 0], [x_line + thick / 2, 0, -(z0 + z1) / 2]],
-            )
-        )
-
     signal_cable = geant4.solid.MultiUnion(
         name, [part[0] for part in parts], [part[1] for part in parts], b.registry
     )
