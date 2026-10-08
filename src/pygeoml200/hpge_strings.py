@@ -172,9 +172,9 @@ def _place_front_end_and_insulators(
     r_max = string_info.cable_r_max if lid is None else min(string_info.cable_r_max, lid[2])
     angle_signal = math.pi * 1 / 2.0 - string_info.rot
     d_cable = parts_origin["signal"] + 7.5 / 2 + 0.1
-    d_line = d_cable + 16 + 23.25 / 3 + 3.08
+    d_line = d_cable + SIGNAL_CABLE_LINE_X
     bundle = _cable_bundle_size(n_cables, thickness["cable"], d_line, r_max)
-    z_end = z_pos["clamp"] + 3.08 + det_unit.rodlength_cold - 1
+    z_end = z_pos["clamp"] + CABLE_BEND_R + det_unit.rodlength_cold - 1
     if is_top:
         z_end = string_info.cable_z_end.signal if lid is None else lid[0] - 0.001
     signal_cable = _get_signal_cable(
@@ -286,9 +286,9 @@ def _place_front_end_and_insulators(
     x_spring, y_spring = string_pos_v - (parts_origin["hv"] - 3 + 2e-9) * hv_rot_v
 
     # the HV cable, as the signal cable; on the topmost detector it runs up to the HV board.
-    d_line = d_cable + 9.5 + 3.08
+    d_line = d_cable + HV_CABLE_LINE_X
     bundle = _cable_bundle_size(n_cables, thickness["cable"], d_line, r_max)
-    z_end = z_pos["clamp"] + 3.08 + det_unit.rodlength_cold - 1
+    z_end = z_pos["clamp"] + CABLE_BEND_R + det_unit.rodlength_cold - 1
     if is_top:
         z_end = string_info.cable_z_end.hv if lid is None else lid[0] - 0.001
     ppc = None
@@ -296,7 +296,12 @@ def _place_front_end_and_insulators(
         # PPC top contact: the vertical part runs on the line of the other HV cables (direction in cable frame).
         line_dir = (tbxyz2matrix([0, 0, angle_hv]) @ [*-string_rot_v, 0])[:2]
         below = _cable_bundle_size(n_cables - 1, thickness["cable"], d_line, r_max) if n_cables > 1 else None
-        ppc = (-d_cable, math.atan2(line_dir[1], line_dir[0]), z_pos["clamp"] + 3.08 - hv_z_pos, below)
+        ppc = (
+            -d_cable,
+            math.atan2(line_dir[1], line_dir[0]),
+            z_pos["clamp"] + CABLE_BEND_R - hv_z_pos,
+            below,
+        )
     hv_cable = _get_hv_cable(
         f"cable_hv_{det_unit.name}", thickness["cable"], bundle, z_end - hv_z_pos, b, ppc
     )
@@ -860,6 +865,15 @@ def _add_nms_surfaces(
     geant4.BorderSurface("bsurface_nms_lar_" + nms_pv.name, nms_pv, mother_pv, mats.surfaces.lar_to_tpb, reg)
 
 
+# flat cables: radius of the bend from the clamp up along the string, and the distance (mm) of the bend start
+# from the clamp's cable origin. The vertical parts of the cables run at the `*_LINE_X` distance.
+CABLE_BEND_R = 3.08
+HV_CABLE_BEND_X = 9.5
+HV_CABLE_LINE_X = HV_CABLE_BEND_X + CABLE_BEND_R
+SIGNAL_CABLE_BEND_X = 16 + 23.25 / 3
+SIGNAL_CABLE_LINE_X = SIGNAL_CABLE_BEND_X + CABLE_BEND_R
+
+
 def _cable_bundle_size(n_cables: int, cable_thickness: float, d_line: float, r_max: float) -> tuple:
     """Thickness and width (mm) of a bundle of `n_cables` flat cables, 2 mm wide.
 
@@ -929,18 +943,18 @@ def _get_hv_cable(
     Below the arc, it is `bundle_below`, without the cable of this detector (None if no cable is below).
     """
     t = cable_thickness
-    r = 3.08
+    r = CABLE_BEND_R
     parts = [
         (
             geant4.solid.Tubs(f"{name}_curve", r, r + t, 2.0, 0, math.pi / 2.0, b.registry),
-            [[-np.pi / 2, 0, 0], [9.5, 0, r + t / 2]],
+            [[-np.pi / 2, 0, 0], [HV_CABLE_BEND_X, 0, r + t / 2]],
         ),
     ]
-    line_xy, angle = np.array([9.5 + r, 0]), 0.0
+    line_xy, angle = np.array([HV_CABLE_LINE_X, 0]), 0.0
     segments = [(r, z_end, bundle)]
     if ppc is not None:
         axis_x, angle, z_start, below = ppc
-        d_line = 9.5 + r - axis_x
+        d_line = HV_CABLE_LINE_X - axis_x
         line_xy = np.array([axis_x, 0]) + d_line * np.array([math.cos(angle), math.sin(angle)])
         parts.append(
             (
@@ -1006,21 +1020,20 @@ def _get_signal_cable(
     the solid is placed upside down, so up is -z here.
     """
     t = cable_thickness
-    r = 3.08
+    r = CABLE_BEND_R
     thick, width = bundle
-    x_line = 16 + 23.25 / 3 + r
     parts = [
         (
-            geant4.solid.Box(f"{name}_clamp_to_curve", 23.25 / 3, 2, t, b.registry),
-            [[0, 0, 0], [16 + 23.25 / 3 / 2, 0, 0]],
+            geant4.solid.Box(f"{name}_clamp_to_curve", SIGNAL_CABLE_BEND_X - 16, 2, t, b.registry),
+            [[0, 0, 0], [(16 + SIGNAL_CABLE_BEND_X) / 2, 0, 0]],
         ),
         (
             geant4.solid.Tubs(f"{name}_curve", r, r + t, 2.0, 0, math.pi / 2.0, b.registry),
-            [[+np.pi / 2, 0, 0], [16 + 23.25 / 3, 0, -r - t / 2]],
+            [[+np.pi / 2, 0, 0], [SIGNAL_CABLE_BEND_X, 0, -r - t / 2]],
         ),
         (
             geant4.solid.Box(f"{name}_along_string", thick, width, z_end - r, b.registry),
-            [[0, 0, 0], [x_line + thick / 2, 0, -(r + z_end) / 2]],
+            [[0, 0, 0], [SIGNAL_CABLE_LINE_X + thick / 2, 0, -(r + z_end) / 2]],
         ),
     ]
     signal_cable = geant4.solid.MultiUnion(
