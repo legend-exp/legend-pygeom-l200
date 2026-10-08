@@ -63,7 +63,17 @@ parts:
 - the LMFE (low-mass front-end) are implemented as a simplified box and prefixed
   with `hpge_assembly_lmfe_`.
 - cables are implemented in a very simplified manner; their volume names are
-  prefixed with `hpge_cable_[signal,hv]_`.
+  prefixed with `hpge_cable_[signal,hv]_`. Each cable is a flat copper strip
+  (0.076 mm × 2 mm). Along each detector unit, the vertical part carries the
+  cables of this and all lower detectors, so it is as thick as their number
+  times 0.076 mm (as in legend-pygeom-l1000). If this does not fit inside the
+  minishroud, it is thinner and wider, with the same cross section. On the
+  topmost detector, the vertical part runs up to the minishroud lid and stays
+  inside the lid wall. It continues 0.25 mm higher, above the bottom plate of
+  the lid, as a separate volume
+  `hpge_cable_[signal,hv]_above_lid_string{STRING}`, up to 1 mm below the
+  electronics boards (CC4 boards for signal, HV boards for HV cables). PPC
+  top-contact HV cables run along an arc to the line of the other HV cables.
 - nylon minishrouds surrounding each string named
   `minishroud_[tube,lid]_string{STRING}`, and calibration tubes which have names
   `calibration_tube_nylon_sis{IDX}` where `{IDX}` is the index of the SIS (see
