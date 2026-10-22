@@ -506,6 +506,10 @@ def _place_hpge_unit(
         )
         _add_pen_surfaces(pen_pv, b.mother_pv, b.materials, b.registry)
 
+        pen_pv.set_pygeom_active_detector(
+            RemageDetectorInfo("scintillator", 10010, {}, allow_uid_reuse=True, ntuple_name="pen")
+        )
+
     # (Majorana) PPC detectors have a top PEN ring.
     if det_unit.name.startswith("P"):
         assert det_unit.baseplate == "small"
@@ -522,6 +526,10 @@ def _place_hpge_unit(
                 b.registry,
             )
             _add_pen_surfaces(pen_pv, b.mother_pv, b.materials, b.registry)
+
+            pen_pv.set_pygeom_active_detector(
+                RemageDetectorInfo("scintillator", 10010, {}, allow_uid_reuse=True, ntuple_name="pen")
+            )
 
     fe_ins_origins = FE_INS_ORIGINS[det_unit.baseplate]
 
