@@ -534,7 +534,7 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                 self.fiber_cl2_lv[fiber_length],
                 self.b.registry,
             )
-            g4.PhysicalVolume(
+            fiber_core_pv = g4.PhysicalVolume(
                 [0, 0, 0],
                 [0, 0, 0],
                 fiber_core_lv[fiber_length],
@@ -542,6 +542,10 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                 fiber_cl1_lv[fiber_length],
                 self.b.registry,
             )
+            fiber_core_pv.set_pygeom_active_detector(
+                RemageDetectorInfo("scintillator", 10011, {}, allow_uid_reuse=True, ntuple_name="fiber")
+            )
+
         if self.bend_radius_mm is not None:
             g4.PhysicalVolume(
                 [0, 0, 0],
@@ -551,13 +555,16 @@ class ModuleFactorySingleFibers(ModuleFactoryBase):
                 self.fiber_cl2_bend_lv,
                 self.b.registry,
             )
-            g4.PhysicalVolume(
+            fiber_core_bend_pv = g4.PhysicalVolume(
                 [0, 0, 0],
                 [0, 0, 0],
                 fiber_core_bend_lv,
                 f"fiber_{self.barrel}_barrel_fibercore_bend{v_suffix}",
                 fiber_cl1_bend_lv,
                 self.b.registry,
+            )
+            fiber_core_bend_pv.set_pygeom_active_detector(
+                RemageDetectorInfo("scintillator", 10011, {}, allow_uid_reuse=True, ntuple_name="fiber")
             )
 
     def _cached_tpb_coating_volume(
@@ -941,13 +948,16 @@ class ModuleFactorySegment(ModuleFactoryBase):
             self.fiber_cl2_lv,
             self.b.registry,
         )
-        g4.PhysicalVolume(
+        fiber_core_pv = g4.PhysicalVolume(
             [0, 0, 0],
             [0, 0, 0],
             fiber_core_lv,
             f"fiber_{self.barrel}_barrel_fibercore{v_suffix}",
             fiber_cl1_lv,
             self.b.registry,
+        )
+        fiber_core_pv.set_pygeom_active_detector(
+            RemageDetectorInfo("scintillator", 10011, {}, allow_uid_reuse=True, ntuple_name="fiber")
         )
         if self.bend_radius_mm is not None:
             g4.PhysicalVolume(
@@ -958,13 +968,16 @@ class ModuleFactorySegment(ModuleFactoryBase):
                 self.fiber_cl2_bend_lv,
                 self.b.registry,
             )
-            g4.PhysicalVolume(
+            fiber_core_bend_pv = g4.PhysicalVolume(
                 [0, 0, 0],
                 [0, 0, 0],
                 fiber_core_bend_lv,
                 f"fiber_{self.barrel}_barrel_fibercore_bend{v_suffix}",
                 fiber_cl1_bend_lv,
                 self.b.registry,
+            )
+            fiber_core_bend_pv.set_pygeom_active_detector(
+                RemageDetectorInfo("scintillator", 10011, {}, allow_uid_reuse=True, ntuple_name="fiber")
             )
 
     def _cached_tpb_coating_volume(
