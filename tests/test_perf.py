@@ -19,7 +19,7 @@ pytestmark = [
 def gdml_file(tmp_path):
     from pygeoml200 import core
 
-    registry = core.construct(config={}, public_geometry=public_geom)
+    registry = core.construct(config={}, public_geometry=public_geom, use_detailed_fiber_model=False)
 
     gdml_file = tmp_path / "l200-default.gdml"
     pygeomtools.write_pygeom(registry, gdml_file)
