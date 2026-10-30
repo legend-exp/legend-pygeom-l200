@@ -77,6 +77,26 @@ jobs:
         with:
           environments: test
 
+      - name: Set LEGEND_METADATA variable
+        run: |
+          echo "LEGEND_METADATA=$GITHUB_WORKSPACE/legend-metadata" >> $GITHUB_ENV
+        # secrets are not available in PRs from forks, so do not even attempt to clone metadata.
+        if:
+          "${{ github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.owner.login == 'legend-exp' }}"
+      - name: Clone legend-metadata
+        uses: actions/checkout@v7
+        with:
+          repository: legend-exp/legend-metadata
+          fetch-depth: 0
+          token: ${{ secrets.CLONE_LEGEND_METADATA }}
+          path: ${{ env.LEGEND_METADATA }}
+          submodules: "recursive"
+        # secrets are not available in PRs from forks, so do not even attempt to clone metadata.
+        if:
+          "${{ github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.owner.login == 'legend-exp' }}"
+
       - name: Run tests
         run: |
           pixi run -e test pytest --runxfail -m needs_remage
