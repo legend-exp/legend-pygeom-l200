@@ -8,11 +8,36 @@ import pytest
 
 public_geom = os.getenv("LEGEND_METADATA", "") == ""
 
+cfgs_to_overlap_test = {
+    "public": {"config": {}, "public_geometry": True},
+}
+if not public_geom:
+    cfgs_to_overlap_test |= {
+        "cfg01": {"config": {}, "public_geometry": False},
+        "cfg06": {"config": {"metadata_timestamp": "20241217T094846Z"}, "public_geometry": False},
+        "cfg09": {"config": {"metadata_timestamp": "20250716T161517Z"}, "public_geometry": False},
+    }
+
+for cfg in list(cfgs_to_overlap_test.keys()):
+    cfgs_to_overlap_test[f"{cfg}_detailed"] = cfgs_to_overlap_test[cfg] | {"use_detailed_fiber_model": True}
+
 pytestmark = [
     pytest.mark.xfail(run=True, reason="requires a remage installation"),
     pytest.mark.needs_remage,
     pytest.mark.filterwarnings("ignore:lgdo.lh5 has moved to its own package:DeprecationWarning"),
 ]
+
+
+@pytest.fixture(scope="function", params=list(cfgs_to_overlap_test.keys()))
+def gdml_file_for_overlap_check(tmp_path, request):
+    from pygeoml200 import core
+
+    registry = core.construct(**cfgs_to_overlap_test[request.param])
+
+    gdml_file = tmp_path / f"l200-{request.param}.gdml"
+    pygeomtools.write_pygeom(registry, gdml_file)
+
+    return gdml_file
 
 
 @pytest.fixture
@@ -121,7 +146,7 @@ def test_performance(gdml_file, capfd):
     assert event_rate > 1_000
 
 
-def test_overlaps(gdml_file):
+def test_overlaps(gdml_file_for_overlap_check):
     from remage import remage_run
 
     macro = [
