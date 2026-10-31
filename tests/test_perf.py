@@ -28,7 +28,7 @@ pytestmark = [
 ]
 
 
-@pytest.fixture(scope="module", params=list(cfgs_to_overlap_test.keys()))
+@pytest.fixture(scope="function", params=list(cfgs_to_overlap_test.keys()))
 def gdml_file_for_overlap_check(tmp_path, request):
     from pygeoml200 import core
 
