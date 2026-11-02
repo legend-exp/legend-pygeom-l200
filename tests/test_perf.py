@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import re
 
@@ -35,6 +36,7 @@ def gdml_file_for_overlap_check(tmp_path, request):
     registry = core.construct(**cfgs_to_overlap_test[request.param])
 
     gdml_file = tmp_path / f"l200-{request.param}.gdml"
+    logging.getLogger("pyg4ometry").setLevel(logging.ERROR)
     pygeomtools.write_pygeom(registry, gdml_file)
 
     return gdml_file
@@ -47,6 +49,7 @@ def gdml_file(tmp_path):
     registry = core.construct(config={}, public_geometry=public_geom)
 
     gdml_file = tmp_path / "l200-default.gdml"
+    logging.getLogger("pyg4ometry").setLevel(logging.ERROR)
     pygeomtools.write_pygeom(registry, gdml_file)
 
     return gdml_file
@@ -65,6 +68,7 @@ def gdml_file_for_surface_check(tmp_path):
     )
 
     gdml_file = tmp_path / "l200-surface-overlap-check.gdml"
+    logging.getLogger("pyg4ometry").setLevel(logging.ERROR)
     pygeomtools.write_pygeom(registry, gdml_file)
 
     return gdml_file
