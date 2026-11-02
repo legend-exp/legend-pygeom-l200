@@ -67,7 +67,7 @@ jobs:
           python -m pytest
 
   test-performance:
-    name: Test legend-pygeom-l200 performance with remage
+    name: Test legend-pygeom-l200 overlaps and performance with remage
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
