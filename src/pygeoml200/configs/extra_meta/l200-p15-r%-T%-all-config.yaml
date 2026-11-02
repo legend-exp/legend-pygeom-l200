@@ -260,24 +260,26 @@ hpges:
 
 # the length is from L-Note 24-015, the radius is from slides of A. Lubashevskiy.
 # all positions from CAD model.
+#
+# note: all values above 1497 mm produce overlaps with detailed fibers.
 calibration:
   1:
     radius_in_mm: 155
     angle_in_deg: 158.57
     tube_radius_in_mm: 19
-    length_in_mm: 1500
+    length_in_mm: 1497
   2:
     radius_in_mm: 155
     angle_in_deg: 261.43
     tube_radius_in_mm: 19
-    length_in_mm: 1500
+    length_in_mm: 1497
   3:
     radius_in_mm: 155
     angle_in_deg: 338.57
     tube_radius_in_mm: 19
-    length_in_mm: 1500
+    length_in_mm: 1497
   4:
     radius_in_mm: 155
     angle_in_deg: 81.43
     tube_radius_in_mm: 19
-    length_in_mm: 1500
+    length_in_mm: 1497
