@@ -56,6 +56,11 @@ class OpticalSurfaceRegistry:
             registry=self.g4_registry,
         )
 
+        λ = np.array([650.0, 115.0]) * u.nm
+        specular_lobe = np.ones_like(λ)
+        with u.context("sp"):
+            _to_copper.addVecPropertyPint("SPECULARLOBECONSTANT", λ.to("eV"), specular_lobe)
+
         pygeomoptics.copper.pyg4_copper_attach_reflectivity(_to_copper, self.g4_registry)
 
         return _to_copper
@@ -65,12 +70,17 @@ class OpticalSurfaceRegistry:
         """Optical surface of cryostat steel."""
         _to_cryostat_steel = g4.solid.OpticalSurface(
             name="to_cryostat_steel",
-            finish="polished",
+            finish="ground",
             model="unified",
             surf_type="dielectric_metal",
             value=0.3,
             registry=self.g4_registry,
         )
+
+        λ = np.array([650.0, 115.0]) * u.nm
+        specular_lobe = np.ones_like(λ)
+        with u.context("sp"):
+            _to_cryostat_steel.addVecPropertyPint("SPECULARLOBECONSTANT", λ.to("eV"), specular_lobe)
 
         pygeomoptics.steel.pyg4_steel_attach_reflectivity(_to_cryostat_steel, self.g4_registry)
 
@@ -88,6 +98,11 @@ class OpticalSurfaceRegistry:
             registry=self.g4_registry,
         )
 
+        λ = np.array([650.0, 115.0]) * u.nm
+        specular_lobe = np.ones_like(λ)
+        with u.context("sp"):
+            _to_germanium.addVecPropertyPint("SPECULARLOBECONSTANT", λ.to("eV"), specular_lobe)
+
         pygeomoptics.germanium.pyg4_germanium_attach_reflectivity(_to_germanium, self.g4_registry)
 
         return _to_germanium
@@ -103,6 +118,7 @@ class OpticalSurfaceRegistry:
             value=0.3,  # rad. converted from 0.5, probably a GLISUR smoothness parameter, in MaGe.
             registry=self.g4_registry,
         )
+        # TODO: specularlobe (!complex rindex)?
 
         pygeomoptics.tantalum.pyg4_tantalum_attach_complex_rindex(_to_tantalum, self.g4_registry)
 
@@ -134,6 +150,7 @@ class OpticalSurfaceRegistry:
             value=0.05,  # converted from 0.9, probably a GLISUR smoothness parameter, in MaGe.
             registry=self.g4_registry,
         )
+        # TODO: specularlobe (!complex rindex)?
 
         pygeomoptics.silicon.pyg4_silicon_attach_complex_rindex(_to_sipm_silicon, self.g4_registry)
 
@@ -169,6 +186,7 @@ class OpticalSurfaceRegistry:
             value=0.3,  # rad. converted from 0.5, probably a GLISUR smoothness parameter, in MaGe.
             registry=self.g4_registry,
         )
+        # TODO: specularlobe (probably not, not a uniform layer)
 
     @cached_property
     def lar_to_pen(self) -> g4.solid.OpticalSurface:
