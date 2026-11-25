@@ -22,11 +22,7 @@ if not public_geom:
 for cfg in list(cfgs_to_overlap_test.keys()):
     cfgs_to_overlap_test[f"{cfg}_detailed"] = cfgs_to_overlap_test[cfg] | {"use_detailed_fiber_model": True}
 
-pytestmark = [
-    pytest.mark.xfail(run=True, reason="requires a remage installation"),
-    pytest.mark.needs_remage,
-    pytest.mark.filterwarnings("ignore:lgdo.lh5 has moved to its own package:DeprecationWarning"),
-]
+pytestmark = pytest.mark.needs_remage
 
 
 @pytest.fixture(params=list(cfgs_to_overlap_test.keys()))

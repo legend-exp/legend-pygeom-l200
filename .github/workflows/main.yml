@@ -99,7 +99,7 @@ jobs:
 
       - name: Run tests
         run: |
-          pixi run -e test pytest --runxfail -m needs_remage
+          pixi run -e test test-remage
 
   test-coverage:
     name: Calculate and upload test coverage
