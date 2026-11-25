@@ -58,10 +58,15 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
         if tube is None:
             continue
         tube_cfg = sis_cfg.get(i, {}) or {}
+        minishroud_material = tube.get("minishroud_material", "nylon")
 
         if tube.length_in_mm not in calib_tubes:
-            calib_tubes[tube.length_in_mm] = hpge_strings._get_nylon_mini_shroud(
-                tube.tube_radius_in_mm, tube.length_in_mm, b.materials, b.registry
+            calib_tubes[tube.length_in_mm] = hpge_strings._get_mini_shroud(
+                tube.tube_radius_in_mm,
+                tube.length_in_mm,
+                b.materials,
+                b.registry,
+                minishroud_material=minishroud_material,
             )
 
         # allow for an offset to place properly the sis
@@ -82,7 +87,9 @@ def place_calibration_system(b: core.InstrumentationData) -> None:
             b.mother_lv,
             b.registry,
         )
-        hpge_strings._add_nms_surfaces(nms_pv, b.mother_pv, b.materials, b.registry)
+        hpge_strings._add_mini_shroud_surfaces(
+            minishroud_material, nms_pv, b.mother_pv, b.materials, b.registry
+        )
 
     # place the actual calibration sources inside.
     if not sis_cfg:

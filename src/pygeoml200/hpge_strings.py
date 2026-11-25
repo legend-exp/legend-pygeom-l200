@@ -4,6 +4,7 @@ import copy
 import logging
 import math
 from dataclasses import dataclass
+from typing import Literal
 
 import numpy as np
 from dbetto import AttrsDict, TextDB
@@ -567,6 +568,10 @@ def _place_hpge_string(
         }
     )
 
+    ms_thickness, ms_end_thickness = _get_mini_shroud_thickness(
+        string_meta.get("minishroud_material", "nylon")
+    )
+
     # offset the height of the string by the length of the string support rod.
     # z0_string is the upper z coordinate of the topmost detector unit.
     # TODO: real measurements (slides of M. Bush on 2024-07-08) show an additional offset -0.6 mm.
@@ -579,15 +584,13 @@ def _place_hpge_string(
     # the cables of all detectors below a unit run up past it as one bundle (as in legend-pygeom-l1000).
     string_info["n_units"] = max_unit_id
     string_info["cable_z_end"] = cable_z_end
-    string_info["cable_r_max"] = (
-        (string_meta.minishroud_radius_in_mm or math.inf) - MINISHROUD_THICKNESS - 0.001
-    )
+    string_info["cable_r_max"] = (string_meta.minishroud_radius_in_mm or math.inf) - ms_thickness - 0.001
     # minishroud lid, crossed by the top bundles: bottom z, top z of its bottom plate, inner radius of its wall.
     string_info["cable_lid"] = None
     if string_meta.minishroud_radius_in_mm is not None:
         lid_z = z0_string + 15
-        lid_r = string_meta.minishroud_radius_in_mm - MINISHROUD_END_THICKNESS
-        string_info.cable_lid = (lid_z, lid_z + MINISHROUD_END_THICKNESS, lid_r - MINISHROUD_THICKNESS)
+        lid_r = string_meta.minishroud_radius_in_mm - ms_end_thickness
+        string_info.cable_lid = (lid_z, lid_z + ms_end_thickness, lid_r - ms_thickness)
 
     total_rod_length = 0
     for hpge_unit_id_in_string in range(1, max_unit_id + 1):
@@ -606,16 +609,18 @@ def _place_hpge_string(
 
     if string_meta.minishroud_radius_in_mm is not None:
         minishroud_length = MINISHROUD_LENGTH[0] + string_meta.get("minishroud_delta_length_in_mm", 0)
+        minishroud_material = string_meta.get("minishroud_material", "nylon")
         assert total_rod_length < minishroud_length
         assert copper_rod_r < string_meta.minishroud_radius_in_mm - 0.75
-        nms = _get_nylon_mini_shroud(
+        nms = _get_mini_shroud(
             string_meta.minishroud_radius_in_mm,
             minishroud_length,
             b.materials,
             b.registry,
             minishroud_name="minishroud_tube",
+            minishroud_material=minishroud_material,
         )
-        z_nms = z0_string - copper_rod_length_from_z0 + minishroud_length / 2 - MINISHROUD_END_THICKNESS - 0.1
+        z_nms = z0_string - copper_rod_length_from_z0 + minishroud_length / 2 - ms_end_thickness - 0.1
         nms_pv = geant4.PhysicalVolume(
             [0, 0, 0],
             [x_pos, y_pos, z_nms],
@@ -624,14 +629,15 @@ def _place_hpge_string(
             b.mother_lv,
             b.registry,
         )
-        _add_nms_surfaces(nms_pv, b.mother_pv, b.materials, b.registry)
-        nms_top = _get_nylon_mini_shroud(
+        _add_mini_shroud_surfaces(minishroud_material, nms_pv, b.mother_pv, b.materials, b.registry)
+        nms_top = _get_mini_shroud(
             lid_r,
             MINISHROUD_LENGTH[1],
             b.materials,
             b.registry,
             min_radius=10,
             minishroud_name="minishroud_lid",
+            minishroud_material=string_meta.get("minishroud_material", "nylon"),
         )
         nms_pv = geant4.PhysicalVolume(
             [0, 0, 0],
@@ -641,7 +647,7 @@ def _place_hpge_string(
             b.mother_lv,
             b.registry,
         )
-        _add_nms_surfaces(nms_pv, b.mother_pv, b.materials, b.registry)
+        _add_mini_shroud_surfaces(minishroud_material, nms_pv, b.mother_pv, b.materials, b.registry)
 
     support, tristar = _get_support_structure(string_slots[1].baseplate, b)
     if support is not None:
@@ -765,8 +771,6 @@ def _place_empty_string(string_id: int, b: core.InstrumentationData):
 
 # Those dimensions are from an email from A. Lubashevskiy to L. Varriano on Dec 12, 2023; on the NMS made at
 # TUM in May 2022.
-MINISHROUD_THICKNESS = 0.125  # mm
-MINISHROUD_END_THICKNESS = 2 * MINISHROUD_THICKNESS
 MINISHROUD_LENGTH = (1000, 20)
 
 
@@ -818,37 +822,75 @@ def _get_support_structure(
     return support_lv, tristar_lv
 
 
-def _get_nylon_mini_shroud(
+def _get_mini_shroud_thickness(minishroud_material: Literal["pen", "nylon"]) -> tuple[float, float]:
+    if minishroud_material == "nylon":
+        # Those dimensions are from an email from A. Lubashevskiy to L. Varriano on Dec 12, 2023; on the NMS made at
+        # TUM in May 2022.
+        thickness = 0.125  # mm
+        end_thickness = 2 * thickness
+    elif minishroud_material == "pen":
+        thickness = end_thickness = 0.075  # mm
+    else:
+        msg = f"invalid minishroud material {minishroud_material}"
+        raise ValueError(msg)
+    return thickness, end_thickness
+
+
+def _get_mini_shroud(
     radius: int,
     length: int,
     materials: materials.OpticalMaterialRegistry,
     registry: geant4.Registry,
     min_radius: int = 0,
     minishroud_name: str = "minishroud",
+    minishroud_material: Literal["pen", "nylon"] = "nylon",
 ) -> geant4.LogicalVolume:
-    """Create a nylon/TPB funnel of the given outer dimensions, which will be closed at the bottom.
+    """Create a nylon/TPB OR PEN funnel of the given outer dimensions, which will be closed at the bottom.
 
     .. note:: this can also be used for calibration tubes.
     """
+    if minishroud_material not in ("pen", "nylon"):
+        msg = f"invalid minishroud material {minishroud_material}"
+        raise ValueError(msg)
+
+    thickness, end_thickness = _get_mini_shroud_thickness(minishroud_material)
+    material = materials.tpb_on_nylon if minishroud_material == "nylon" else materials.pen
+
     shroud_name = f"{minishroud_name}_{radius:.2f}x{length:.2f}"
     if shroud_name not in registry.logicalVolumeDict:
         outer = geant4.solid.Tubs(f"{shroud_name}_outer", min_radius, radius, length, 0, 2 * np.pi, registry)
         inner = geant4.solid.Tubs(
             f"{shroud_name}_inner",
             0,
-            radius - MINISHROUD_THICKNESS,
+            radius - thickness,
             length,
             0,
             2 * np.pi,
             registry,
         )
         # subtract the slightly smaller solid from the larger one, to get a hollow and closed volume.
-        inner_z = MINISHROUD_END_THICKNESS
+        inner_z = end_thickness
         shroud = geant4.solid.Subtraction(shroud_name, outer, inner, [[0, 0, 0], [0, 0, inner_z]], registry)
-        nms_lv = geant4.LogicalVolume(shroud, materials.tpb_on_nylon, shroud_name, registry)
+        nms_lv = geant4.LogicalVolume(shroud, material, shroud_name, registry)
         nms_lv.pygeom_color_rgba = (0.55, 0.79, 0.97, 0.1)
 
     return registry.logicalVolumeDict[shroud_name]
+
+
+def _add_mini_shroud_surfaces(
+    minishroud_material: Literal["pen", "nylon"],
+    ms_pv: geant4.PhysicalVolume,
+    mother_pv: geant4.LogicalVolume,
+    mats: materials.OpticalMaterialRegistry,
+    reg: geant4.Registry,
+) -> None:
+    if minishroud_material == "nylon":
+        _add_nms_surfaces(ms_pv, mother_pv, mats, reg)
+    elif minishroud_material == "pen":
+        _add_pen_surfaces(ms_pv, mother_pv, mats, reg)
+    else:
+        msg = f"invalid minishroud material {minishroud_material}"
+        raise ValueError(msg)
 
 
 def _add_pen_surfaces(
@@ -856,7 +898,7 @@ def _add_pen_surfaces(
     mother_pv: geant4.LogicalVolume,
     mats: materials.OpticalMaterialRegistry,
     reg: geant4.Registry,
-):
+) -> None:
     # between LAr and PEN we need a surface in both directions.
     geant4.BorderSurface("bsurface_lar_pen_" + pen_pv.name, mother_pv, pen_pv, mats.surfaces.lar_to_pen, reg)
     geant4.BorderSurface("bsurface_tpb_pen_" + pen_pv.name, pen_pv, mother_pv, mats.surfaces.lar_to_pen, reg)
@@ -867,7 +909,7 @@ def _add_nms_surfaces(
     mother_pv: geant4.LogicalVolume,
     mats: materials.OpticalMaterialRegistry,
     reg: geant4.Registry,
-):
+) -> None:
     # between LAr and the NMS we need a surface in both directions.
     geant4.BorderSurface("bsurface_lar_nms_" + nms_pv.name, mother_pv, nms_pv, mats.surfaces.lar_to_tpb, reg)
     geant4.BorderSurface("bsurface_nms_lar_" + nms_pv.name, nms_pv, mother_pv, mats.surfaces.lar_to_tpb, reg)

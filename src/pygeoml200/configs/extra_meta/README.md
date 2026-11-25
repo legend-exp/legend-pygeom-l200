@@ -18,6 +18,8 @@ This metadata is passed to all instrumentation modules, stored as
     `null` to indicate no minishroud is present.
   - `minishroud_delta_length_in_mm` → modification of the default length of a
     NMS. If unspecified, 0 will be used.
+  - `minishroud_material` → either `"nylon"` or `"pen"`. Changes the material
+    and the dimensions.
   - `rod_radius_in_mm` → placement radius of the support rod of this string
   - `empty_string_content` → optional content of the empty string (array or
     null).
@@ -49,6 +51,8 @@ This metadata is passed to all instrumentation modules, stored as
     the positive x-direction
   - `tube_radius_in_mm` → radius of the tube itself
   - `length_in_mm` → length of the calibration tube below the top copper plate
+  - `minishroud_material` → either `"nylon"` or `"pen"`. Changes the material
+    and the dimensions.
 
 Each tube in the mapping can be `null` to indicate that this calibration system
 tube is not present.
